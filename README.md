@@ -1,9 +1,15 @@
-# yahatl
-
-# YAHATL Design Document
+# YAHATL
 ## Yet Another Home Assistant Todo List
 
 Personal information hub combining tasks, habits, chores, reminders, and knowledge management with deep Home Assistant integration.
+
+> **Status**: Initial setup complete. See [SETUP.md](SETUP.md) for build and run instructions.
+> 
+> For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+# YAHATL Design Document
 
 ## Problem Statement
 

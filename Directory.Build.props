@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <Authors>YAHATL Contributors</Authors>
+    <Company>YAHATL</Company>
+    <Product>YAHATL - Yet Another Home Assistant Todo List</Product>
+    <Copyright>Copyright © $(Year) YAHATL Contributors</Copyright>
+  </PropertyGroup>
+</Project>

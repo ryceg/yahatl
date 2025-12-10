@@ -177,7 +177,7 @@ public class DueDateCalculatorService : IDueDateCalculatorService
     {
         return trigger switch
         {
-            FixedTrigger fixed => EvaluateFixedTrigger(fixed, tz, nowUtc),
+            FixedTrigger fixedTrigger => EvaluateFixedTrigger(fixedTrigger, tz, nowUtc),
             IntervalTrigger interval => EvaluateIntervalTrigger(interval, lastCompleted, nowUtc),
             WindowTrigger window => EvaluateWindowTrigger(window, lastCompleted, tz, nowUtc),
             ConditionTrigger condition => EvaluateConditionTrigger(condition, nowUtc),

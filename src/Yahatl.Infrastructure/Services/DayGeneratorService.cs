@@ -23,10 +23,10 @@ public class DayGeneratorService(
             .Include(n => n.Triggers)
             .Include(n => n.Blockers)
             .Where(n => n.OwnerId == userId || n.AssigneeId == userId)
-            .Where(n => n.Behaviours.Any(b =>
-                (b is TaskBehaviour tb && tb.Status == TaskStatus.Pending) ||
-                b is ChoreBehaviour ||
-                b is HabitBehaviour))
+            .Where(n =>
+                n.Behaviours.OfType<TaskBehaviour>().Any(tb => tb.Status == TaskExecutionStatus.Pending) ||
+                n.Behaviours.OfType<ChoreBehaviour>().Any() ||
+                n.Behaviours.OfType<HabitBehaviour>().Any())
             .ToListAsync();
 
         // Get items already in today's plan
@@ -92,7 +92,7 @@ public class DayGeneratorService(
         return planItems.Select(p =>
         {
             var taskBehaviour = p.Note?.Behaviours.OfType<TaskBehaviour>().FirstOrDefault();
-            var isComplete = taskBehaviour?.Status == TaskStatus.Complete;
+            var isComplete = taskBehaviour?.Status == TaskExecutionStatus.Complete;
 
             return new PlanItem(
                 p.NoteId,
@@ -192,7 +192,7 @@ public class DayGeneratorService(
             .Include(p => p.Note)
                 .ThenInclude(n => n!.Behaviours)
             .Where(p => p.UserId == userId && p.PlanDate == today)
-            .Where(p => !p.Note!.Behaviours.OfType<TaskBehaviour>().Any(t => t.Status == TaskStatus.Complete))
+            .Where(p => !p.Note!.Behaviours.OfType<TaskBehaviour>().Any(t => t.Status == TaskExecutionStatus.Complete))
             .ToListAsync();
 
         var rolledOverIds = new List<Guid>();

@@ -315,7 +315,7 @@ public class BlockersController(YahatlDbContext dbContext) : ControllerBase
         if (targetTask == null)
             return (true, "Target note has no task behaviour");
 
-        if (targetTask.Status == Domain.Entities.TaskStatus.Complete)
+        if (targetTask.Status == Domain.Entities.TaskExecutionStatus.Complete)
             return (false, "Target note completed");
 
         return (true, "Waiting for target note to complete");

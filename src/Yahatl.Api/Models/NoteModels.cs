@@ -79,7 +79,7 @@ public abstract record BehaviourResponse(
 
 public record TaskBehaviourResponse(
     Guid Id,
-    Domain.Entities.TaskStatus Status,
+    Domain.Entities.TaskExecutionStatus Status,
     DateTime? DueDate,
     Priority Priority,
     DateTime? CompletedAt

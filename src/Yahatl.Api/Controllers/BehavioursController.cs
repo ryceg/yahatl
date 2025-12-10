@@ -36,7 +36,7 @@ public class BehavioursController(YahatlDbContext dbContext) : ControllerBase
             NoteId = noteId,
             DueDate = request.DueDate,
             Priority = request.Priority,
-            Status = Domain.Entities.TaskStatus.Pending
+            Status = Domain.Entities.TaskExecutionStatus.Pending
         };
 
         dbContext.TaskBehaviours.Add(behaviour);
@@ -205,7 +205,7 @@ public class BehavioursController(YahatlDbContext dbContext) : ControllerBase
         if (behaviour == null)
             return NotFound("Task behaviour not found");
 
-        behaviour.Status = Domain.Entities.TaskStatus.Complete;
+        behaviour.Status = Domain.Entities.TaskExecutionStatus.Complete;
         behaviour.CompletedAt = DateTime.UtcNow;
 
         var note = await dbContext.Notes.FindAsync(noteId);
@@ -238,7 +238,7 @@ public class BehavioursController(YahatlDbContext dbContext) : ControllerBase
         if (behaviour == null)
             return NotFound("Task behaviour not found");
 
-        behaviour.Status = Domain.Entities.TaskStatus.Pending;
+        behaviour.Status = Domain.Entities.TaskExecutionStatus.Pending;
         behaviour.CompletedAt = null;
 
         var note = await dbContext.Notes.FindAsync(noteId);

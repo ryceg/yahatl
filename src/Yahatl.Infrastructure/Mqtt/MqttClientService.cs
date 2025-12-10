@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
+using MQTTnet.Client;
 using MQTTnet.Protocol;
 using Yahatl.Domain.Entities;
 using Yahatl.Domain.Services;
@@ -83,7 +84,7 @@ public class MqttClientService : BackgroundService, IMqttService
         var username = _configuration["Mqtt:Username"];
         var password = _configuration["Mqtt:Password"];
 
-        var factory = new MqttClientFactory();
+        var factory = new MqttFactory();
         _client = factory.CreateMqttClient();
 
         var optionsBuilder = new MqttClientOptionsBuilder()

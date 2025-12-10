@@ -47,33 +47,6 @@ public class WebhookController : ControllerBase
 
     /// <summary>
     /// Mark a task as complete via NFC tag scan or other automation.
-    /// </summary>
-    [HttpPost("complete/{noteId:guid}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> CompleteTask(Guid noteId)
-    {
-        var taskBehaviour = await _dbContext.TaskBehaviours
-            .Where(t => t.NoteId == noteId && t.Status == TaskStatus.Pending)
-            .FirstOrDefaultAsync();
-
-        if (taskBehaviour == null)
-        {
-            return NotFound(new { error = "Task not found or already completed" });
-        }
-
-        taskBehaviour.Status = TaskStatus.Complete;
-        taskBehaviour.CompletedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync();
-
-        // Update MQTT states
-        await _discoveryService.UpdateStatesAsync();
-
-        _logger.LogInformation("Task {NoteId} marked complete via webhook", noteId);
-
-        return Ok(new { status = "completed", noteId });
-    }
-
     /// <summary>
     /// Handle sensor threshold events (e.g., soil moisture low).
     /// </summary>

@@ -200,7 +200,7 @@ public class BlockerEvaluatorService : IBlockerEvaluatorService
         }
 
         // Blocker is active if target note is NOT complete
-        return taskBehaviour.Status != TaskStatus.Complete;
+        return taskBehaviour.Status != TaskExecutionStatus.Complete;
     }
 
     /// <summary>

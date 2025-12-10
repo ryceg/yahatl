@@ -164,7 +164,7 @@ public class HomeAssistantDiscoveryService : IHaDiscoveryService
         var today = DateTime.UtcNow.Date;
 
         return await _dbContext.TaskBehaviours
-            .Where(t => t.Status == TaskStatus.Pending && t.DueDate.HasValue && t.DueDate.Value < today)
+            .Where(t => t.Status == TaskExecutionStatus.Pending && t.DueDate.HasValue && t.DueDate.Value < today)
             .CountAsync(cancellationToken);
     }
 
@@ -174,14 +174,14 @@ public class HomeAssistantDiscoveryService : IHaDiscoveryService
         var tomorrow = today.AddDays(1);
 
         return await _dbContext.TaskBehaviours
-            .Where(t => t.Status == TaskStatus.Pending && t.DueDate.HasValue && t.DueDate.Value >= today && t.DueDate.Value < tomorrow)
+            .Where(t => t.Status == TaskExecutionStatus.Pending && t.DueDate.HasValue && t.DueDate.Value >= today && t.DueDate.Value < tomorrow)
             .CountAsync(cancellationToken);
     }
 
     private async Task<string?> GetNextTaskAsync(CancellationToken cancellationToken)
     {
         var nextTask = await _dbContext.TaskBehaviours
-            .Where(t => t.Status == TaskStatus.Pending)
+            .Where(t => t.Status == TaskExecutionStatus.Pending)
             .OrderBy(t => t.DueDate ?? DateTime.MaxValue)
             .ThenBy(t => t.Priority)
             .Include(t => t.Note)

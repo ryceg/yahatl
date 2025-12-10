@@ -160,9 +160,9 @@ public class NotificationBackgroundService : BackgroundService
             .Include(n => n.Behaviours)
             .Include(n => n.Owner)
             .Where(n => !n.IsArchived)
-            .Where(n => n.Behaviours.Any(b =>
-                (b is ChoreBehaviour chore && chore.NextDue < nowUtc) ||
-                (b is TaskBehaviour task && task.DueDate < nowUtc && task.Status == TaskStatus.Pending)))
+            .Where(n =>
+                n.Behaviours.OfType<ChoreBehaviour>().Any(chore => chore.NextDue < nowUtc) ||
+                n.Behaviours.OfType<TaskBehaviour>().Any(task => task.DueDate < nowUtc && task.Status == TaskExecutionStatus.Pending))
             .GroupBy(n => n.OwnerId)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);

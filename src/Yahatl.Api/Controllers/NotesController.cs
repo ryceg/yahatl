@@ -295,7 +295,7 @@ public class NotesController(
         if (taskBehaviour == null)
             return BadRequest("Note does not have a task behaviour");
 
-        taskBehaviour.Status = Domain.Entities.TaskStatus.Complete;
+        taskBehaviour.Status = Domain.Entities.TaskExecutionStatus.Complete;
         taskBehaviour.CompletedAt = DateTime.UtcNow;
         note.UpdatedAt = DateTime.UtcNow;
 

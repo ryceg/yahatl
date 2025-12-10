@@ -140,7 +140,7 @@ public class CaptureController(
                 note.Behaviours.Add(new TaskBehaviour
                 {
                     NoteId = note.Id,
-                    Status = Domain.Entities.TaskStatus.Pending,
+                    Status = Domain.Entities.TaskExecutionStatus.Pending,
                     Priority = request.TaskPriority ?? Priority.Normal,
                     DueDate = request.TaskDueDate
                 });

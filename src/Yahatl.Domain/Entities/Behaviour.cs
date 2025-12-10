@@ -21,7 +21,10 @@ public abstract class Behaviour
 /// <summary>
 /// Status values for TaskBehaviour.
 /// </summary>
-public enum TaskStatus
+/// <summary>
+/// Status values for TaskBehaviour.
+/// </summary>
+public enum TaskExecutionStatus
 {
     Pending,
     Complete,
@@ -44,7 +47,7 @@ public enum Priority
 /// </summary>
 public class TaskBehaviour : Behaviour
 {
-    public TaskStatus Status { get; set; } = TaskStatus.Pending;
+    public TaskExecutionStatus Status { get; set; } = TaskExecutionStatus.Pending;
 
     /// <summary>
     /// Due date can be set manually or calculated from triggers.

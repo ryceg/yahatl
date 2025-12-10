@@ -22,11 +22,11 @@ public class DashboardController(YahatlDbContext dbContext) : ControllerBase
         var tomorrow = today.AddDays(1);
 
         var overdueCount = await dbContext.TaskBehaviours
-            .Where(t => t.Status == TaskStatus.Pending && t.DueDate.HasValue && t.DueDate.Value < today)
+            .Where(t => t.Status == TaskExecutionStatus.Pending && t.DueDate.HasValue && t.DueDate.Value < today)
             .CountAsync();
 
         var dueTodayCount = await dbContext.TaskBehaviours
-            .Where(t => t.Status == TaskStatus.Pending &&
+            .Where(t => t.Status == TaskExecutionStatus.Pending &&
                    t.DueDate.HasValue &&
                    t.DueDate.Value >= today &&
                    t.DueDate.Value < tomorrow)
@@ -66,7 +66,7 @@ public class DashboardController(YahatlDbContext dbContext) : ControllerBase
 
         var taskItems = await dbContext.TaskBehaviours
             .Include(t => t.Note)
-            .Where(t => t.Status == TaskStatus.Pending &&
+            .Where(t => t.Status == TaskExecutionStatus.Pending &&
                    t.DueDate.HasValue &&
                    t.DueDate.Value >= today &&
                    t.DueDate.Value < nextWeek)

@@ -161,17 +161,19 @@ public class BlockerEvaluatorServiceTests
     // ==================== NOTE BLOCKER TESTS ====================
 
     [Fact]
-    public void EvaluateNoteBlocker_TargetComplete_ReturnsFalse()
+    public void EvaluateNoteBlocker_TargetNoteComplete_ReturnsFalse()
     {
         // Arrange
         var targetNote = new Note
         {
-            Title = "Target",
-            Behaviours = [new TaskBehaviour { Status = TaskStatus.Complete }]
+            Title = "Blocking Task",
+            Behaviours = new List<Behaviour>
+            {
+                new TaskBehaviour { Status = TaskExecutionStatus.Complete }
+            }
         };
         var blocker = new NoteBlocker
         {
-            TargetNoteId = targetNote.Id,
             TargetNote = targetNote
         };
 
@@ -183,17 +185,19 @@ public class BlockerEvaluatorServiceTests
     }
 
     [Fact]
-    public void EvaluateNoteBlocker_TargetPending_ReturnsTrue()
+    public void EvaluateNoteBlocker_TargetNotePending_ReturnsTrue()
     {
         // Arrange
         var targetNote = new Note
         {
-            Title = "Target",
-            Behaviours = [new TaskBehaviour { Status = TaskStatus.Pending }]
+            Title = "Blocking Task",
+            Behaviours = new List<Behaviour>
+            {
+                new TaskBehaviour { Status = TaskExecutionStatus.Pending }
+            }
         };
         var blocker = new NoteBlocker
         {
-            TargetNoteId = targetNote.Id,
             TargetNote = targetNote
         };
 
@@ -205,17 +209,19 @@ public class BlockerEvaluatorServiceTests
     }
 
     [Fact]
-    public void EvaluateNoteBlocker_TargetCancelled_ReturnsFalse()
+    public void EvaluateNoteBlocker_TargetNoteCancelled_ReturnsTrue()
     {
-        // Arrange - Cancelled tasks should also unblock
+        // Arrange
         var targetNote = new Note
         {
-            Title = "Target",
-            Behaviours = [new TaskBehaviour { Status = TaskStatus.Cancelled }]
+            Title = "Blocking Task",
+            Behaviours = new List<Behaviour>
+            {
+                new TaskBehaviour { Status = TaskExecutionStatus.Cancelled }
+            }
         };
         var blocker = new NoteBlocker
         {
-            TargetNoteId = targetNote.Id,
             TargetNote = targetNote
         };
 
@@ -289,8 +295,7 @@ public static class TestableBlockerEvaluator
             return false;
         }
 
-        // Blocker is active if target note is NOT complete
-        return taskBehaviour.Status != TaskStatus.Complete;
+        return taskBehaviour.Status != TaskExecutionStatus.Complete;
     }
 
     private static bool TryParseTimeRange(string? timeRange, out TimeSpan startTime, out TimeSpan endTime)

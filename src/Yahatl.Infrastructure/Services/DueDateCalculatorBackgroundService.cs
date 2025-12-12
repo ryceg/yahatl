@@ -54,3 +54,4 @@ public class DueDateCalculatorBackgroundService : BackgroundService
         await service.EvaluateAllDueNotesAsync(cancellationToken);
     }
 }
+

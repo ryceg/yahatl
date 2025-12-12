@@ -141,6 +141,40 @@ public class WebhookController : ControllerBase
 
         return await CompleteTask(noteId);
     }
+
+    private async Task<IActionResult> CompleteTask(Guid noteId)
+    {
+        var note = await _dbContext.Notes
+            .Include(n => n.Behaviours)
+            .FirstOrDefaultAsync(n => n.Id == noteId);
+
+        if (note == null)
+            return NotFound(new { error = "Note not found" });
+
+        var taskBehaviour = note.Behaviours.OfType<TaskBehaviour>().FirstOrDefault();
+        if (taskBehaviour == null)
+            return BadRequest(new { error = "Note does not have a task behaviour" });
+
+        taskBehaviour.Status = TaskExecutionStatus.Complete;
+        taskBehaviour.CompletedAt = DateTime.UtcNow;
+        note.UpdatedAt = DateTime.UtcNow;
+
+        // Also resolve any NoteBlockers that target this note
+        var dependentBlockers = await _dbContext.NoteBlockers
+            .Where(b => b.TargetNoteId == noteId && b.IsActive)
+            .ToListAsync();
+
+        foreach (var blocker in dependentBlockers)
+        {
+            blocker.IsActive = false;
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Completed task for note {NoteId}", noteId);
+
+        return Ok(new { status = "completed", noteId });
+    }
 }
 
 public class WebhookEventRequest

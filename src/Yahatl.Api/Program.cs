@@ -1,9 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add Aspire service defaults (OpenTelemetry, health checks, service discovery)
 builder.AddServiceDefaults();
 
-builder.AddNpgsqlDbContext<Yahatl.Infrastructure.Data.YahatlDbContext>("yahatl");
+// Register DbContext without pooling since ICurrentUserService is scoped
+// Aspire's AddNpgsqlDbContext uses pooling which is incompatible with scoped services
+builder.Services.AddDbContext<Yahatl.Infrastructure.Data.YahatlDbContext>((sp, options) =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("yahatl");
+    options.UseNpgsql(connectionString);
+});
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -75,6 +83,24 @@ builder.Services.AddOpenApiDocument(options =>
 });
 
 var app = builder.Build();
+
+// Apply migrations automatically in development
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<Yahatl.Infrastructure.Data.YahatlDbContext>();
+    try
+    {
+        // Use EnsureCreated for dev to create schema without migrations
+        // For production, use: dbContext.Database.Migrate();
+        dbContext.Database.EnsureCreated();
+        Console.WriteLine("[Database] Schema created/verified successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Database] Warning: Could not create schema: {ex.Message}");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

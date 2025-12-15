@@ -1,76 +1,129 @@
-import { View, Text, ScrollView } from 'react-native';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, Button } from '@/components/ui';
+/**
+ * Planner Screen
+ *
+ * Main planner mode interface with Today's Plan and Candidates sections.
+ */
+import { View, ScrollView, RefreshControl } from "react-native";
+import { router } from "expo-router";
+import { Plus } from "lucide-react-native";
+import {
+  usePlanner,
+  useAddToPlan,
+  useRemoveFromPlan,
+} from "@/lib/api/hooks/usePlanner";
+import { useCompleteTask } from "@/lib/api/hooks/useBehaviours";
+import { TodayPlan, CandidateSection } from "@/components/planner";
+import {
+  LoadingSpinner,
+  ErrorState,
+  FloatingActionButton,
+} from "@/components/common";
+import React from "react";
 
 export default function PlannerScreen() {
+  const { todaysPlan, candidates, isLoading, isError, refetchAll } =
+    usePlanner();
+  const addToPlan = useAddToPlan();
+  const removeFromPlan = useRemoveFromPlan();
+  const completeTask = useCompleteTask();
+
+  const handleAddToToday = (noteId: string) => {
+    addToPlan.mutate(noteId);
+  };
+
+  const handleComplete = (noteId: string) => {
+    completeTask.mutate(noteId);
+  };
+
+  const handleRemove = (noteId: string) => {
+    removeFromPlan.mutate(noteId);
+  };
+
+  const handleItemPress = (noteId: string) => {
+    router.push(`/notes/${noteId}`);
+  };
+
+  const handleQuickCapture = () => {
+    router.push("/(tabs)/capture");
+  };
+
+  // Loading state
+  if (isLoading && !todaysPlan.data && !candidates.data) {
+    return <LoadingSpinner message="Loading your plan..." />;
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <ErrorState
+        title="Couldn't load planner"
+        message="Check your connection and try again."
+        onRetry={refetchAll}
+      />
+    );
+  }
+
+  const candidatesData = candidates.data;
+  const planData = todaysPlan.data ?? [];
+
   return (
-    <ScrollView className="flex-1 bg-background p-4">
-      {/* Today's Plan Section */}
-      <View className="mb-6">
-        <Text className="mb-3 text-lg font-semibold text-foreground">
-          Today's Plan
-        </Text>
-        <Card className="mb-3">
-          <CardContent className="flex-row items-center justify-between py-4">
-            <View className="flex-1">
-              <Text className="text-base font-medium text-card-foreground">
-                No tasks planned yet
-              </Text>
-              <Text className="text-sm text-muted-foreground">
-                Drag items from candidates below
-              </Text>
-            </View>
-          </CardContent>
-        </Card>
-      </View>
+    <View className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1 p-4"
+        refreshControl={
+          <RefreshControl
+            refreshing={todaysPlan.isFetching || candidates.isFetching}
+            onRefresh={refetchAll}
+            tintColor="hsl(262, 83%, 58%)"
+          />
+        }
+      >
+        {/* Today's Plan Section */}
+        <TodayPlan
+          items={planData}
+          onComplete={handleComplete}
+          onRemove={handleRemove}
+          onItemPress={handleItemPress}
+        />
 
-      {/* Candidates Section */}
-      <View className="mb-4">
-        <View className="mb-3 flex-row items-center justify-between">
-          <Text className="text-lg font-semibold text-foreground">
-            Candidates
-          </Text>
-          <Badge variant="secondary">0</Badge>
-        </View>
+        {/* Candidates Sections */}
+        {candidatesData && (
+          <View>
+            <CandidateSection
+              title="Urgent / Overdue"
+              variant="urgent"
+              items={candidatesData.urgent ?? []}
+              onAddToToday={handleAddToToday}
+              onItemPress={handleItemPress}
+              defaultExpanded={true}
+            />
 
-        {/* Urgent Section */}
-        <View className="mb-4">
-          <View className="mb-2 flex-row items-center gap-2">
-            <Badge variant="destructive">Urgent</Badge>
+            <CandidateSection
+              title="Due Soon"
+              variant="dueSoon"
+              items={candidatesData.dueSoon ?? []}
+              onAddToToday={handleAddToToday}
+              onItemPress={handleItemPress}
+              defaultExpanded={true}
+            />
+
+            <CandidateSection
+              title="Available"
+              variant="available"
+              items={candidatesData.available ?? []}
+              onAddToToday={handleAddToToday}
+              onItemPress={handleItemPress}
+              defaultExpanded={false}
+            />
           </View>
-          <Text className="text-sm text-muted-foreground">
-            No urgent items
-          </Text>
-        </View>
+        )}
 
-        {/* Due Soon Section */}
-        <View className="mb-4">
-          <View className="mb-2 flex-row items-center gap-2">
-            <Badge variant="warning">Due Soon</Badge>
-          </View>
-          <Text className="text-sm text-muted-foreground">
-            No items due soon
-          </Text>
-        </View>
+        {/* Bottom padding for FAB */}
+        <View className="h-20" />
+      </ScrollView>
 
-        {/* Available Section */}
-        <View className="mb-4">
-          <View className="mb-2 flex-row items-center gap-2">
-            <Badge>Available</Badge>
-          </View>
-          <Text className="text-sm text-muted-foreground">
-            No available items
-          </Text>
-        </View>
-      </View>
-
-      {/* TODO: Replace with TanStack Query hooks when API client is available */}
-      {/*
-        Implementation notes:
-        - usePlanner() hook to fetch candidates and today's plan
-        - Drag-and-drop to move items to today's plan
-        - Swipe gestures for complete/snooze actions
-        - Pull-to-refresh for manual sync
-      */}
-    </ScrollView>
+      {/* Floating Action Button */}
+      <FloatingActionButton icon={Plus} onPress={handleQuickCapture} />
+    </View>
   );
 }

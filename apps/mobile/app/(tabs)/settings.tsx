@@ -1,7 +1,16 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { ChevronRight, User, Bell, Link2, LogOut } from 'lucide-react-native';
-import { Card, CardContent, Button } from '@/components/ui';
+import { View, Text, ScrollView, Pressable } from "react-native";
+import { router } from "expo-router";
+import {
+  ChevronRight,
+  User,
+  Bell,
+  Link2,
+  Info,
+  LogOut,
+} from "lucide-react-native";
+import { Card, CardContent, Button } from "@/components/ui";
+import { useAuthStore } from "@/lib/stores/authStore";
+import React from "react";
 
 type SettingsItemProps = {
   icon: React.ReactNode;
@@ -34,10 +43,11 @@ function SettingsItem({ icon, title, subtitle, onPress }: SettingsItemProps) {
 }
 
 export default function SettingsScreen() {
-  const handleLogout = () => {
-    // TODO: Clear auth tokens and redirect to login
-    // authStore.clearAuth();
-    router.replace('/auth/login');
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/auth/login");
   };
 
   return (
@@ -51,7 +61,7 @@ export default function SettingsScreen() {
           icon={<User size={20} className="text-foreground" />}
           title="Profile"
           subtitle="Manage your account"
-          onPress={() => router.push('/settings/account')}
+          onPress={() => router.push("/settings/account")}
         />
       </View>
 
@@ -64,13 +74,26 @@ export default function SettingsScreen() {
           icon={<Bell size={20} className="text-foreground" />}
           title="Notifications"
           subtitle="Push notifications & reminders"
-          onPress={() => router.push('/settings/notifications')}
+          onPress={() => router.push("/settings/notifications")}
         />
         <SettingsItem
           icon={<Link2 size={20} className="text-foreground" />}
           title="Integrations"
           subtitle="Google Calendar, Contacts"
-          onPress={() => router.push('/settings/integrations')}
+          onPress={() => router.push("/settings/integrations")}
+        />
+      </View>
+
+      {/* About Section */}
+      <View className="mb-6">
+        <Text className="mb-3 text-sm font-medium uppercase text-muted-foreground">
+          About
+        </Text>
+        <SettingsItem
+          icon={<Info size={20} className="text-foreground" />}
+          title="About YAHATL"
+          subtitle="Version, licenses & links"
+          onPress={() => router.push("/settings/about")}
         />
       </View>
 

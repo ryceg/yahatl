@@ -4,7 +4,7 @@
 Personal information hub combining tasks, habits, chores, reminders, and knowledge management with deep Home Assistant integration.
 
 > **Status**: Initial setup complete. See [SETUP.md](SETUP.md) for build and run instructions.
-> 
+>
 > For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
@@ -17,7 +17,7 @@ Most task/to-do apps fail at handling tasks that are repetitive but not strictly
 
 Additionally, productivity information is fragmented: tasks in one app, recipes in another, notes elsewhere. Connections between them (gift idea → person → birthday reminder) are lost.
 
-TaskMaster solves this by treating everything as linkable notes with optional behaviours attached, and providing flexible scheduling that matches how chores and habits actually work.
+YAHATL solves this by treating everything as linkable notes with optional behaviours attached, and providing flexible scheduling that matches how chores and habits actually work.
 
 ---
 

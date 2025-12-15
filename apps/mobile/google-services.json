@@ -1,0 +1,29 @@
+{
+	"project_info": {
+	  "project_number": "848400594152",
+	  "project_id": "yahatl",
+	  "storage_bucket": "yahatl.firebasestorage.app"
+	},
+	"client": [
+	  {
+		"client_info": {
+		  "mobilesdk_app_id": "1:848400594152:android:798776cfc5d4ec5428c55d",
+		  "android_client_info": {
+			"package_name": "com.eigengraustudios.yahatl"
+		  }
+		},
+		"oauth_client": [],
+		"api_key": [
+		  {
+			"current_key": "AIzaSyADzVdQ64oxOv8FOvmin_rjMCJUxX6UPQY"
+		  }
+		],
+		"services": {
+		  "appinvite_service": {
+			"other_platform_oauth_client": []
+		  }
+		}
+	  }
+	],
+	"configuration_version": "1"
+  }

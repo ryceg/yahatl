@@ -1,101 +1,244 @@
-import { View, Text, ScrollView } from 'react-native';
-import { Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui';
+/**
+ * Dashboard Screen
+ *
+ * Overview interface showing summary stats, upcoming items,
+ * waiting/blocked items, and streak information.
+ */
+import * as React from "react";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { router } from "expo-router";
+import { AlertTriangle, Calendar, Inbox, Flame } from "lucide-react-native";
+import { useDashboard } from "@/lib/api/hooks";
+import {
+  StatCard,
+  UpcomingList,
+  WaitingOnList,
+  StreakWidget,
+  NoteDetailSheet,
+} from "@/components/dashboard";
+import { LoadingSpinner, ErrorState } from "@/components/common";
+import { Badge } from "@/components/ui";
 
 export default function DashboardScreen() {
-  // TODO: Replace with TanStack Query hooks when API client is available
-  const stats = {
+  const {
+    summary,
+    upcoming,
+    waiting,
+    streaks,
+    isLoading,
+    isError,
+    refetchAll,
+  } = useDashboard();
+
+  // Sheet state for note preview
+  const [selectedNoteId, setSelectedNoteId] = React.useState<string | null>(
+    null
+  );
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+
+  const stats = summary.data ?? {
     overdueCount: 0,
-    tasksDueToday: 0,
+    dueTodayCount: 0,
     streaksAtRisk: 0,
-    waitingOn: 0,
+    blockedCount: 0,
+    inboxCount: 0,
   };
 
+  // Handler to open note detail sheet
+  const handleItemPress = (noteId: string) => {
+    setSelectedNoteId(noteId);
+    setSheetOpen(true);
+  };
+
+  // Handler to navigate to notes list with filter
+  const handleOverduePress = () => {
+    router.push("/notes?filter=overdue");
+  };
+
+  const handleDueTodayPress = () => {
+    router.push("/notes?filter=today");
+  };
+
+  const handleInboxPress = () => {
+    router.push("/notes?filter=inbox");
+  };
+
+  const handleStreaksAtRiskPress = () => {
+    router.push("/notes?filter=streaks-at-risk");
+  };
+
+  // Loading state for initial load
+  if (isLoading && !summary.data) {
+    return <LoadingSpinner message="Loading dashboard..." />;
+  }
+
+  // Error state
+  if (isError && !summary.data) {
+    return (
+      <ErrorState
+        title="Couldn't load dashboard"
+        message="Check your connection and try again."
+        onRetry={refetchAll}
+      />
+    );
+  }
+
   return (
-    <ScrollView className="flex-1 bg-background p-4">
-      {/* Stats Grid */}
-      <View className="mb-6 flex-row flex-wrap gap-3">
-        <Card className="flex-1 min-w-[45%]">
-          <CardContent className="py-4">
-            <Text className="text-3xl font-bold text-destructive">
-              {stats.overdueCount}
-            </Text>
-            <Text className="text-sm text-muted-foreground">Overdue</Text>
-          </CardContent>
-        </Card>
-
-        <Card className="flex-1 min-w-[45%]">
-          <CardContent className="py-4">
-            <Text className="text-3xl font-bold text-primary">
-              {stats.tasksDueToday}
-            </Text>
-            <Text className="text-sm text-muted-foreground">Due Today</Text>
-          </CardContent>
-        </Card>
-
-        <Card className="flex-1 min-w-[45%]">
-          <CardContent className="py-4">
-            <Text className="text-3xl font-bold text-foreground">
-              {stats.streaksAtRisk}
-            </Text>
-            <Text className="text-sm text-muted-foreground">Streaks at Risk</Text>
-          </CardContent>
-        </Card>
-
-        <Card className="flex-1 min-w-[45%]">
-          <CardContent className="py-4">
-            <Text className="text-3xl font-bold text-foreground">
-              {stats.waitingOn}
-            </Text>
-            <Text className="text-sm text-muted-foreground">Waiting On</Text>
-          </CardContent>
-        </Card>
-      </View>
-
-      {/* Upcoming Section */}
-      <View className="mb-6">
-        <Text className="mb-3 text-lg font-semibold text-foreground">
-          Upcoming
-        </Text>
-        <Card>
-          <CardContent className="py-4">
-            <Text className="text-muted-foreground">
-              No upcoming reminders
-            </Text>
-          </CardContent>
-        </Card>
-      </View>
-
-      {/* Streaks Section */}
-      <View className="mb-6">
-        <View className="mb-3 flex-row items-center justify-between">
-          <Text className="text-lg font-semibold text-foreground">
-            Active Streaks
+    <View className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="p-4"
+        refreshControl={
+          <RefreshControl
+            refreshing={
+              summary.isFetching ||
+              upcoming.isFetching ||
+              waiting.isFetching ||
+              streaks.isFetching
+            }
+            onRefresh={refetchAll}
+            tintColor="hsl(262, 83%, 58%)"
+          />
+        }
+      >
+        {/* Stats Grid */}
+        <View className="mb-6">
+          <Text className="mb-3 text-lg font-semibold text-foreground">
+            At a Glance
           </Text>
-          <Badge variant="secondary">0</Badge>
+          <View className="flex-row flex-wrap gap-3">
+            <StatCard
+              value={stats.overdueCount ?? 0}
+              label="Overdue"
+              icon={AlertTriangle}
+              variant={
+                stats.overdueCount && stats.overdueCount > 0
+                  ? "destructive"
+                  : "muted"
+              }
+              isLoading={summary.isLoading}
+              onPress={
+                stats.overdueCount && stats.overdueCount > 0
+                  ? handleOverduePress
+                  : undefined
+              }
+            />
+            <StatCard
+              value={stats.dueTodayCount ?? 0}
+              label="Due Today"
+              icon={Calendar}
+              variant={
+                stats.dueTodayCount && stats.dueTodayCount > 0
+                  ? "warning"
+                  : "muted"
+              }
+              isLoading={summary.isLoading}
+              onPress={
+                stats.dueTodayCount && stats.dueTodayCount > 0
+                  ? handleDueTodayPress
+                  : undefined
+              }
+            />
+            <StatCard
+              value={stats.inboxCount ?? 0}
+              label="Inbox"
+              icon={Inbox}
+              variant={
+                stats.inboxCount && stats.inboxCount > 0 ? "default" : "muted"
+              }
+              isLoading={summary.isLoading}
+              onPress={
+                stats.inboxCount && stats.inboxCount > 0
+                  ? handleInboxPress
+                  : undefined
+              }
+            />
+            <StatCard
+              value={stats.streaksAtRisk ?? 0}
+              label="Streaks at Risk"
+              icon={Flame}
+              variant={
+                stats.streaksAtRisk && stats.streaksAtRisk > 0
+                  ? "destructive"
+                  : "muted"
+              }
+              isLoading={summary.isLoading}
+              onPress={
+                stats.streaksAtRisk && stats.streaksAtRisk > 0
+                  ? handleStreaksAtRiskPress
+                  : undefined
+              }
+            />
+          </View>
         </View>
-        <Card>
-          <CardContent className="py-4">
-            <Text className="text-muted-foreground">
-              No active streaks
-            </Text>
-          </CardContent>
-        </Card>
-      </View>
 
-      {/* Quick Filters */}
-      <View className="mb-6">
-        <Text className="mb-3 text-lg font-semibold text-foreground">
-          Browse
-        </Text>
-        <View className="flex-row flex-wrap gap-2">
-          <Badge variant="outline">All Notes</Badge>
-          <Badge variant="outline">People</Badge>
-          <Badge variant="outline">Recipes</Badge>
-          <Badge variant="outline">Projects</Badge>
+        {/* Upcoming Section */}
+        <UpcomingList
+          items={upcoming.data}
+          isLoading={upcoming.isLoading}
+          maxItems={5}
+          onItemPress={handleItemPress}
+          onShowAll={() => router.push("/notes?filter=upcoming")}
+        />
+
+        {/* Waiting On Section */}
+        <WaitingOnList
+          items={waiting.data}
+          isLoading={waiting.isLoading}
+          maxItems={5}
+          onItemPress={handleItemPress}
+          onShowAll={() => router.push("/notes?filter=blocked")}
+        />
+
+        {/* Streaks Section */}
+        <StreakWidget
+          items={streaks.data}
+          isLoading={streaks.isLoading}
+          maxItems={5}
+          onItemPress={handleItemPress}
+          onShowAll={() => router.push("/notes?filter=habits")}
+        />
+
+        {/* Quick Browse Section */}
+        <View className="mb-6">
+          <Text className="mb-3 text-lg font-semibold text-foreground">
+            Browse
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            <Badge variant="outline" onTouchEnd={() => router.push("/notes")}>
+              All Notes
+            </Badge>
+            <Badge
+              variant="outline"
+              onTouchEnd={() => router.push("/notes?filter=people")}
+            >
+              People
+            </Badge>
+            <Badge
+              variant="outline"
+              onTouchEnd={() => router.push("/notes?filter=recipes")}
+            >
+              Recipes
+            </Badge>
+            <Badge
+              variant="outline"
+              onTouchEnd={() => router.push("/notes?filter=projects")}
+            >
+              Projects
+            </Badge>
+          </View>
         </View>
-      </View>
 
-      {/* TODO: Add calendar view overlay when Google Calendar integration is ready */}
-    </ScrollView>
+        {/* Bottom padding for safe area */}
+        <View className="h-8" />
+      </ScrollView>
+
+      {/* Note Detail Sheet */}
+      <NoteDetailSheet
+        noteId={selectedNoteId}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
+    </View>
   );
 }

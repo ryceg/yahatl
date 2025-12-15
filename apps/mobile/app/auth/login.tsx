@@ -1,37 +1,31 @@
-import { useState } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Input, Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui';
+import { useAuthStore } from '@/lib/stores/authStore';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const { login, isLoading, error, clearError } = useAuthStore();
+
+  // Clear error when inputs change
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [email, password]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Please enter email and password');
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    const success = await login(email.trim(), password);
 
-    try {
-      // TODO: Call API to login when NSwag client is available
-      // const { mutate: login } = useLogin();
-      // const result = await login({ email, password });
-      // authStore.setTokens(result.accessToken, result.refreshToken);
-
-      console.log('Login:', { email, password });
-
-      // Navigate to main app
+    if (success) {
       router.replace('/(tabs)/planner');
-    } catch (err) {
-      setError('Invalid email or password');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -60,6 +54,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!isLoading}
           />
           <Input
             label="Password"
@@ -67,13 +62,18 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            editable={!isLoading}
+            onSubmitEditing={handleLogin}
           />
 
           {error && (
             <Text className="text-sm text-destructive">{error}</Text>
           )}
 
-          <Button onPress={handleLogin} disabled={isLoading}>
+          <Button
+            onPress={handleLogin}
+            disabled={isLoading || !email.trim() || !password.trim()}
+          >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
 
@@ -93,3 +93,4 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
+

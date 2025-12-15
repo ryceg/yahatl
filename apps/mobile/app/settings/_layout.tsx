@@ -1,13 +1,13 @@
-import { Stack } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Stack } from "expo-router";
+import { useColorScheme } from "react-native";
 
 export default function SettingsLayout() {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
 
-  const backgroundColor = isDark ? 'hsl(240, 10%, 3.9%)' : 'hsl(0, 0%, 100%)';
-  const headerColor = isDark ? '#fafafa' : '#0a0a0a';
-  const borderColor = isDark ? 'hsl(240, 3.7%, 15.9%)' : 'hsl(240, 5.9%, 90%)';
+  const backgroundColor = isDark ? "hsl(240, 10%, 3.9%)" : "hsl(0, 0%, 100%)";
+  const headerColor = isDark ? "#fafafa" : "#0a0a0a";
+  const borderColor = isDark ? "hsl(240, 3.7%, 15.9%)" : "hsl(240, 5.9%, 90%)";
 
   return (
     <Stack
@@ -17,7 +17,7 @@ export default function SettingsLayout() {
         },
         headerTintColor: headerColor,
         headerTitleStyle: {
-          fontWeight: '600',
+          fontWeight: "600",
         },
         contentStyle: {
           backgroundColor,
@@ -33,19 +33,25 @@ export default function SettingsLayout() {
       <Stack.Screen
         name="account"
         options={{
-          title: 'Account',
+          title: "Account",
         }}
       />
       <Stack.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
+          title: "Notifications",
         }}
       />
       <Stack.Screen
         name="integrations"
         options={{
-          title: 'Integrations',
+          title: "Integrations",
+        }}
+      />
+      <Stack.Screen
+        name="about"
+        options={{
+          title: "About",
         }}
       />
     </Stack>

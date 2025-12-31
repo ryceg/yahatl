@@ -1,0 +1,22 @@
+{
+  "title": "YAHATL",
+  "config": {
+    "step": {
+      "user": {
+        "title": "YAHATL Setup",
+        "description": "Set up your YAHATL household for task and chore management.",
+        "data": {
+          "household_name": "Household Name",
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "YAHATL is already configured"
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password"
+    }
+  }
+}

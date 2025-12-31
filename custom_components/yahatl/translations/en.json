@@ -1,0 +1,136 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "YAHATL Setup",
+        "description": "Set up your YAHATL household for task and chore management.",
+        "data": {
+          "household_name": "Household Name",
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "YAHATL is already configured"
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "YAHATL Options",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "todo": {
+      "inbox": {
+        "name": "Inbox"
+      },
+      "tasks": {
+        "name": "Tasks"
+      },
+      "chores": {
+        "name": "Chores"
+      },
+      "habits": {
+        "name": "Habits"
+      }
+    },
+    "sensor": {
+      "overdue_count": {
+        "name": "Overdue Tasks"
+      },
+      "due_today": {
+        "name": "Due Today"
+      },
+      "inbox_count": {
+        "name": "Inbox Count"
+      },
+      "streaks_at_risk": {
+        "name": "Streaks at Risk"
+      },
+      "blocked_count": {
+        "name": "Blocked Items"
+      }
+    },
+    "binary_sensor": {
+      "pomodoro_active": {
+        "name": "Pomodoro Active"
+      },
+      "has_overdue": {
+        "name": "Has Overdue"
+      }
+    }
+  },
+  "services": {
+    "capture": {
+      "name": "Quick Capture",
+      "description": "Capture a quick thought to the inbox.",
+      "fields": {
+        "title": {
+          "name": "Title",
+          "description": "The title of the item to capture."
+        },
+        "tags": {
+          "name": "Tags",
+          "description": "Optional list of tags."
+        }
+      }
+    },
+    "complete_task": {
+      "name": "Complete Task",
+      "description": "Mark a task as complete.",
+      "fields": {
+        "note_id": {
+          "name": "Note ID",
+          "description": "The ID of the note/task to complete."
+        }
+      }
+    },
+    "start_pomodoro": {
+      "name": "Start Pomodoro",
+      "description": "Start a Pomodoro timer session.",
+      "fields": {
+        "note_id": {
+          "name": "Note ID",
+          "description": "Optional note to focus on."
+        },
+        "duration_minutes": {
+          "name": "Duration",
+          "description": "Session duration in minutes."
+        }
+      }
+    },
+    "stop_pomodoro": {
+      "name": "Stop Pomodoro",
+      "description": "Stop the current Pomodoro session."
+    },
+    "log_habit": {
+      "name": "Log Habit",
+      "description": "Log a habit completion for today.",
+      "fields": {
+        "note_id": {
+          "name": "Note ID",
+          "description": "The ID of the habit note."
+        }
+      }
+    },
+    "complete_chore": {
+      "name": "Complete Chore",
+      "description": "Mark a chore as complete and reschedule.",
+      "fields": {
+        "note_id": {
+          "name": "Note ID",
+          "description": "The ID of the chore note."
+        }
+      }
+    }
+  }
+}

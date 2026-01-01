@@ -7,16 +7,16 @@ vi.mock('expo-secure-store', () => ({
   deleteItemAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock the API client - must be a class constructor
-vi.mock('@/lib/api/client', () => {
+// Mock the API client
+vi.mock('@/lib/api/api', () => {
   return {
-    AuthClient: class MockAuthClient {
-      login = vi.fn().mockResolvedValue({ token: 'test-token', refreshToken: 'test-refresh' });
+    login: vi.fn().mockResolvedValue({ accessToken: 'test-token', refreshToken: 'test-refresh', userId: '1', email: 'test@example.com' }),
+    setAccessToken: vi.fn(),
+    getAccessToken: vi.fn().mockReturnValue(null),
+    ApiError: class ApiError extends Error {
+      static isApiException() { return false; }
     },
-    LoginRequest: class {},
-    ApiException: {
-      isApiException: () => false,
-    },
+    API_BASE_URL: 'http://localhost:5000',
   };
 });
 

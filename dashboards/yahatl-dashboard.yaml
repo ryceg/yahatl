@@ -1,0 +1,498 @@
+title: YAHATL
+views:
+  - title: Dashboard
+    path: dashboard
+    icon: mdi:checkbox-marked-outline
+    type: sections
+    max_columns: 3
+    sections:
+      # ======================
+      # HEADER SECTION
+      # ======================
+      - type: grid
+        column_span: 3
+        cards:
+          - type: custom:mushroom-title-card
+            title: "YAHATL"
+            subtitle: "{{ now().strftime('%A, %B %d') }}"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: template
+                icon: mdi:alert-circle
+                icon_color: |-
+                  {% if states('sensor.yahatl_overdue_count') | int > 0 %}
+                    red
+                  {% else %}
+                    green
+                  {% endif %}
+                content: "{{ states('sensor.yahatl_overdue_count') }} overdue"
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/tasks
+
+              - type: template
+                icon: mdi:calendar-today
+                icon_color: |-
+                  {% if states('sensor.yahatl_due_today') | int > 0 %}
+                    orange
+                  {% else %}
+                    grey
+                  {% endif %}
+                content: "{{ states('sensor.yahatl_due_today') }} due today"
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/tasks
+
+              - type: template
+                icon: mdi:inbox
+                icon_color: |-
+                  {% if states('sensor.yahatl_inbox_count') | int > 0 %}
+                    blue
+                  {% else %}
+                    grey
+                  {% endif %}
+                content: "{{ states('sensor.yahatl_inbox_count') }} inbox"
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/inbox
+
+              - type: template
+                icon: mdi:fire
+                icon_color: |-
+                  {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
+                    deep-orange
+                  {% else %}
+                    green
+                  {% endif %}
+                content: "{{ states('sensor.yahatl_streaks_at_risk') }} at risk"
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/habits
+
+              - type: template
+                icon: mdi:timer
+                icon_color: |-
+                  {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                    red
+                  {% else %}
+                    grey
+                  {% endif %}
+                content: |-
+                  {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                    Focus
+                  {% else %}
+                    Ready
+                  {% endif %}
+                tap_action:
+                  action: call-service
+                  service: |-
+                    {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                      yahatl.stop_pomodoro
+                    {% else %}
+                      yahatl.start_pomodoro
+                    {% endif %}
+
+      # ======================
+      # SUMMARY CARDS SECTION
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Summary
+            subtitle: Your productivity at a glance
+
+          # Overdue Count Card
+          - type: custom:mushroom-template-card
+            primary: Overdue Tasks
+            secondary: "{{ states('sensor.yahatl_overdue_count') }} tasks past due"
+            icon: mdi:alert-circle
+            icon_color: |-
+              {% if states('sensor.yahatl_overdue_count') | int > 0 %}
+                red
+              {% else %}
+                green
+              {% endif %}
+            badge_icon: |-
+              {% if states('sensor.yahatl_overdue_count') | int > 0 %}
+                mdi:exclamation-thick
+              {% endif %}
+            badge_color: red
+            tap_action:
+              action: navigate
+              navigation_path: /yahatl/tasks
+            fill_container: true
+
+          # Due Today Card
+          - type: custom:mushroom-template-card
+            primary: Due Today
+            secondary: "{{ states('sensor.yahatl_due_today') }} tasks for today"
+            icon: mdi:calendar-today
+            icon_color: |-
+              {% if states('sensor.yahatl_due_today') | int > 0 %}
+                orange
+              {% else %}
+                grey
+              {% endif %}
+            tap_action:
+              action: navigate
+              navigation_path: /yahatl/tasks
+            fill_container: true
+
+          # Inbox Count Card
+          - type: custom:mushroom-template-card
+            primary: Inbox
+            secondary: "{{ states('sensor.yahatl_inbox_count') }} items to process"
+            icon: mdi:inbox
+            icon_color: |-
+              {% if states('sensor.yahatl_inbox_count') | int > 0 %}
+                blue
+              {% else %}
+                grey
+              {% endif %}
+            tap_action:
+              action: navigate
+              navigation_path: /yahatl/inbox
+            fill_container: true
+
+          # Streaks at Risk Card
+          - type: custom:mushroom-template-card
+            primary: Streaks at Risk
+            secondary: "{{ states('sensor.yahatl_streaks_at_risk') }} habits need attention"
+            icon: mdi:fire-alert
+            icon_color: |-
+              {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
+                deep-orange
+              {% else %}
+                green
+              {% endif %}
+            badge_icon: |-
+              {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
+                mdi:alert
+              {% endif %}
+            badge_color: orange
+            tap_action:
+              action: navigate
+              navigation_path: /yahatl/habits
+            fill_container: true
+
+          # Blocked Items Card
+          - type: custom:mushroom-template-card
+            primary: Blocked Items
+            secondary: "{{ states('sensor.yahatl_blocked_count') }} items waiting"
+            icon: mdi:block-helper
+            icon_color: |-
+              {% if states('sensor.yahatl_blocked_count') | int > 0 %}
+                purple
+              {% else %}
+                grey
+              {% endif %}
+            tap_action:
+              action: more-info
+              entity: sensor.yahatl_blocked_count
+            fill_container: true
+
+      # ======================
+      # POMODORO SECTION
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Pomodoro Timer
+            subtitle: Focus session control
+
+          - type: custom:mushroom-template-card
+            primary: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                Focus Session Active
+              {% else %}
+                Ready to Focus
+              {% endif %}
+            secondary: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                Tap to stop the timer
+              {% else %}
+                Tap to start a 25-minute session
+              {% endif %}
+            icon: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                mdi:timer-sand
+              {% else %}
+                mdi:timer-outline
+              {% endif %}
+            icon_color: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                red
+              {% else %}
+                teal
+              {% endif %}
+            tap_action:
+              action: call-service
+              service: |-
+                {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                  yahatl.stop_pomodoro
+                {% else %}
+                  yahatl.start_pomodoro
+                {% endif %}
+            fill_container: true
+            multiline_secondary: true
+
+          # Pomodoro Quick Start Options
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "15 min"
+                icon: mdi:timer-15
+                icon_color: teal
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 15
+
+              - type: custom:mushroom-template-card
+                primary: "25 min"
+                icon: mdi:timer-25
+                icon_color: teal
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 25
+
+              - type: custom:mushroom-template-card
+                primary: "45 min"
+                icon: mdi:timer-45
+                icon_color: teal
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 45
+
+              - type: custom:mushroom-template-card
+                primary: "60 min"
+                icon: mdi:timer-60
+                icon_color: teal
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 60
+
+      # ======================
+      # TODO LISTS SECTION
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Tasks
+            subtitle: Manage your to-do items
+
+          # Tasks List
+          - type: todo-list
+            entity: todo.yahatl_tasks
+            title: Tasks
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Inbox
+            subtitle: Quick capture items to process
+
+          # Inbox List
+          - type: todo-list
+            entity: todo.yahatl_inbox
+            title: Inbox
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Chores
+            subtitle: Recurring household tasks
+
+          # Chores List
+          - type: todo-list
+            entity: todo.yahatl_chores
+            title: Chores
+
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Habits
+            subtitle: "Build streaks, build yourself"
+
+          # Habits List
+          - type: todo-list
+            entity: todo.yahatl_habits
+            title: Habits
+
+      # ======================
+      # CALENDAR SECTION
+      # ======================
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:mushroom-title-card
+            title: Upcoming
+            subtitle: Tasks and chores scheduled ahead
+
+          - type: calendar
+            entities:
+              - entity: calendar.yahatl
+            initial_view: listWeek
+
+      # ======================
+      # QUICK ACTIONS SECTION
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Quick Actions
+            subtitle: Common actions at your fingertips
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "Capture"
+                icon: mdi:plus-circle
+                icon_color: blue
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: yahatl.capture
+                  data:
+                    title: ""
+                  target: {}
+
+              - type: custom:mushroom-template-card
+                primary: "Focus"
+                icon: mdi:timer
+                icon_color: teal
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+
+          - type: custom:mushroom-template-card
+            primary: "Open Mobile App"
+            secondary: "Access the full YAHATL experience"
+            icon: mdi:cellphone
+            icon_color: indigo
+            tap_action:
+              action: url
+              url_path: "/api/yahatl"
+            fill_container: true
+
+  # ======================
+  # TASKS VIEW
+  # ======================
+  - title: Tasks
+    path: tasks
+    icon: mdi:checkbox-marked-circle-outline
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Tasks"
+            subtitle: "All your tasks in one place"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+              - type: template
+                icon: mdi:alert-circle
+                icon_color: red
+                content: "{{ states('sensor.yahatl_overdue_count') }} overdue"
+              - type: template
+                icon: mdi:calendar-today
+                icon_color: orange
+                content: "{{ states('sensor.yahatl_due_today') }} due today"
+
+          - type: todo-list
+            entity: todo.yahatl_tasks
+            title: All Tasks
+
+  # ======================
+  # INBOX VIEW
+  # ======================
+  - title: Inbox
+    path: inbox
+    icon: mdi:inbox
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Inbox"
+            subtitle: "Capture now, organize later"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+              - type: template
+                icon: mdi:inbox
+                icon_color: blue
+                content: "{{ states('sensor.yahatl_inbox_count') }} items"
+
+          - type: todo-list
+            entity: todo.yahatl_inbox
+            title: Inbox Items
+
+  # ======================
+  # CHORES VIEW
+  # ======================
+  - title: Chores
+    path: chores
+    icon: mdi:broom
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Chores"
+            subtitle: "Keep your space tidy"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: todo-list
+            entity: todo.yahatl_chores
+            title: All Chores
+
+  # ======================
+  # HABITS VIEW
+  # ======================
+  - title: Habits
+    path: habits
+    icon: mdi:fire
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Habits"
+            subtitle: "Small steps, big changes"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+              - type: template
+                icon: mdi:fire-alert
+                icon_color: |-
+                  {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
+                    orange
+                  {% else %}
+                    green
+                  {% endif %}
+                content: "{{ states('sensor.yahatl_streaks_at_risk') }} at risk"
+
+          - type: todo-list
+            entity: todo.yahatl_habits
+            title: All Habits

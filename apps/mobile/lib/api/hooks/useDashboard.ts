@@ -4,96 +4,55 @@
  * TanStack Query hooks for dashboard data.
  */
 import { useQuery } from '@tanstack/react-query';
-import { DashboardClient, API_BASE_URL } from '../client';
+import { getDashboardSummary, DashboardSummary, UpcomingItem, WaitingItem, StreakItem } from '../api';
 import { queryKeys } from '../queryClient';
 
-/**
- * Get a configured DashboardClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getDashboardClient() {
-  return new DashboardClient(API_BASE_URL);
-}
+export type { DashboardSummary };
 
 /**
- * Hook for fetching dashboard summary stats.
+ * Hook for fetching dashboard summary.
  */
 export function useDashboardSummary() {
   return useQuery({
     queryKey: queryKeys.dashboard.summary(),
-    queryFn: async ({ signal }) => {
-      const client = getDashboardClient();
-      return client.getSummary(signal);
-    },
-    // Refetch every 60 seconds for live updates
-    refetchInterval: 60_000,
+    queryFn: async () => getDashboardSummary(),
   });
 }
 
 /**
- * Hook for fetching upcoming items.
- */
-export function useUpcoming() {
-  return useQuery({
-    queryKey: queryKeys.dashboard.upcoming(),
-    queryFn: async ({ signal }) => {
-      const client = getDashboardClient();
-      return client.getUpcoming(signal);
-    },
-  });
-}
-
-/**
- * Hook for fetching waiting/blocked items.
- */
-export function useWaiting() {
-  return useQuery({
-    queryKey: queryKeys.dashboard.waiting(),
-    queryFn: async ({ signal }) => {
-      const client = getDashboardClient();
-      return client.getWaiting(signal);
-    },
-  });
-}
-
-/**
- * Hook for fetching streak items.
- */
-export function useStreaks() {
-  return useQuery({
-    queryKey: queryKeys.dashboard.streaks(),
-    queryFn: async ({ signal }) => {
-      const client = getDashboardClient();
-      return client.getStreaks(signal);
-    },
-  });
-}
-
-/**
- * Combined hook for all dashboard data.
- * Useful for initial page load.
+ * Combined dashboard hook for app screen.
+ * Returns all dashboard-related queries.
  */
 export function useDashboard() {
-  const summary = useDashboardSummary();
-  const upcoming = useUpcoming();
-  const waiting = useWaiting();
-  const streaks = useStreaks();
+  const summary = useQuery({
+    queryKey: queryKeys.dashboard.summary(),
+    queryFn: async () => getDashboardSummary(),
+  });
+
+  // Stub queries for upcoming, waiting, and streaks
+  // These will be populated when the HA API adds these endpoints
+  const upcoming = useQuery({
+    queryKey: ['dashboard', 'upcoming'],
+    queryFn: async (): Promise<UpcomingItem[]> => [],
+  });
+
+  const waiting = useQuery({
+    queryKey: ['dashboard', 'waiting'],
+    queryFn: async (): Promise<WaitingItem[]> => [],
+  });
+
+  const streaks = useQuery({
+    queryKey: ['dashboard', 'streaks'],
+    queryFn: async (): Promise<StreakItem[]> => [],
+  });
 
   return {
     summary,
     upcoming,
     waiting,
     streaks,
-    isLoading:
-      summary.isLoading ||
-      upcoming.isLoading ||
-      waiting.isLoading ||
-      streaks.isLoading,
-    isError:
-      summary.isError ||
-      upcoming.isError ||
-      waiting.isError ||
-      streaks.isError,
+    isLoading: summary.isLoading,
+    isError: summary.isError,
     refetchAll: () => {
       summary.refetch();
       upcoming.refetch();

@@ -5,23 +5,16 @@
  * These provide an alternative to using the authStore directly.
  */
 import { useMutation } from '@tanstack/react-query';
-import {
-  AuthClient,
-  LoginRequest,
-  RegisterRequest,
-  AuthResponse,
-  API_BASE_URL,
-} from '../client';
+import { login as apiLogin, setAccessToken, AuthResponse, API_BASE_URL } from '../api';
 import { queryClient } from '../queryClient';
 import { useAuthStore } from '../../stores/authStore';
 import * as tokenStorage from '../../services/tokenStorage';
 
-/**
- * Get a configured AuthClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getAuthClient() {
-  return new AuthClient(API_BASE_URL);
+export { API_BASE_URL };
+
+export interface LoginRequest {
+  email: string;
+  password: string;
 }
 
 /**
@@ -30,40 +23,24 @@ function getAuthClient() {
  * On success, stores tokens in auth store and secure storage.
  */
 export function useLogin() {
-  const { setTokens } = useAuthStore();
+  const { setTokens, setUser } = useAuthStore();
 
   return useMutation({
     mutationFn: async (request: LoginRequest) => {
-      const client = getAuthClient();
-      return client.login(request);
+      return apiLogin(request.email, request.password);
     },
     onSuccess: async (data: AuthResponse) => {
-      if (data.token) {
+      if (data.accessToken) {
+        // Set token for API client
+        setAccessToken(data.accessToken);
         // Store tokens in secure storage and auth store
-        await tokenStorage.saveTokens(data.token, data.refreshToken ?? '');
-        setTokens(data.token, data.refreshToken ?? null);
-      }
-    },
-  });
-}
-
-/**
- * Hook for user registration.
- *
- * On success, stores tokens in auth store and secure storage.
- */
-export function useRegister() {
-  const { setTokens } = useAuthStore();
-
-  return useMutation({
-    mutationFn: async (request: RegisterRequest) => {
-      const client = getAuthClient();
-      return client.register(request);
-    },
-    onSuccess: async (data: AuthResponse) => {
-      if (data.token) {
-        await tokenStorage.saveTokens(data.token, data.refreshToken ?? '');
-        setTokens(data.token, data.refreshToken ?? null);
+        await tokenStorage.saveTokens(data.accessToken, data.refreshToken ?? '');
+        setTokens(data.accessToken, data.refreshToken ?? null);
+        setUser({
+          id: data.userId,
+          email: data.email,
+          name: data.email.split('@')[0],
+        });
       }
     },
   });
@@ -85,4 +62,3 @@ export function useLogout() {
     },
   });
 }
-

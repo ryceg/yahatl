@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { Clock, User, FileText, ChevronRight } from 'lucide-react-native';
-import { WaitingItem } from '@/lib/api/client';
+import { WaitingItem } from '@/lib/api/api';
 import { Card, CardContent, Badge } from '@/components/ui';
 import { EmptyState } from '@/components/common';
 import { cn } from '@/lib/utils';

@@ -327,6 +327,40 @@ class TaskBehaviourView(HomeAssistantView):
         await data["coordinator"].async_request_refresh()
         return web.json_response(_task_to_dict(task))
 
+    async def put(self, request: web.Request, note_id: str) -> web.Response:
+        """Update task behaviour."""
+        hass: HomeAssistant = request.app["hass"]
+        data = _get_data(hass)
+        repo = data["repository"]
+
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON"}, status=400)
+
+        kwargs = {}
+        if "dueDate" in body:
+            if body["dueDate"]:
+                kwargs["due_date"] = datetime.fromisoformat(
+                    body["dueDate"].replace("Z", "+00:00")
+                )
+            else:
+                kwargs["due_date"] = None
+        if "priority" in body:
+            kwargs["priority"] = body["priority"]
+        if "status" in body:
+            kwargs["status"] = body["status"]
+
+        task = await hass.async_add_executor_job(
+            repo.update_task, note_id, **kwargs
+        )
+
+        if task is None:
+            return web.json_response({"error": "Task not found"}, status=404)
+
+        await data["coordinator"].async_request_refresh()
+        return web.json_response(_task_to_dict(task))
+
 
 class TaskCompleteView(HomeAssistantView):
     """Handle /api/yahatl/notes/{noteId}/behaviours/task/complete."""
@@ -384,6 +418,31 @@ class HabitBehaviourView(HomeAssistantView):
         await data["coordinator"].async_request_refresh()
         return web.json_response(_habit_to_dict(habit))
 
+    async def put(self, request: web.Request, note_id: str) -> web.Response:
+        """Update habit behaviour."""
+        hass: HomeAssistant = request.app["hass"]
+        data = _get_data(hass)
+        repo = data["repository"]
+
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON"}, status=400)
+
+        kwargs = {}
+        if "frequencyGoal" in body:
+            kwargs["frequency_goal"] = body["frequencyGoal"]
+
+        habit = await hass.async_add_executor_job(
+            repo.update_habit, note_id, **kwargs
+        )
+
+        if habit is None:
+            return web.json_response({"error": "Habit not found"}, status=404)
+
+        await data["coordinator"].async_request_refresh()
+        return web.json_response(_habit_to_dict(habit))
+
 
 class HabitCompleteView(HomeAssistantView):
     """Handle /api/yahatl/notes/{noteId}/behaviours/habit/complete."""
@@ -436,6 +495,31 @@ class ChoreBehaviourView(HomeAssistantView):
         await hass.async_add_executor_job(
             repo.update_note, note_id, template_type="Chore"
         )
+
+        await data["coordinator"].async_request_refresh()
+        return web.json_response(_chore_to_dict(chore))
+
+    async def put(self, request: web.Request, note_id: str) -> web.Response:
+        """Update chore behaviour."""
+        hass: HomeAssistant = request.app["hass"]
+        data = _get_data(hass)
+        repo = data["repository"]
+
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON"}, status=400)
+
+        kwargs = {}
+        if "intervalDays" in body:
+            kwargs["interval_days"] = int(body["intervalDays"])
+
+        chore = await hass.async_add_executor_job(
+            repo.update_chore, note_id, **kwargs
+        )
+
+        if chore is None:
+            return web.json_response({"error": "Chore not found"}, status=404)
 
         await data["coordinator"].async_request_refresh()
         return web.json_response(_chore_to_dict(chore))

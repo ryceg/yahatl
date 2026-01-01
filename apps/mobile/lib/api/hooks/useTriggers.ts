@@ -2,35 +2,49 @@
  * Triggers API Hooks
  *
  * TanStack Query hooks for trigger operations.
+ * Note: Trigger endpoints not yet implemented in HA integration.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  TriggersClient,
-  API_BASE_URL,
-  CreateFixedTriggerRequest,
-  CreateIntervalTriggerRequest,
-  CreateWindowTriggerRequest,
-  CreateConditionTriggerRequest,
-} from '../client';
 import { queryKeys } from '../queryClient';
 
-/**
- * Get a configured TriggersClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getTriggersClient() {
-  return new TriggersClient(API_BASE_URL);
+// Trigger types (for UI compatibility)
+export interface TriggerResponse {
+  id: string;
+  noteId: string;
+  triggerType: string;
+  pattern?: string;
+  intervalDays?: number;
+}
+
+export interface CreateFixedTriggerRequest {
+  pattern: string;
+}
+
+export interface CreateIntervalTriggerRequest {
+  intervalDays: number;
+}
+
+export interface CreateWindowTriggerRequest {
+  windows: Array<{ preference: number; days: string[]; timeRange: string }>;
+  recurrence: string;
+}
+
+export interface CreateConditionTriggerRequest {
+  topic: string;
+  operator: string;
+  value: unknown;
 }
 
 /**
  * Hook for fetching triggers for a note.
+ * Returns empty array - not yet implemented in HA API.
  */
 export function useTriggers(noteId: string) {
   return useQuery({
     queryKey: queryKeys.triggers.byNote(noteId),
-    queryFn: async ({ signal }) => {
-      const client = getTriggersClient();
-      return client.getTriggers(noteId, signal);
+    queryFn: async (): Promise<TriggerResponse[]> => {
+      // Stub - triggers API not yet implemented
+      return [];
     },
     enabled: !!noteId,
   });
@@ -44,8 +58,7 @@ export function useDeleteTrigger() {
 
   return useMutation({
     mutationFn: async ({ noteId, triggerId }: { noteId: string; triggerId: string }) => {
-      const client = getTriggersClient();
-      return client.deleteTrigger(noteId, triggerId);
+      return { noteId, triggerId, deleted: true };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.triggers.byNote(noteId) });
@@ -55,15 +68,14 @@ export function useDeleteTrigger() {
 }
 
 /**
- * Hook for adding a fixed trigger (cron-based).
+ * Hook for adding a fixed trigger.
  */
 export function useAddFixedTrigger() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateFixedTriggerRequest }) => {
-      const client = getTriggersClient();
-      return client.addFixedTrigger(noteId, request);
+      return { id: 'stub', noteId, triggerType: 'Fixed', ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.triggers.byNote(noteId) });
@@ -80,8 +92,7 @@ export function useAddIntervalTrigger() {
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateIntervalTriggerRequest }) => {
-      const client = getTriggersClient();
-      return client.addIntervalTrigger(noteId, request);
+      return { id: 'stub', noteId, triggerType: 'Interval', ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.triggers.byNote(noteId) });
@@ -98,8 +109,7 @@ export function useAddWindowTrigger() {
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateWindowTriggerRequest }) => {
-      const client = getTriggersClient();
-      return client.addWindowTrigger(noteId, request);
+      return { id: 'stub', noteId, triggerType: 'Window', ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.triggers.byNote(noteId) });
@@ -109,15 +119,14 @@ export function useAddWindowTrigger() {
 }
 
 /**
- * Hook for adding a condition trigger (MQTT-based).
+ * Hook for adding a condition trigger.
  */
 export function useAddConditionTrigger() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateConditionTriggerRequest }) => {
-      const client = getTriggersClient();
-      return client.addConditionTrigger(noteId, request);
+      return { id: 'stub', noteId, triggerType: 'Condition', ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.triggers.byNote(noteId) });
@@ -125,4 +134,3 @@ export function useAddConditionTrigger() {
     },
   });
 }
-

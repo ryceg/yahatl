@@ -2,37 +2,59 @@
  * Blockers API Hooks
  *
  * TanStack Query hooks for blocker operations.
+ * Note: Blocker endpoints not yet fully implemented in HA integration.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  BlockersClient,
-  API_BASE_URL,
-  CreateNoteBlockerRequest,
-  CreatePersonBlockerRequest,
-  CreateTimeBlockerRequest,
-  CreateConditionBlockerRequest,
-  CreateUntilDateBlockerRequest,
-  CreateFreetextBlockerRequest,
-} from '../client';
 import { queryKeys } from '../queryClient';
 
-/**
- * Get a configured BlockersClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getBlockersClient() {
-  return new BlockersClient(API_BASE_URL);
+// Blocker types (for UI compatibility)
+export interface BlockerResponse {
+  id: string;
+  noteId: string;
+  blockerType: string;
+  isActive: boolean;
+  description?: string;
+  untilDate?: string;
+  targetNoteId?: string;
+}
+
+export interface CreateNoteBlockerRequest {
+  targetNoteId: string;
+}
+
+export interface CreatePersonBlockerRequest {
+  personNoteId: string;
+  reason?: string;
+}
+
+export interface CreateTimeBlockerRequest {
+  windows: Array<{ days: string[]; timeRange: string }>;
+}
+
+export interface CreateConditionBlockerRequest {
+  topic: string;
+  operator: string;
+  value: unknown;
+}
+
+export interface CreateUntilDateBlockerRequest {
+  until: string;
+}
+
+export interface CreateFreetextBlockerRequest {
+  description: string;
 }
 
 /**
  * Hook for fetching blockers for a note.
+ * Returns empty array - not yet implemented in HA API.
  */
 export function useBlockers(noteId: string) {
   return useQuery({
     queryKey: queryKeys.blockers.byNote(noteId),
-    queryFn: async ({ signal }) => {
-      const client = getBlockersClient();
-      return client.getBlockers(noteId, signal);
+    queryFn: async (): Promise<BlockerResponse[]> => {
+      // Stub - blockers API not yet implemented
+      return [];
     },
     enabled: !!noteId,
   });
@@ -46,65 +68,59 @@ export function useResolveBlocker() {
 
   return useMutation({
     mutationFn: async ({ noteId, blockerId }: { noteId: string; blockerId: string }) => {
-      const client = getBlockersClient();
-      return client.resolveBlocker(noteId, blockerId);
+      // Stub
+      return { noteId, blockerId, resolved: true };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.waiting() });
     },
   });
 }
 
 /**
- * Hook for adding a note blocker (blocked by another note's completion).
+ * Hook for adding a note blocker.
  */
 export function useAddNoteBlocker() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateNoteBlockerRequest }) => {
-      const client = getBlockersClient();
-      return client.addNoteBlocker(noteId, request);
+      return { id: 'stub', noteId, blockerType: 'Note', isActive: true, ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.waiting() });
     },
   });
 }
 
 /**
- * Hook for adding a person blocker (waiting on a person).
+ * Hook for adding a person blocker.
  */
 export function useAddPersonBlocker() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreatePersonBlockerRequest }) => {
-      const client = getBlockersClient();
-      return client.addPersonBlocker(noteId, request);
+      return { id: 'stub', noteId, blockerType: 'Person', isActive: true, ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.waiting() });
     },
   });
 }
 
 /**
- * Hook for adding a time blocker (blocked during time windows).
+ * Hook for adding a time blocker.
  */
 export function useAddTimeBlocker() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateTimeBlockerRequest }) => {
-      const client = getBlockersClient();
-      return client.addTimeBlocker(noteId, request);
+      return { id: 'stub', noteId, blockerType: 'Time', isActive: true, ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
@@ -114,15 +130,14 @@ export function useAddTimeBlocker() {
 }
 
 /**
- * Hook for adding a condition blocker (MQTT-based).
+ * Hook for adding a condition blocker.
  */
 export function useAddConditionBlocker() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateConditionBlockerRequest }) => {
-      const client = getBlockersClient();
-      return client.addConditionBlocker(noteId, request);
+      return { id: 'stub', noteId, blockerType: 'Condition', isActive: true, ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
@@ -132,15 +147,14 @@ export function useAddConditionBlocker() {
 }
 
 /**
- * Hook for adding an until-date blocker (deferred until date).
+ * Hook for adding an until-date blocker.
  */
 export function useAddUntilDateBlocker() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateUntilDateBlockerRequest }) => {
-      const client = getBlockersClient();
-      return client.addUntilDateBlocker(noteId, request);
+      return { id: 'stub', noteId, blockerType: 'UntilDate', isActive: true, ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
@@ -150,21 +164,18 @@ export function useAddUntilDateBlocker() {
 }
 
 /**
- * Hook for adding a freetext blocker (manual description).
+ * Hook for adding a freetext blocker.
  */
 export function useAddFreetextBlocker() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ noteId, request }: { noteId: string; request: CreateFreetextBlockerRequest }) => {
-      const client = getBlockersClient();
-      return client.addFreetextBlocker(noteId, request);
+      return { id: 'stub', noteId, blockerType: 'Freetext', isActive: true, ...request };
     },
     onSuccess: (_, { noteId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.blockers.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.waiting() });
     },
   });
 }
-

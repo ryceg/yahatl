@@ -4,62 +4,22 @@
  * TanStack Query hooks for search operations.
  */
 import { useQuery } from '@tanstack/react-query';
-import { SearchClient, API_BASE_URL, TemplateType } from '../client';
+import { getNotes, NoteResponse } from '../api';
+import { queryKeys } from '../queryClient';
 
 /**
- * Get a configured SearchClient instance.
- * Auth headers are automatically handled by the base class.
+ * Hook for searching notes.
  */
-function getSearchClient() {
-  return new SearchClient(API_BASE_URL);
-}
-
-/**
- * Hook for searching notes with optional filters.
- */
-export function useSearch(
-  query: string,
-  options?: {
-    templateType?: TemplateType;
-    limit?: number;
-    enabled?: boolean;
-  }
-) {
+export function useSearch(query: string) {
   return useQuery({
-    queryKey: ['search', query, options?.templateType, options?.limit],
-    queryFn: async ({ signal }) => {
-      const client = getSearchClient();
-      return client.search(
-        query,
-        options?.templateType,
-        options?.limit ?? 20,
-        0,
-        signal
-      );
+    queryKey: queryKeys.search.results(query),
+    queryFn: async (): Promise<NoteResponse[]> => {
+      if (!query.trim()) {
+        return [];
+      }
+      const result = await getNotes({ search: query, limit: 20 });
+      return result.items;
     },
-    enabled: options?.enabled !== false && query.length >= 1,
-    staleTime: 10_000, // Search results valid for 10 seconds
+    enabled: query.length > 0,
   });
 }
-
-/**
- * Hook for searching Person notes specifically.
- */
-export function useSearchPeople(query: string, options?: { enabled?: boolean }) {
-  return useSearch(query, {
-    templateType: TemplateType.Person,
-    limit: 10,
-    enabled: options?.enabled,
-  });
-}
-
-/**
- * Hook for searching notes that can be blockers.
- */
-export function useSearchBlockerNotes(query: string, options?: { enabled?: boolean }) {
-  return useSearch(query, {
-    limit: 10,
-    enabled: options?.enabled,
-  });
-}
-

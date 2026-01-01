@@ -13,7 +13,7 @@ import {
   ListChecks,
   X,
 } from 'lucide-react-native';
-import { PlanItem, TemplateType } from '@/lib/api/client';
+import { PlanItem, TemplateType } from '@/lib/api/api';
 import { Card, CardContent, Badge } from '@/components/ui';
 import { EmptyState } from '@/components/common';
 import { cn } from '@/lib/utils';

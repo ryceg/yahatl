@@ -7,11 +7,11 @@
 import { create } from 'zustand';
 import * as tokenStorage from '@/lib/services/tokenStorage';
 import {
-  AuthClient,
-  LoginRequest,
-  ApiException,
+  login as apiLogin,
+  setAccessToken,
+  ApiError,
   API_BASE_URL,
-} from '@/lib/api/client';
+} from '@/lib/api/api';
 
 /**
  * User information stored after authentication.
@@ -23,7 +23,7 @@ export interface User {
 }
 
 interface AuthState {
-  // Token state (accessToken aliased as token for API compatibility)
+  // Token state
   accessToken: string | null;
   refreshToken: string | null;
 
@@ -82,9 +82,7 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
-// Create auth client for login/register
-// Note: AuthClient extends AuthorizedApiBase, but login/register don't require auth
-const authClient = new AuthClient(API_BASE_URL);
+export { API_BASE_URL };
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
   // Initial state
@@ -98,6 +96,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   initialize: async () => {
     try {
       const tokens = await tokenStorage.getTokens();
+      if (tokens.accessToken) {
+        setAccessToken(tokens.accessToken);
+      }
       set({
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -113,22 +114,29 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const request: LoginRequest = { email, password };
-      const response = await authClient.login(request);
+      const response = await apiLogin(email, password);
 
-      if (!response.token) {
+      if (!response.accessToken) {
         throw new Error('No token received from server');
       }
 
+      // Set token for API client
+      setAccessToken(response.accessToken);
+
       // Save tokens to secure storage
       await tokenStorage.saveTokens(
-        response.token,
+        response.accessToken,
         response.refreshToken ?? ''
       );
 
       set({
-        accessToken: response.token,
+        accessToken: response.accessToken,
         refreshToken: response.refreshToken ?? null,
+        user: {
+          id: response.userId,
+          email: response.email,
+          name: response.email.split('@')[0],
+        },
         isLoading: false,
         error: null,
       });
@@ -137,12 +145,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch (error) {
       let message = 'Login failed';
 
-      if (ApiException.isApiException(error)) {
-        // Handle specific API errors
+      if (error instanceof ApiError) {
         if (error.status === 401) {
           message = 'Invalid email or password';
         } else {
-          message = error.response || error.message;
+          message = error.body || error.message;
         }
       } else if (error instanceof Error) {
         message = error.message;
@@ -160,9 +167,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       console.error('Failed to clear tokens:', error);
     }
 
+    setAccessToken(null);
+
     set({
       accessToken: null,
       refreshToken: null,
+      user: null,
       error: null,
     });
   },
@@ -176,6 +186,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   setTokens: (accessToken, refreshToken) => {
+    if (accessToken) {
+      setAccessToken(accessToken);
+    }
     set({ accessToken, refreshToken });
   },
 
@@ -184,7 +197,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   clearAuth: async () => {
-    // Alias for logout
     await get().logout();
   },
 }));

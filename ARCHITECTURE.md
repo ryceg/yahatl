@@ -1,161 +1,120 @@
 # YAHATL Architecture Overview
 
-## Solution Structure
+## Overview
 
-The YAHATL solution follows Clean Architecture principles with .NET Aspire for cloud-native orchestration.
-
-## Projects
-
-### Core Application Projects
-
-#### Yahatl.Domain
-- **Purpose**: Domain entities, value objects, and interfaces
-- **Dependencies**: None (pure C# with no external dependencies)
-- **Contents**:
-  - Entities: `Note`, `User`, `Household`, `Tag`, `Trigger`, `Blocker`, `Behaviour`
-  - Value Objects: Domain-specific types
-  - Interfaces: Repository contracts, service interfaces
-  - Domain Events
-
-#### Yahatl.Infrastructure
-- **Purpose**: Infrastructure implementations
-- **Dependencies**: Yahatl.Domain
-- **Contents**:
-  - Entity Framework Core DbContext
-  - Repository implementations
-  - MQTT client for Home Assistant integration
-  - External service integrations (Google OAuth, Calendar, Contacts)
-  - Background services for scheduled jobs
-
-#### Yahatl.Api
-- **Purpose**: ASP.NET Core Web API
-- **Dependencies**: Yahatl.ServiceDefaults, Yahatl.Domain, Yahatl.Infrastructure
-- **Contents**:
-  - REST API endpoints
-  - Controllers/Minimal APIs
-  - DTOs and request/response models
-  - API authentication and authorization
-
-#### Yahatl.Api.Client
-- **Purpose**: Generated TypeScript client
-- **Dependencies**: None (output only)
-- **Contents**:
-  - NSwag-generated TypeScript client
-  - Type definitions
-  - npm package configuration for React Native consumption
-
-### Aspire Projects
-
-#### Yahatl.AppHost
-- **Purpose**: Aspire orchestration and service composition
-- **Dependencies**: Yahatl.Api (as project reference)
-- **Contents**:
-  - Service orchestration configuration
-  - PostgreSQL database provisioning
-  - Redis cache configuration
-  - Service discovery setup
-
-#### Yahatl.ServiceDefaults
-- **Purpose**: Shared cross-cutting concerns
-- **Dependencies**: None (standalone library)
-- **Contents**:
-  - OpenTelemetry configuration (metrics, traces, logs)
-  - Health check configuration
-  - Service discovery configuration
-  - Resilience patterns (retry, circuit breaker)
-
-### Test Projects
-
-- **Yahatl.Domain.Tests**: Unit tests for domain logic
-- **Yahatl.Api.Tests**: Integration tests for API endpoints
-- **Yahatl.Infrastructure.Tests**: Tests for data access and external integrations
+YAHATL is a native Home Assistant custom integration for task, habit, and chore management. All data is stored locally in SQLite, and the mobile app connects directly to Home Assistant's API.
 
 ## Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Yahatl.AppHost                         │
-│                   (Aspire Orchestration)                    │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-         ┌───────────┴───────────┬─────────────┬──────────────┐
-         │                       │             │              │
-    ┌────▼────┐            ┌────▼────┐   ┌───▼───┐    ┌────▼────┐
-    │   API   │            │PostgreSQL│   │ Redis │    │ PgAdmin │
-    └────┬────┘            └──────────┘   └───────┘    └─────────┘
-         │
-         ├──── Uses ────┐
-         │              │
-    ┌────▼──────────┐   │
-    │ServiceDefaults│   │
-    │  - Telemetry  │   │
-    │  - Health     │   │
-    │  - Discovery  │   │
-    └───────────────┘   │
-                        │
-         ┌──────────────┴──────────────┐
-         │                             │
-    ┌────▼────────────┐      ┌────────▼────────┐
-    │ Infrastructure  │      │     Domain      │
-    │  - DbContext    │◄─────┤  - Entities     │
-    │  - Repositories │      │  - Interfaces   │
-    │  - MQTT Client  │      │  - Events       │
-    └─────────────────┘      └─────────────────┘
+│                      Home Assistant                         │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              custom_components/yahatl/               │   │
+│  │                                                      │   │
+│  │  ┌──────────┐  ┌────────────┐  ┌───────────────┐   │   │
+│  │  │ __init__ │  │ coordinator│  │  http.py      │   │   │
+│  │  │  setup   │  │  data sync │  │  REST API     │   │   │
+│  │  └──────────┘  └────────────┘  └───────────────┘   │   │
+│  │                                                      │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌────────────────┐    │   │
+│  │  │ todo.py  │  │sensor.py │  │ binary_sensor  │    │   │
+│  │  │ 4 lists  │  │ 5 stats  │  │ 2 states       │    │   │
+│  │  └──────────┘  └──────────┘  └────────────────┘    │   │
+│  │                                                      │   │
+│  │  ┌─────────────────────────────────────────────┐   │   │
+│  │  │              db/                             │   │   │
+│  │  │  models.py        repository.py              │   │   │
+│  │  │  SQLAlchemy       Data Access Layer          │   │   │
+│  │  └─────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                           │                                 │
+│                           ▼                                 │
+│              ┌─────────────────────────┐                   │
+│              │  .storage/yahatl.db     │                   │
+│              │  (SQLite)               │                   │
+│              └─────────────────────────┘                   │
+└─────────────────────────────────────────────────────────────┘
+                           ▲
+                           │ HTTP
+                           │ /api/yahatl/*
+                           ▼
+                 ┌─────────────────┐
+                 │   Mobile App    │
+                 │ (React Native)  │
+                 └─────────────────┘
 ```
+
+## Components
+
+### custom_components/yahatl/
+
+| File | Purpose |
+|------|---------|
+| `__init__.py` | Integration setup, service registration |
+| `config_flow.py` | UI configuration wizard |
+| `coordinator.py` | DataUpdateCoordinator for data sync |
+| `const.py` | Constants, domain name, service names |
+| `entity.py` | Base entity class |
+| `http.py` | REST API for mobile app |
+| `todo.py` | Native todo list entities |
+| `sensor.py` | Dashboard stat sensors |
+| `binary_sensor.py` | Pomodoro and overdue sensors |
+| `calendar.py` | Tasks/chores as calendar events |
+| `services.yaml` | Service definitions |
+
+### db/
+
+| File | Purpose |
+|------|---------|
+| `models.py` | SQLAlchemy ORM models |
+| `repository.py` | Data access layer with CRUD methods |
+
+### Mobile App (apps/mobile/)
+
+React Native app using Expo SDK 52+.
+
+| Directory | Purpose |
+|-----------|---------|
+| `app/` | Expo Router file-based routes |
+| `components/` | UI components |
+| `lib/api/` | API client (manual, no codegen) |
+| `lib/stores/` | Zustand state stores |
+| `lib/hooks/` | TanStack Query hooks |
 
 ## Data Flow
 
-1. **Request Flow**:
-   - Client → API Endpoint
-   - API → Application Service (to be added)
-   - Application Service → Domain Logic
-   - Domain → Repository Interface
-   - Infrastructure → EF Core → PostgreSQL
+### Entity Updates
+1. User or mobile app triggers action
+2. Repository updates SQLite database
+3. Coordinator refreshes data
+4. Entities reflect new state
 
-2. **MQTT Integration**:
-   - Home Assistant → MQTT Broker → Infrastructure MQTT Client
-   - Infrastructure → Domain Events → Application Services
-   - Application Services → API → Client notifications
-
-3. **Aspire Orchestration**:
-   - AppHost starts all services
-   - Service Discovery provides connection strings
-   - OpenTelemetry collects metrics and traces
-   - Dashboard displays service health and logs
+### Mobile App Requests
+1. Mobile app calls `/api/yahatl/*`
+2. HA authenticates via Long-Lived Access Token
+3. `http.py` views handle request
+4. Repository performs database operation
+5. Coordinator refreshes for entity updates
+6. Response returned to mobile app
 
 ## Technology Stack
 
-- **Framework**: .NET 10
-- **API**: ASP.NET Core Web API with Minimal APIs
-- **ORM**: Entity Framework Core
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **MQTT**: MQTTnet (for Home Assistant integration)
-- **Orchestration**: .NET Aspire
-- **Observability**: OpenTelemetry
-- **Testing**: xUnit
-- **Client Generation**: NSwag (TypeScript/Fetch API)
+| Layer | Technology |
+|-------|------------|
+| Platform | Home Assistant |
+| Language | Python 3.11+ |
+| Database | SQLite (SQLAlchemy ORM) |
+| HTTP | aiohttp (via HA HTTP component) |
+| Mobile App | React Native + Expo |
+| State | TanStack Query + Zustand |
+| Styling | NativeWind (Tailwind) |
 
 ## Key Design Principles
 
-1. **Clean Architecture**: Domain at the center, dependencies point inward
-2. **Cloud-Native**: Designed for containerized deployment with Aspire
-3. **Observable**: Built-in OpenTelemetry support for metrics, traces, and logs
-4. **Resilient**: Service defaults include retry policies and circuit breakers
-5. **Testable**: Clear separation of concerns enables unit and integration testing
-6. **Multi-tenant**: Household-based data isolation built into the domain model
-
-## Deployment
-
-The application is designed to be deployed as:
-- Docker containers (via Aspire)
-- Self-hosted alongside Home Assistant
-- Uses existing Home Assistant MQTT broker
-
-## Next Steps
-
-1. Implement domain entities and EF Core migrations
-2. Add authentication and authorization
-3. Create API endpoints for core functionality
-4. Generate TypeScript client for React Native app
-5. Implement MQTT integration for Home Assistant
+1. **HA-Native**: Built as a proper HA custom component
+2. **Self-Contained**: SQLite database, no external dependencies
+3. **Mobile-First**: REST API designed for mobile app consumption
+4. **Entity-Centric**: Full HA entity integration (todo, sensors, calendar)
+5. **Automatable**: Services exposed for HA automations

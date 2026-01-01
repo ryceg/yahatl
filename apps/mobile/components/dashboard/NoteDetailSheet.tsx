@@ -73,7 +73,7 @@ import {
   Priority,
   TaskExecutionStatus,
   TemplateType,
-} from "@/lib/api/client";
+} from "@/lib/api/api";
 import { usePomodoroStore } from "@/lib/stores";
 import { useStartPomodoroSession } from "@/lib/hooks";
 import { cn } from "@/lib/utils";

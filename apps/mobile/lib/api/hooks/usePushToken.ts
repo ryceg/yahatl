@@ -1,53 +1,31 @@
 /**
  * Push Token API Hooks
  *
- * TanStack Query hooks for push token operations.
+ * TanStack Query hooks for push notification token registration.
+ * Note: Push token endpoints not yet implemented in HA integration.
  */
 import { useMutation } from '@tanstack/react-query';
-import { PushTokenClient, API_BASE_URL, RegisterPushTokenRequest } from '../client';
 
 /**
- * Get configured PushTokenClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getPushTokenClient() {
-  return new PushTokenClient(API_BASE_URL);
-}
-
-/**
- * Hook to register a push token with the backend.
+ * Hook for registering a push token.
+ * Stub - push notifications handled by HA Companion app.
  */
 export function useRegisterPushToken() {
   return useMutation({
-    mutationFn: async (pushToken: string) => {
-      const client = getPushTokenClient();
-      const request: RegisterPushTokenRequest = { pushToken };
-      return await client.registerPushToken(request);
+    mutationFn: async (_token: string) => {
+      // Stub - push tokens managed by HA Companion app
+      return { registered: true };
     },
   });
 }
 
 /**
- * Hook to unregister the push token from the backend.
+ * Hook for unregistering a push token.
  */
 export function useUnregisterPushToken() {
   return useMutation({
-    mutationFn: async () => {
-      const client = getPushTokenClient();
-      return await client.unregisterPushToken();
+    mutationFn: async (_token: string) => {
+      return { unregistered: true };
     },
   });
 }
-
-/**
- * Hook to update the user's timezone.
- */
-export function useUpdateTimezone() {
-  return useMutation({
-    mutationFn: async (timezone: string) => {
-      const client = getPushTokenClient();
-      return await client.updateTimezone({ timezone });
-    },
-  });
-}
-

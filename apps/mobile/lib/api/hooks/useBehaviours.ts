@@ -1,38 +1,44 @@
 /**
  * Behaviours API Hooks
  *
- * TanStack Query hooks for behaviour operations.
+ * TanStack Query hooks for task, habit, and chore behaviours.
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  BehavioursClient,
-  API_BASE_URL,
-  CreateTaskBehaviourRequest,
-  CreateHabitBehaviourRequest,
-  CreateChoreBehaviourRequest,
-  CreateReminderBehaviourRequest,
-} from '../client';
+  addTaskBehaviour,
+  completeTask,
+  addHabitBehaviour,
+  logHabit,
+  addChoreBehaviour,
+  completeChore,
+  Priority,
+} from '../api';
 import { queryKeys } from '../queryClient';
 
-/**
- * Get a configured BehavioursClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getBehavioursClient() {
-  return new BehavioursClient(API_BASE_URL);
-}
+export type { Priority };
 
 /**
- * Hook for fetching behaviours for a note.
+ * Hook for adding a task behaviour to a note.
  */
-export function useBehaviours(noteId: string) {
-  return useQuery({
-    queryKey: queryKeys.behaviours.byNote(noteId),
-    queryFn: async ({ signal }) => {
-      const client = getBehavioursClient();
-      return client.getBehaviours(noteId, signal);
+export function useAddTaskBehaviour() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      noteId,
+      dueDate,
+      priority,
+    }: {
+      noteId: string;
+      dueDate?: string;
+      priority?: Priority;
+    }) => {
+      return addTaskBehaviour(noteId, dueDate, priority);
     },
-    enabled: !!noteId,
+    onSuccess: (_, { noteId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.lists() });
+    },
   });
 }
 
@@ -43,90 +49,12 @@ export function useCompleteTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (noteId: string) => {
-      const client = getBehavioursClient();
-      return client.completeTask(noteId);
-    },
+    mutationFn: async (noteId: string) => completeTask(noteId),
     onSuccess: (_, noteId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.planner.today() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
-    },
-  });
-}
-
-/**
- * Hook for reopening a task.
- */
-export function useReopenTask() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (noteId: string) => {
-      const client = getBehavioursClient();
-      return client.reopenTask(noteId);
-    },
-    onSuccess: (_, noteId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.planner.today() });
-    },
-  });
-}
-
-/**
- * Hook for completing a habit.
- */
-export function useCompleteHabit() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (noteId: string) => {
-      const client = getBehavioursClient();
-      return client.completeHabit(noteId);
-    },
-    onSuccess: (_, noteId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.streaks() });
-    },
-  });
-}
-
-/**
- * Hook for completing a chore.
- */
-export function useCompleteChore() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (noteId: string) => {
-      const client = getBehavioursClient();
-      return client.completeChore(noteId);
-    },
-    onSuccess: (_, noteId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-    },
-  });
-}
-
-/**
- * Hook for adding a task behaviour to a note.
- */
-export function useAddTaskBehaviour() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ noteId, request }: { noteId: string; request: CreateTaskBehaviourRequest }) => {
-      const client = getBehavioursClient();
-      return client.addTaskBehaviour(noteId, request);
-    },
-    onSuccess: (_, { noteId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.planner.all() });
     },
   });
 }
@@ -138,14 +66,34 @@ export function useAddHabitBehaviour() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ noteId, request }: { noteId: string; request: CreateHabitBehaviourRequest }) => {
-      const client = getBehavioursClient();
-      return client.addHabitBehaviour(noteId, request);
+    mutationFn: async ({
+      noteId,
+      frequencyGoal,
+    }: {
+      noteId: string;
+      frequencyGoal?: string;
+    }) => {
+      return addHabitBehaviour(noteId, frequencyGoal);
     },
     onSuccess: (_, { noteId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.streaks() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.lists() });
+    },
+  });
+}
+
+/**
+ * Hook for logging a habit completion.
+ */
+export function useLogHabit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (noteId: string) => logHabit(noteId),
+    onSuccess: (_, noteId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
     },
   });
 }
@@ -157,31 +105,34 @@ export function useAddChoreBehaviour() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ noteId, request }: { noteId: string; request: CreateChoreBehaviourRequest }) => {
-      const client = getBehavioursClient();
-      return client.addChoreBehaviour(noteId, request);
+    mutationFn: async ({
+      noteId,
+      intervalDays,
+    }: {
+      noteId: string;
+      intervalDays?: number;
+    }) => {
+      return addChoreBehaviour(noteId, intervalDays);
     },
     onSuccess: (_, { noteId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.lists() });
     },
   });
 }
 
 /**
- * Hook for adding a reminder behaviour to a note.
+ * Hook for completing a chore.
  */
-export function useAddReminderBehaviour() {
+export function useCompleteChore() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ noteId, request }: { noteId: string; request: CreateReminderBehaviourRequest }) => {
-      const client = getBehavioursClient();
-      return client.addReminderBehaviour(noteId, request);
-    },
-    onSuccess: (_, { noteId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.behaviours.byNote(noteId) });
+    mutationFn: async (noteId: string) => completeChore(noteId),
+    onSuccess: (_, noteId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notes.detail(noteId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
     },
   });
 }

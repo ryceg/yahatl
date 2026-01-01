@@ -12,7 +12,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { ChevronDown } from 'lucide-react-native';
-import { CandidateItem as CandidateItemType } from '@/lib/api/client';
+import { CandidateItem as CandidateItemType } from '@/lib/api/api';
 import { Badge } from '@/components/ui';
 import { CandidateItem } from './CandidateItem';
 import { cn } from '@/lib/utils';

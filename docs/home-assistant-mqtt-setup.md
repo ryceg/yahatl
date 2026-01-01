@@ -1,196 +1,222 @@
-# Connecting YAHATL to Home Assistant via MQTT
+# YAHATL Home Assistant Integration
 
-This guide explains how to connect YAHATL to your Home Assistant instance using MQTT for real-time integration.
+YAHATL is a native Home Assistant custom component for task, habit, and chore management.
 
-## Prerequisites
+## Installation
 
-- Home Assistant with MQTT integration configured
-- An MQTT broker (e.g., Mosquitto) accessible by both YAHATL and Home Assistant
-- YAHATL API running
+### HACS (Recommended)
+1. Add this repository to HACS as a custom repository
+2. Search for "YAHATL" and install
+3. Restart Home Assistant
+4. Go to Settings → Devices & Services → Add Integration → YAHATL
 
-## Step 1: Set Up an MQTT Broker
+### Manual
+1. Copy `custom_components/yahatl` to your `config/custom_components/` directory
+2. Restart Home Assistant
+3. Add the integration via UI
 
-If you don't already have an MQTT broker, you can install Mosquitto as a Home Assistant add-on:
+## Configuration
 
-1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**
-2. Search for **Mosquitto broker** and install it
-3. Start the add-on
-4. Create an MQTT user in **Settings → People → Users** (or use an existing user)
+The integration is configured entirely through the UI:
 
-## Step 2: Configure Home Assistant MQTT Integration
+1. **Household Name** - Your household identifier
+2. **Email** - Admin email (for mobile app login)
+3. **Password** - Admin password
 
-1. Go to **Settings → Devices & Services → Add Integration**
-2. Search for **MQTT** and add it
-3. If using the Mosquitto add-on, it should auto-configure; otherwise, enter your broker details
+Data is stored locally in `config/.storage/yahatl.db` (SQLite).
 
-## Step 3: Configure YAHATL
+---
 
-Edit your `appsettings.json` (or use environment variables) with your MQTT broker details:
+## Entities
 
-```json
-{
-  "Mqtt": {
-    "Host": "homeassistant.local",
-    "Port": 1883,
-    "Username": "your-mqtt-username",
-    "Password": "your-mqtt-password",
-    "ClientId": "yahatl-api"
-  }
-}
-```
-
-### Configuration Options
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `Host` | MQTT broker hostname or IP address | `localhost` |
-| `Port` | MQTT broker port | `1883` |
-| `Username` | MQTT authentication username | (empty) |
-| `Password` | MQTT authentication password | (empty) |
-| `ClientId` | Unique identifier for this YAHATL instance | `yahatl-api` |
-
-## Step 4: Restart YAHATL
-
-After updating the configuration, restart the YAHATL API. Check the logs for successful MQTT connection:
-
-```
-[MQTT] Connecting to MQTT broker at homeassistant.local:1883
-[MQTT] Connected to MQTT broker
-```
-
-## Home Assistant Auto-Discovery
-
-YAHATL uses [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) to automatically create entities in Home Assistant. Once connected, the following entities will appear under a **YAHATL** device:
+### Todo Lists
+| Entity | Description |
+|--------|-------------|
+| `todo.yahatl_inbox` | Quick capture items |
+| `todo.yahatl_tasks` | Tasks with due dates |
+| `todo.yahatl_chores` | Recurring chores |
+| `todo.yahatl_habits` | Habit tracking with streaks |
 
 ### Sensors
-
 | Entity | Description |
 |--------|-------------|
 | `sensor.yahatl_overdue_count` | Number of overdue tasks |
-| `sensor.yahatl_tasks_due_today` | Number of tasks due today |
-| `sensor.yahatl_next_task` | Title of the next pending task |
+| `sensor.yahatl_due_today` | Tasks due today |
+| `sensor.yahatl_inbox_count` | Inbox item count |
+| `sensor.yahatl_streaks_at_risk` | Habits needing attention |
+| `sensor.yahatl_blocked_count` | Blocked items |
 
 ### Binary Sensors
-
 | Entity | Description |
 |--------|-------------|
-| `binary_sensor.yahatl_chores_overdue` | `ON` if any chores are overdue |
+| `binary_sensor.yahatl_pomodoro_active` | Timer running |
+| `binary_sensor.yahatl_has_overdue` | Any overdue tasks |
 
-### Per-Chore Entities
+### Calendar
+| Entity | Description |
+|--------|-------------|
+| `calendar.yahatl` | Tasks and chores as calendar events |
 
-When you create a chore in YAHATL, it automatically publishes discovery for:
-- `binary_sensor.yahatl_chore_<id>_overdue` - Whether that specific chore is overdue
-- `sensor.yahatl_chore_<id>_next_due` - When the chore is next due
+---
 
-## Using MQTT Conditions (Triggers & Blockers)
+## Services
 
-YAHATL can subscribe to any Home Assistant MQTT topic to create intelligent task conditions:
-
-### Condition Triggers
-
-Make tasks appear only when certain conditions are met. For example, show "Water the plants" only when:
-- Soil moisture sensor reports low moisture
-- It's during daylight hours
-
-### Condition Blockers
-
-Block tasks from showing when certain conditions are met. For example, block outdoor chores when:
-- Weather sensor shows rain
-- Temperature is below freezing
-
-### Exposing Home Assistant States to MQTT
-
-By default, Home Assistant doesn't publish entity states to MQTT. You can use automations to bridge this:
-
+### yahatl.capture
+Quick capture a note to inbox.
 ```yaml
-# configuration.yaml or automations.yaml
-automation:
-  - alias: "Publish Weather State to MQTT"
-    trigger:
-      - platform: state
-        entity_id: weather.home
-    action:
-      - service: mqtt.publish
-        data:
-          topic: "homeassistant/weather/home/state"
-          payload: "{{ states('weather.home') }}"
-          retain: true
+service: yahatl.capture
+data:
+  title: "Buy milk"
+  tags:
+    - shopping
 ```
 
-Then in YAHATL, you can create a blocker with:
-- **Topic**: `homeassistant/weather/home/state`
-- **Operator**: `equals`
-- **Value**: `rainy`
+### yahatl.complete_task
+Mark a task as complete.
+```yaml
+service: yahatl.complete_task
+data:
+  note_id: "uuid-here"
+```
 
-## MQTT Topic Reference
+### yahatl.complete_chore
+Complete a chore and reschedule.
+```yaml
+service: yahatl.complete_chore
+data:
+  note_id: "uuid-here"
+```
 
-### State Topics (YAHATL → Home Assistant)
+### yahatl.log_habit
+Log a habit completion for today.
+```yaml
+service: yahatl.log_habit
+data:
+  note_id: "uuid-here"
+```
 
-| Topic | Description |
-|-------|-------------|
-| `yahatl/sensor/overdue_count/state` | Number of overdue tasks |
-| `yahatl/sensor/tasks_due_today/state` | Tasks due today count |
-| `yahatl/sensor/next_task/state` | Next task title |
-| `yahatl/binary_sensor/chores_overdue/state` | `ON`/`OFF` for overdue chores |
-| `yahatl/binary_sensor/chore_<id>/state` | Individual chore overdue status |
-| `yahatl/sensor/chore_<id>_next_due/state` | Individual chore next due date |
+### yahatl.start_pomodoro
+Start a Pomodoro timer.
+```yaml
+service: yahatl.start_pomodoro
+data:
+  note_id: "uuid-here"  # optional
+  duration_minutes: 25
+```
 
-### Discovery Topics
+### yahatl.stop_pomodoro
+Stop the current Pomodoro session.
+```yaml
+service: yahatl.stop_pomodoro
+```
 
-YAHATL publishes discovery configs to `homeassistant/<component>/yahatl/<object_id>/config`.
+---
 
-## Troubleshooting
+## Mobile App
 
-### YAHATL won't connect to MQTT
+The React Native mobile app connects directly to Home Assistant.
 
-1. Verify the broker is running: `mosquitto_sub -h <host> -t '#' -u <user> -P <pass>`
-2. Check firewall rules for port 1883
-3. Ensure username/password are correct
-4. Check YAHATL logs for connection errors
+### Setup
+Set the API URL in your app:
+```
+EXPO_PUBLIC_API_URL=http://homeassistant.local:8123/api/yahatl
+```
 
-### Entities not appearing in Home Assistant
+The app uses Home Assistant's authentication system.
 
-1. Verify MQTT discovery is enabled in Home Assistant (it is by default)
-2. Check that the discovery prefix is `homeassistant` (default)
-3. Use MQTT Explorer to verify discovery messages are being published
-4. Restart Home Assistant after YAHATL connects
+---
 
-### States not updating
+## Automation Examples
 
-1. Check YAHATL is connected (health endpoint shows MQTT status)
-2. Verify state topics are being published using MQTT Explorer
-3. Background services update states periodically; wait up to 60 seconds
-
-## Example Automations
-
-### Notify when tasks are overdue
-
+### Voice Capture
 ```yaml
 automation:
-  - alias: "Notify Overdue Tasks"
+  - alias: "Voice Capture to Inbox"
     trigger:
-      - platform: numeric_state
-        entity_id: sensor.yahatl_overdue_count
+      - platform: conversation
+        command: "Add {item} to my inbox"
+    action:
+      - service: yahatl.capture
+        data:
+          title: "{{ trigger.slots.item }}"
+```
+
+### Notify on Overdue
+```yaml
+automation:
+  - alias: "Overdue Task Alert"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.yahatl_has_overdue
+        to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          message: "You have overdue tasks!"
+```
+
+### Complete Task with Button
+```yaml
+automation:
+  - alias: "Button Complete Task"
+    trigger:
+      - platform: state
+        entity_id: input_button.complete_task
+    action:
+      - service: yahatl.complete_task
+        data:
+          note_id: "your-note-id"
+```
+
+### Habit Reminder
+```yaml
+automation:
+  - alias: "Evening Habit Reminder"
+    trigger:
+      - platform: time
+        at: "20:00:00"
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.yahatl_streaks_at_risk
         above: 0
     action:
       - service: notify.mobile_app
         data:
-          message: "You have {{ states('sensor.yahatl_overdue_count') }} overdue tasks!"
+          message: "Don't forget your habits!"
 ```
 
-### Flash lights when chores are overdue
-
+### Pomodoro with Lights
 ```yaml
 automation:
-  - alias: "Chores Overdue Alert"
+  - alias: "Pomodoro Focus Mode"
     trigger:
       - platform: state
-        entity_id: binary_sensor.yahatl_chores_overdue
+        entity_id: binary_sensor.yahatl_pomodoro_active
         to: "on"
     action:
       - service: light.turn_on
         target:
-          entity_id: light.living_room
+          entity_id: light.office
         data:
-          flash: short
+          color_name: red
+          brightness: 50
 ```
+
+---
+
+## Troubleshooting
+
+### Integration Not Loading
+1. Check `config/custom_components/yahatl/` exists
+2. Verify all files are present
+3. Check Home Assistant logs for errors
+
+### Entities Not Appearing
+1. Ensure the integration is configured
+2. Restart Home Assistant
+3. Check Settings → Devices & Services → YAHATL
+
+### Mobile App Connection Issues
+1. Verify HA is accessible from mobile device
+2. Check the API URL is correct
+3. Ensure authentication is working

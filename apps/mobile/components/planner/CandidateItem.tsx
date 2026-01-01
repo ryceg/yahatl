@@ -17,7 +17,7 @@ import {
   ListChecks,
   ChevronRight,
 } from 'lucide-react-native';
-import { CandidateItem as CandidateItemType, CandidateReason, TemplateType, Priority } from '@/lib/api/client';
+import { CandidateItem as CandidateItemType, CandidateReason, TemplateType, Priority } from '@/lib/api/api';
 import { Badge } from '@/components/ui';
 import { cn } from '@/lib/utils';
 

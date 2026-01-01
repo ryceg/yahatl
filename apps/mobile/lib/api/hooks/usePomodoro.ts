@@ -1,111 +1,62 @@
 /**
  * Pomodoro API Hooks
  *
- * TanStack Query hooks for Pomodoro timer operations.
+ * TanStack Query hooks for Pomodoro timer.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  PomodoroClient,
-  StartPomodoroRequest,
-  PomodoroSessionResponse,
-  PomodoroHistoryItemResponse,
-  PomodoroStatsResponse,
-  API_BASE_URL,
-} from '../client';
+  startPomodoro,
+  stopPomodoro,
+  getCurrentPomodoro,
+  PomodoroResponse,
+} from '../api';
 import { queryKeys } from '../queryClient';
 
-/**
- * Get a configured PomodoroClient instance.
- * Auth headers are automatically handled by the base class.
- */
-function getPomodoroClient() {
-  return new PomodoroClient(API_BASE_URL);
-}
+export type { PomodoroResponse };
 
 /**
- * Hook for fetching the current active Pomodoro session.
+ * Hook for getting current Pomodoro session.
  */
 export function useCurrentPomodoro() {
   return useQuery({
-    queryKey: queryKeys.pomodoro.active(),
-    queryFn: async ({ signal }) => {
-      const client = getPomodoroClient();
-      try {
-        return await client.getCurrentSession(signal);
-      } catch (error: any) {
-        // 404 means no active session, which is valid
-        if (error?.status === 404) {
-          return null;
-        }
-        throw error;
-      }
-    },
-    refetchInterval: 30_000, // Refetch every 30 seconds to keep in sync
+    queryKey: queryKeys.pomodoro.current(),
+    queryFn: async () => getCurrentPomodoro(),
+    refetchInterval: 1000, // Poll every second when active
   });
 }
 
 /**
- * Hook for starting a new Pomodoro session.
+ * Hook for starting a Pomodoro session.
  */
 export function useStartPomodoro() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (request: StartPomodoroRequest) => {
-      const client = getPomodoroClient();
-      return client.startSession(request);
+    mutationFn: async ({
+      noteId,
+      durationMinutes,
+    }: {
+      noteId?: string;
+      durationMinutes?: number;
+    }) => {
+      return startPomodoro(noteId, durationMinutes);
     },
-    onSuccess: (data: PomodoroSessionResponse) => {
-      // Update the active session cache
-      queryClient.setQueryData(queryKeys.pomodoro.active(), data);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pomodoro.current() });
     },
   });
 }
 
 /**
- * Hook for stopping the current Pomodoro session.
+ * Hook for stopping a Pomodoro session.
  */
 export function useStopPomodoro() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ complete = true }: { complete?: boolean } = {}) => {
-      const client = getPomodoroClient();
-      return client.stopSession(complete);
-    },
+    mutationFn: async () => stopPomodoro(),
     onSuccess: () => {
-      // Clear the active session cache
-      queryClient.setQueryData(queryKeys.pomodoro.active(), null);
-      // Invalidate history to include the new completed session
-      queryClient.invalidateQueries({ queryKey: queryKeys.pomodoro.history() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pomodoro.current() });
     },
   });
 }
-
-/**
- * Hook for fetching Pomodoro session history.
- */
-export function usePomodoroHistory(noteId?: string, limit = 50, offset = 0) {
-  return useQuery({
-    queryKey: queryKeys.pomodoro.history(noteId),
-    queryFn: async ({ signal }) => {
-      const client = getPomodoroClient();
-      return client.getHistory(limit, offset, noteId, signal);
-    },
-  });
-}
-
-/**
- * Hook for fetching Pomodoro stats for a specific note.
- */
-export function usePomodoroStats(noteId: string) {
-  return useQuery({
-    queryKey: [...queryKeys.pomodoro.stats(), noteId],
-    queryFn: async ({ signal }) => {
-      const client = getPomodoroClient();
-      return client.getNoteStats(noteId, signal);
-    },
-    enabled: !!noteId,
-  });
-}
-

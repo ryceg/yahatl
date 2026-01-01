@@ -7,12 +7,14 @@
  * - Android notification channels
  * - Foreground notification handling
  * - Notification tap navigation
+ *
+ * Note: Push tokens are managed by HA Companion app in HA-native deployment.
  */
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
-import { PushTokenClient, API_BASE_URL, RegisterPushTokenRequest } from '@/lib/api/client';
+import { API_BASE_URL } from '@/lib/api/api';
 
 /**
  * Notification channel IDs for Android
@@ -48,7 +50,7 @@ async function setupAndroidChannels(): Promise<void> {
     importance: Notifications.AndroidImportance.HIGH,
     description: 'Important reminders and time-sensitive notifications',
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#7c3aed', // Primary purple color
+    lightColor: '#7c3aed',
     sound: 'default',
     enableVibrate: true,
     enableLights: true,
@@ -60,7 +62,7 @@ async function setupAndroidChannels(): Promise<void> {
     importance: Notifications.AndroidImportance.DEFAULT,
     description: 'Habit streak notifications and daily reminders',
     vibrationPattern: [0, 100, 100, 100],
-    lightColor: '#10b981', // Green for positive reinforcement
+    lightColor: '#10b981',
     sound: 'default',
     enableVibrate: true,
     enableLights: true,
@@ -81,7 +83,6 @@ async function setupAndroidChannels(): Promise<void> {
  * @returns Permission status granted or not
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
-  // Only physical devices can receive push notifications
   if (!Device.isDevice) {
     console.log('Push notifications are only available on physical devices');
     return false;
@@ -109,16 +110,12 @@ export async function requestNotificationPermissions(): Promise<boolean> {
  */
 export async function getExpoPushToken(): Promise<string | null> {
   try {
-    // Setup Android channels first
     await setupAndroidChannels();
-
-    // Request permissions
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
       return null;
     }
 
-    // Get the token
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
     });
@@ -132,60 +129,38 @@ export async function getExpoPushToken(): Promise<string | null> {
 
 /**
  * Register the push token with the backend
- * @param pushToken The Expo push token to register
- * @returns Success status
+ * Note: In HA-native deployment, push notifications are handled by HA Companion app
  */
 export async function registerPushTokenWithBackend(pushToken: string): Promise<boolean> {
-  try {
-    const client = new PushTokenClient(API_BASE_URL);
-    const request: RegisterPushTokenRequest = { pushToken };
-    await client.registerPushToken(request);
-    console.log('Push token registered with backend successfully');
-    return true;
-  } catch (error) {
-    console.error('Failed to register push token with backend:', error);
-    return false;
-  }
+  // Stub - push tokens managed by HA Companion app
+  console.log('Push token available:', pushToken.substring(0, 20) + '...');
+  return true;
 }
 
 /**
  * Unregister the push token from the backend (called on logout)
- * @returns Success status
  */
 export async function unregisterPushToken(): Promise<boolean> {
-  try {
-    const client = new PushTokenClient(API_BASE_URL);
-    await client.unregisterPushToken();
-    console.log('Push token unregistered from backend successfully');
-    return true;
-  } catch (error) {
-    console.error('Failed to unregister push token from backend:', error);
-    return false;
-  }
+  // Stub - push tokens managed by HA Companion app
+  return true;
 }
 
 /**
  * Handle navigation when a notification is tapped
- * @param notification The notification response from the tap
  */
 export function handleNotificationTap(response: Notifications.NotificationResponse): void {
   const data = response.notification.request.content.data;
 
-  // Navigate based on the notification data
   if (data?.noteId && typeof data.noteId === 'string') {
-    // Navigate to the specific note
     router.push(`/notes/${data.noteId}`);
   } else if (data?.screen && typeof data.screen === 'string') {
-    // Navigate to a specific screen
     router.push(data.screen as any);
   }
-  // If no navigation data, just open the app (default behavior)
 }
 
 /**
  * Initialize push notifications
  * Should be called after successful login
- * @returns The push token if successful, null otherwise
  */
 export async function initializePushNotifications(): Promise<string | null> {
   const token = await getExpoPushToken();
@@ -199,8 +174,6 @@ export async function initializePushNotifications(): Promise<string | null> {
 
 /**
  * Create notification response listener subscription
- * @param callback Function to call when notification is tapped
- * @returns Subscription that should be removed on cleanup
  */
 export function addNotificationResponseListener(
   callback: (response: Notifications.NotificationResponse) => void
@@ -210,8 +183,6 @@ export function addNotificationResponseListener(
 
 /**
  * Create notification received listener subscription (foreground)
- * @param callback Function to call when notification is received
- * @returns Subscription that should be removed on cleanup
  */
 export function addNotificationReceivedListener(
   callback: (notification: Notifications.Notification) => void
@@ -221,9 +192,7 @@ export function addNotificationReceivedListener(
 
 /**
  * Get the last notification response (for handling app opens from notifications)
- * @returns The last notification response if the app was opened from a notification
  */
 export async function getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
   return await Notifications.getLastNotificationResponseAsync();
 }
-

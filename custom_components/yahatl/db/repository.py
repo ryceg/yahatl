@@ -219,6 +219,32 @@ class YahatlRepository:
             session.commit()
             return True
 
+    def update_task(self, note_id: str, **kwargs) -> Optional[TaskBehaviour]:
+        """Update a task behaviour."""
+        with self._get_session() as session:
+            task = session.execute(
+                select(TaskBehaviour).where(TaskBehaviour.note_id == note_id)
+            ).scalar_one_or_none()
+
+            if task is None:
+                return None
+
+            for key, value in kwargs.items():
+                if key == "due_date" and value is not None:
+                    task.due_date = value
+                elif key == "due_date" and value is None:
+                    task.due_date = None
+                elif key == "priority" and value in ["Low", "Normal", "High", "Urgent"]:
+                    task.priority = value
+                elif key == "status" and value in ["Pending", "InProgress", "Complete", "Cancelled"]:
+                    task.status = value
+                    if value == "Complete":
+                        task.completed_at = datetime.utcnow()
+
+            session.commit()
+            session.refresh(task)
+            return task
+
     def get_overdue_tasks(self, household_id: str) -> list[tuple[Note, TaskBehaviour]]:
         """Get overdue tasks."""
         with self._get_session() as session:
@@ -311,6 +337,24 @@ class YahatlRepository:
             session.commit()
             return True
 
+    def update_habit(self, note_id: str, **kwargs) -> Optional[HabitBehaviour]:
+        """Update a habit behaviour."""
+        with self._get_session() as session:
+            habit = session.execute(
+                select(HabitBehaviour).where(HabitBehaviour.note_id == note_id)
+            ).scalar_one_or_none()
+
+            if habit is None:
+                return None
+
+            for key, value in kwargs.items():
+                if key == "frequency_goal" and value:
+                    habit.frequency_goal = value
+
+            session.commit()
+            session.refresh(habit)
+            return habit
+
     def get_habits_at_risk(self, household_id: str) -> list[tuple[Note, HabitBehaviour]]:
         """Get habits with current streaks (at risk of breaking)."""
         with self._get_session() as session:
@@ -367,6 +411,26 @@ class YahatlRepository:
             chore.next_due = datetime.utcnow() + timedelta(days=chore.interval_days)
             session.commit()
             return True
+
+    def update_chore(self, note_id: str, **kwargs) -> Optional[ChoreBehaviour]:
+        """Update a chore behaviour."""
+        with self._get_session() as session:
+            chore = session.execute(
+                select(ChoreBehaviour).where(ChoreBehaviour.note_id == note_id)
+            ).scalar_one_or_none()
+
+            if chore is None:
+                return None
+
+            for key, value in kwargs.items():
+                if key == "interval_days" and isinstance(value, int) and value > 0:
+                    chore.interval_days = value
+                elif key == "next_due" and value is not None:
+                    chore.next_due = value
+
+            session.commit()
+            session.refresh(chore)
+            return chore
 
     # Blocker operations
     def get_active_blockers(self, household_id: str) -> list[Blocker]:

@@ -46,7 +46,7 @@ Optional:
 Copy `input-helpers.yaml` contents to your `configuration.yaml` or include it:
 
 ```yaml
-input_text: !include dashboards/input-helpers.yaml
+input_text: !include custom_components/yahatl/dashboards/input-helpers.yaml
 ```
 
 ### Step 2: Add REST Commands
@@ -54,7 +54,7 @@ input_text: !include dashboards/input-helpers.yaml
 Copy `automations.yaml` contents to your `configuration.yaml`:
 
 ```yaml
-rest_command: !include dashboards/automations.yaml
+rest_command: !include custom_components/yahatl/dashboards/automations.yaml
 ```
 
 ### Step 3: Install Dashboard
@@ -71,7 +71,7 @@ lovelace:
     yahatl:
       mode: yaml
       title: YAHATL
-      filename: dashboards/yahatl-dashboard.yaml
+      filename: custom_components/yahatl/dashboards/yahatl-dashboard.yaml
 ```
 
 ### Step 4: Restart Home Assistant

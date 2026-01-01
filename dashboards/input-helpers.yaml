@@ -1,6 +1,20 @@
 # YAHATL Input Helpers Configuration
 # Add this to your Home Assistant configuration.yaml
+#
 # These input helpers enable editing of YAHATL item metadata via the dashboard
+
+input_text:
+  yahatl_capture_text:
+    name: Quick Capture
+    icon: mdi:text-box-plus
+    max: 500
+    mode: text
+
+  yahatl_selected_note_id:
+    name: Selected Note ID
+    icon: mdi:identifier
+    max: 50
+    mode: text
 
 input_number:
   yahatl_chore_interval:
@@ -30,6 +44,7 @@ input_select:
       - Normal
       - High
       - Urgent
+    initial: Normal
 
   yahatl_habit_frequency:
     name: Habit Frequency
@@ -41,6 +56,17 @@ input_select:
       - weekly
       - biweekly
       - monthly
+    initial: daily
+
+  yahatl_task_status:
+    name: Task Status
+    icon: mdi:checkbox-marked-circle-outline
+    options:
+      - Pending
+      - InProgress
+      - Complete
+      - Cancelled
+    initial: Pending
 
 input_datetime:
   yahatl_task_due_date:
@@ -48,16 +74,3 @@ input_datetime:
     icon: mdi:calendar
     has_date: true
     has_time: false
-
-input_text:
-  yahatl_selected_note_id:
-    name: Selected Note ID
-    icon: mdi:identifier
-    max: 50
-    mode: text
-
-  yahatl_capture_text:
-    name: Quick Capture Text
-    icon: mdi:text-box-plus
-    max: 500
-    mode: text

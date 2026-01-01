@@ -40,9 +40,6 @@ views:
                     grey
                   {% endif %}
                 content: "{{ states('sensor.yahatl_due_today') }} due today"
-                tap_action:
-                  action: navigate
-                  navigation_path: /yahatl/tasks
 
               - type: template
                 icon: mdi:inbox
@@ -89,156 +86,224 @@ views:
                   navigation_path: /yahatl/pomodoro
 
       # ======================
-      # SUMMARY CARDS SECTION
+      # TASKS SECTION - Full Metadata
       # ======================
       - type: grid
         cards:
           - type: custom:mushroom-title-card
-            title: Summary
-            subtitle: Your productivity at a glance
+            title: "Tasks"
+            subtitle: "{{ states('sensor.yahatl_tasks_list') }} active tasks"
 
-          # Overdue Count Card
-          - type: custom:mushroom-template-card
-            primary: Overdue Tasks
-            secondary: "{{ states('sensor.yahatl_overdue_count') }} tasks past due"
-            icon: mdi:alert-circle
-            icon_color: |-
-              {% if states('sensor.yahatl_overdue_count') | int > 0 %}
-                red
-              {% else %}
-                green
-              {% endif %}
-            badge_icon: |-
-              {% if states('sensor.yahatl_overdue_count') | int > 0 %}
-                mdi:exclamation-thick
-              {% endif %}
-            badge_color: red
-            tap_action:
-              action: navigate
-              navigation_path: /yahatl/tasks
-            fill_container: true
-
-          # Due Today Card
-          - type: custom:mushroom-template-card
-            primary: Due Today
-            secondary: "{{ states('sensor.yahatl_due_today') }} tasks for today"
-            icon: mdi:calendar-today
-            icon_color: |-
-              {% if states('sensor.yahatl_due_today') | int > 0 %}
-                orange
-              {% else %}
-                grey
-              {% endif %}
-            tap_action:
-              action: navigate
-              navigation_path: /yahatl/tasks
-            fill_container: true
-
-          # Inbox Count Card
-          - type: custom:mushroom-template-card
-            primary: Inbox
-            secondary: "{{ states('sensor.yahatl_inbox_count') }} items to process"
-            icon: mdi:inbox
-            icon_color: |-
-              {% if states('sensor.yahatl_inbox_count') | int > 0 %}
-                blue
-              {% else %}
-                grey
-              {% endif %}
-            tap_action:
-              action: navigate
-              navigation_path: /yahatl/inbox
-            fill_container: true
-
-          # Streaks at Risk Card
-          - type: custom:mushroom-template-card
-            primary: Streaks at Risk
-            secondary: "{{ states('sensor.yahatl_streaks_at_risk') }} habits need attention"
-            icon: mdi:fire-alert
-            icon_color: |-
-              {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
-                deep-orange
-              {% else %}
-                green
-              {% endif %}
-            badge_icon: |-
-              {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
-                mdi:alert
-              {% endif %}
-            badge_color: orange
-            tap_action:
-              action: navigate
-              navigation_path: /yahatl/habits
-            fill_container: true
-
-          # Blocked Items Card
-          - type: custom:mushroom-template-card
-            primary: Blocked Items
-            secondary: "{{ states('sensor.yahatl_blocked_count') }} items waiting"
-            icon: mdi:block-helper
-            icon_color: |-
-              {% if states('sensor.yahatl_blocked_count') | int > 0 %}
-                purple
-              {% else %}
-                grey
-              {% endif %}
-            tap_action:
-              action: more-info
-              entity: sensor.yahatl_blocked_count
-            fill_container: true
+          # Dynamic task cards using auto-entities
+          - type: custom:auto-entities
+            card:
+              type: custom:layout-card
+              layout_type: grid
+              layout:
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+                gap: 8px
+            card_param: cards
+            filter:
+              template: |-
+                {% set items = state_attr('sensor.yahatl_tasks_list', 'items') or [] %}
+                {% for task in items if task.status != 'Complete' %}
+                  {{
+                    {
+                      "type": "custom:mushroom-template-card",
+                      "primary": task.title,
+                      "secondary": (task.priority ~ " priority" ~ (" | Due: " ~ task.due_date[:10] if task.due_date else "")),
+                      "icon": "mdi:clipboard-check-outline",
+                      "icon_color": (
+                        "red" if task.priority == "Urgent" else
+                        "orange" if task.priority == "High" else
+                        "blue" if task.priority == "Normal" else
+                        "grey"
+                      ),
+                      "badge_icon": ("mdi:alert" if task.due_date and task.due_date < now().isoformat() else ""),
+                      "badge_color": "red",
+                      "fill_container": true,
+                      "tap_action": {
+                        "action": "call-service",
+                        "service": "rest_command.yahatl_complete_task",
+                        "data": {
+                          "note_id": task.id
+                        },
+                        "confirmation": {
+                          "text": "Complete '" ~ task.title ~ "'?"
+                        }
+                      },
+                      "hold_action": {
+                        "action": "navigate",
+                        "navigation_path": "/yahatl/task/" ~ task.id
+                      }
+                    }
+                  }},
+                {% endfor %}
 
       # ======================
-      # TASKS SECTION (Detailed)
+      # CHORES SECTION - Full Metadata
       # ======================
       - type: grid
         cards:
           - type: custom:mushroom-title-card
-            title: Tasks
-            subtitle: Tap any task for details
+            title: "Chores"
+            subtitle: "{{ states('sensor.yahatl_chores_list') }} recurring chores"
 
-          # Use a native todo-list for tasks with enhanced features
-          - type: todo-list
-            entity: todo.yahatl_tasks
-            title: ""
+          - type: custom:auto-entities
+            card:
+              type: custom:layout-card
+              layout_type: grid
+              layout:
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+                gap: 8px
+            card_param: cards
+            filter:
+              template: |-
+                {% set items = state_attr('sensor.yahatl_chores_list', 'items') or [] %}
+                {% for chore in items %}
+                  {{
+                    {
+                      "type": "custom:mushroom-template-card",
+                      "primary": chore.title,
+                      "secondary": "Every " ~ chore.interval_days ~ " days" ~ (
+                        " | " ~ (
+                          "Overdue!" if chore.is_overdue else
+                          "Due today" if chore.days_until_due == 0 else
+                          "Due in " ~ chore.days_until_due ~ " days" if chore.days_until_due else
+                          "Not scheduled"
+                        )
+                      ),
+                      "icon": "mdi:broom",
+                      "icon_color": (
+                        "red" if chore.is_overdue else
+                        "orange" if chore.days_until_due == 0 else
+                        "green" if (chore.days_until_due or 0) > 2 else
+                        "amber"
+                      ),
+                      "badge_icon": ("mdi:clock-alert" if chore.is_overdue else ""),
+                      "badge_color": "red",
+                      "fill_container": true,
+                      "tap_action": {
+                        "action": "call-service",
+                        "service": "rest_command.yahatl_complete_chore",
+                        "data": {
+                          "note_id": chore.id
+                        },
+                        "confirmation": {
+                          "text": "Complete '" ~ chore.title ~ "'?"
+                        }
+                      },
+                      "hold_action": {
+                        "action": "navigate",
+                        "navigation_path": "/yahatl/chore/" ~ chore.id
+                      }
+                    }
+                  }},
+                {% endfor %}
 
       # ======================
-      # CHORES SECTION (Detailed)
+      # HABITS SECTION - Full Metadata
       # ======================
       - type: grid
         cards:
           - type: custom:mushroom-title-card
-            title: Chores
-            subtitle: Recurring household tasks
+            title: "Habits"
+            subtitle: "{{ states('sensor.yahatl_habits_list') }} habits tracked"
 
-          - type: todo-list
-            entity: todo.yahatl_chores
-            title: ""
+          - type: custom:auto-entities
+            card:
+              type: custom:layout-card
+              layout_type: grid
+              layout:
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+                gap: 8px
+            card_param: cards
+            filter:
+              template: |-
+                {% set items = state_attr('sensor.yahatl_habits_list', 'items') or [] %}
+                {% set today = now().strftime('%Y-%m-%d') %}
+                {% for habit in items %}
+                  {% set completed_today = habit.last_completed and habit.last_completed[:10] == today %}
+                  {{
+                    {
+                      "type": "custom:mushroom-template-card",
+                      "primary": habit.title ~ " 🔥" ~ habit.current_streak,
+                      "secondary": habit.frequency_goal ~ " | Best: " ~ habit.longest_streak ~ (
+                        " | ✓ Done today" if completed_today else ""
+                      ),
+                      "icon": ("mdi:fire" if habit.current_streak > 0 else "mdi:fire-off"),
+                      "icon_color": (
+                        "green" if completed_today else
+                        "orange" if habit.current_streak > 0 else
+                        "grey"
+                      ),
+                      "badge_icon": ("mdi:check" if completed_today else ""),
+                      "badge_color": "green",
+                      "fill_container": true,
+                      "tap_action": {
+                        "action": "call-service",
+                        "service": "rest_command.yahatl_log_habit",
+                        "data": {
+                          "note_id": habit.id
+                        },
+                        "confirmation": {
+                          "text": "Log '" ~ habit.title ~ "' for today?"
+                        }
+                      },
+                      "hold_action": {
+                        "action": "navigate",
+                        "navigation_path": "/yahatl/habit/" ~ habit.id
+                      }
+                    }
+                  }},
+                {% endfor %}
 
       # ======================
-      # HABITS SECTION (Detailed)
+      # INBOX SECTION - Full Metadata
       # ======================
       - type: grid
         cards:
           - type: custom:mushroom-title-card
-            title: Habits
-            subtitle: "Keep your streaks alive"
+            title: "Inbox"
+            subtitle: "{{ states('sensor.yahatl_inbox_list') }} items to process"
 
-          - type: todo-list
-            entity: todo.yahatl_habits
-            title: ""
-
-      # ======================
-      # INBOX SECTION
-      # ======================
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: Inbox
-            subtitle: "Quick captures to process"
-
-          - type: todo-list
-            entity: todo.yahatl_inbox
-            title: ""
+          - type: custom:auto-entities
+            card:
+              type: custom:layout-card
+              layout_type: grid
+              layout:
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+                gap: 8px
+            card_param: cards
+            filter:
+              template: |-
+                {% set items = state_attr('sensor.yahatl_inbox_list', 'items') or [] %}
+                {% for item in items %}
+                  {{
+                    {
+                      "type": "custom:mushroom-template-card",
+                      "primary": item.title,
+                      "secondary": "Captured " ~ (item.created_at[:10] if item.created_at else "unknown"),
+                      "icon": "mdi:inbox-arrow-down",
+                      "icon_color": "blue",
+                      "fill_container": true,
+                      "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": "/yahatl/note/" ~ item.id
+                      },
+                      "hold_action": {
+                        "action": "call-service",
+                        "service": "rest_command.yahatl_archive_note",
+                        "data": {
+                          "note_id": item.id
+                        },
+                        "confirmation": {
+                          "text": "Archive '" ~ item.title ~ "'?"
+                        }
+                      }
+                    }
+                  }},
+                {% endfor %}
 
       # ======================
       # POMODORO SECTION
@@ -252,7 +317,7 @@ views:
           - type: custom:mushroom-template-card
             primary: |-
               {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                Focus Session Active
+                🔴 Focus Session Active
               {% else %}
                 Ready to Focus
               {% endif %}
@@ -260,7 +325,7 @@ views:
               {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
                 Tap to stop the timer
               {% else %}
-                Tap to start a 25-minute session
+                Choose a duration below
               {% endif %}
             icon: |-
               {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
@@ -276,20 +341,13 @@ views:
               {% endif %}
             tap_action:
               action: call-service
-              service: |-
-                {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                  yahatl.stop_pomodoro
-                {% else %}
-                  yahatl.start_pomodoro
-                {% endif %}
+              service: yahatl.stop_pomodoro
             fill_container: true
-            multiline_secondary: true
 
-          # Pomodoro Quick Start Options
           - type: horizontal-stack
             cards:
               - type: custom:mushroom-template-card
-                primary: "15 min"
+                primary: "15m"
                 icon: mdi:clock-fast
                 icon_color: teal
                 layout: vertical
@@ -300,7 +358,7 @@ views:
                     duration_minutes: 15
 
               - type: custom:mushroom-template-card
-                primary: "25 min"
+                primary: "25m"
                 icon: mdi:clock-outline
                 icon_color: teal
                 layout: vertical
@@ -311,7 +369,7 @@ views:
                     duration_minutes: 25
 
               - type: custom:mushroom-template-card
-                primary: "45 min"
+                primary: "45m"
                 icon: mdi:clock
                 icon_color: teal
                 layout: vertical
@@ -322,7 +380,7 @@ views:
                     duration_minutes: 45
 
               - type: custom:mushroom-template-card
-                primary: "60 min"
+                primary: "60m"
                 icon: mdi:clock-plus
                 icon_color: teal
                 layout: vertical
@@ -348,13 +406,12 @@ views:
             initial_view: listWeek
 
       # ======================
-      # QUICK ACTIONS SECTION
+      # QUICK ACTIONS
       # ======================
       - type: grid
         cards:
           - type: custom:mushroom-title-card
             title: Quick Actions
-            subtitle: Common actions at your fingertips
 
           - type: horizontal-stack
             cards:
@@ -366,15 +423,6 @@ views:
                 tap_action:
                   action: navigate
                   navigation_path: /yahatl/capture
-
-              - type: custom:mushroom-template-card
-                primary: "Focus"
-                icon: mdi:timer
-                icon_color: teal
-                layout: vertical
-                tap_action:
-                  action: navigate
-                  navigation_path: /yahatl/pomodoro
 
               - type: custom:mushroom-template-card
                 primary: "New Task"
@@ -394,35 +442,407 @@ views:
                   action: navigate
                   navigation_path: /yahatl/new-chore
 
+              - type: custom:mushroom-template-card
+                primary: "New Habit"
+                icon: mdi:fire
+                icon_color: deep-orange
+                layout: vertical
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/new-habit
+
   # ======================
-  # TASKS VIEW
+  # TASK DETAIL VIEW
   # ======================
-  - title: Tasks
-    path: tasks
-    icon: mdi:checkbox-marked-circle-outline
+  - title: Task Detail
+    path: task
+    icon: mdi:clipboard-check
     type: sections
+    subview: true
     sections:
       - type: grid
         cards:
-          - type: custom:mushroom-title-card
-            title: "Tasks"
-            subtitle: "Manage your tasks and to-dos"
-
           - type: custom:mushroom-chips-card
             chips:
               - type: back
-              - type: template
-                icon: mdi:alert-circle
-                icon_color: red
-                content: "{{ states('sensor.yahatl_overdue_count') }} overdue"
-              - type: template
-                icon: mdi:calendar-today
-                icon_color: orange
-                content: "{{ states('sensor.yahatl_due_today') }} due today"
 
-          - type: todo-list
-            entity: todo.yahatl_tasks
-            title: All Tasks
+          - type: markdown
+            content: |
+              # Task Details
+
+              This is a detail view. The task ID is passed via URL.
+
+              To edit task properties, use the API:
+
+              ```
+              PUT /api/yahatl/notes/{id}/behaviours/task
+              {
+                "priority": "High",
+                "dueDate": "2026-01-15",
+                "status": "InProgress"
+              }
+              ```
+
+          - type: custom:mushroom-title-card
+            title: "Edit Priority"
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "Low"
+                icon: mdi:flag-outline
+                icon_color: grey
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_task_priority
+                  data:
+                    priority: Low
+
+              - type: custom:mushroom-template-card
+                primary: "Normal"
+                icon: mdi:flag
+                icon_color: blue
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_task_priority
+                  data:
+                    priority: Normal
+
+              - type: custom:mushroom-template-card
+                primary: "High"
+                icon: mdi:flag
+                icon_color: orange
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_task_priority
+                  data:
+                    priority: High
+
+              - type: custom:mushroom-template-card
+                primary: "Urgent"
+                icon: mdi:flag-variant
+                icon_color: red
+                layout: vertical
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_task_priority
+                  data:
+                    priority: Urgent
+
+  # ======================
+  # CHORE DETAIL VIEW
+  # ======================
+  - title: Chore Detail
+    path: chore
+    icon: mdi:broom
+    type: sections
+    subview: true
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: markdown
+            content: |
+              # Chore Details
+
+              **Edit Interval:** Choose a repeat frequency below or use the API.
+
+          - type: custom:mushroom-title-card
+            title: "Set Repeat Interval"
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "Daily"
+                secondary: "1 day"
+                icon: mdi:calendar-today
+                icon_color: red
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_chore_interval
+                  data:
+                    interval_days: 1
+
+              - type: custom:mushroom-template-card
+                primary: "Weekly"
+                secondary: "7 days"
+                icon: mdi:calendar-week
+                icon_color: orange
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_chore_interval
+                  data:
+                    interval_days: 7
+
+              - type: custom:mushroom-template-card
+                primary: "Biweekly"
+                secondary: "14 days"
+                icon: mdi:calendar-range
+                icon_color: amber
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_chore_interval
+                  data:
+                    interval_days: 14
+
+              - type: custom:mushroom-template-card
+                primary: "Monthly"
+                secondary: "30 days"
+                icon: mdi:calendar-month
+                icon_color: green
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_chore_interval
+                  data:
+                    interval_days: 30
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "Quarterly"
+                secondary: "90 days"
+                icon: mdi:calendar-blank-multiple
+                icon_color: teal
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_chore_interval
+                  data:
+                    interval_days: 90
+
+              - type: custom:mushroom-template-card
+                primary: "Yearly"
+                secondary: "365 days"
+                icon: mdi:calendar-star
+                icon_color: purple
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_chore_interval
+                  data:
+                    interval_days: 365
+
+  # ======================
+  # HABIT DETAIL VIEW
+  # ======================
+  - title: Habit Detail
+    path: habit
+    icon: mdi:fire
+    type: sections
+    subview: true
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: markdown
+            content: |
+              # Habit Details
+
+              **Edit Frequency Goal:** Choose below or use the API.
+
+          - type: custom:mushroom-title-card
+            title: "Set Frequency Goal"
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "Daily"
+                icon: mdi:calendar-today
+                icon_color: green
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_habit_frequency
+                  data:
+                    frequency_goal: daily
+
+              - type: custom:mushroom-template-card
+                primary: "Every 2 days"
+                icon: mdi:calendar-range
+                icon_color: teal
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_habit_frequency
+                  data:
+                    frequency_goal: "every 2 days"
+
+              - type: custom:mushroom-template-card
+                primary: "3x/week"
+                icon: mdi:calendar-week
+                icon_color: blue
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_habit_frequency
+                  data:
+                    frequency_goal: "3x per week"
+
+              - type: custom:mushroom-template-card
+                primary: "Weekly"
+                icon: mdi:calendar-week-begin
+                icon_color: purple
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_update_habit_frequency
+                  data:
+                    frequency_goal: weekly
+
+  # ======================
+  # CAPTURE VIEW
+  # ======================
+  - title: Capture
+    path: capture
+    icon: mdi:plus-circle
+    type: sections
+    subview: true
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: custom:mushroom-title-card
+            title: "Quick Capture"
+            subtitle: "Add to inbox"
+
+          - type: entities
+            entities:
+              - entity: input_text.yahatl_capture_text
+                name: "What's on your mind?"
+
+          - type: custom:mushroom-template-card
+            primary: "Capture"
+            icon: mdi:inbox-arrow-down
+            icon_color: blue
+            tap_action:
+              action: call-service
+              service: rest_command.yahatl_capture
+              data:
+                title: "{{ states('input_text.yahatl_capture_text') }}"
+            fill_container: true
+
+  # ======================
+  # NEW TASK VIEW
+  # ======================
+  - title: New Task
+    path: new-task
+    icon: mdi:clipboard-plus
+    type: sections
+    subview: true
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: custom:mushroom-title-card
+            title: "Create Task"
+            subtitle: "Add a new task with metadata"
+
+          - type: entities
+            entities:
+              - entity: input_text.yahatl_capture_text
+                name: "Task title"
+              - entity: input_select.yahatl_task_priority
+                name: "Priority"
+              - entity: input_datetime.yahatl_task_due_date
+                name: "Due date"
+
+          - type: custom:mushroom-template-card
+            primary: "Create Task"
+            icon: mdi:clipboard-plus
+            icon_color: green
+            tap_action:
+              action: call-service
+              service: rest_command.yahatl_create_task
+              data:
+                title: "{{ states('input_text.yahatl_capture_text') }}"
+                priority: "{{ states('input_select.yahatl_task_priority') }}"
+                due_date: "{{ states('input_datetime.yahatl_task_due_date') }}"
+            fill_container: true
+
+  # ======================
+  # NEW CHORE VIEW
+  # ======================
+  - title: New Chore
+    path: new-chore
+    icon: mdi:broom
+    type: sections
+    subview: true
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: custom:mushroom-title-card
+            title: "Create Chore"
+            subtitle: "Add a recurring chore"
+
+          - type: entities
+            entities:
+              - entity: input_text.yahatl_capture_text
+                name: "Chore name"
+              - entity: input_number.yahatl_chore_interval
+                name: "Repeat every (days)"
+
+          - type: custom:mushroom-template-card
+            primary: "Create Chore"
+            icon: mdi:broom
+            icon_color: amber
+            tap_action:
+              action: call-service
+              service: rest_command.yahatl_create_chore
+              data:
+                title: "{{ states('input_text.yahatl_capture_text') }}"
+                interval_days: "{{ states('input_number.yahatl_chore_interval') | int }}"
+            fill_container: true
+
+  # ======================
+  # NEW HABIT VIEW
+  # ======================
+  - title: New Habit
+    path: new-habit
+    icon: mdi:fire
+    type: sections
+    subview: true
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: custom:mushroom-title-card
+            title: "Create Habit"
+            subtitle: "Start tracking a new habit"
+
+          - type: entities
+            entities:
+              - entity: input_text.yahatl_capture_text
+                name: "Habit name"
+              - entity: input_select.yahatl_habit_frequency
+                name: "Frequency goal"
+
+          - type: custom:mushroom-template-card
+            primary: "Create Habit"
+            icon: mdi:fire
+            icon_color: deep-orange
+            tap_action:
+              action: call-service
+              service: rest_command.yahatl_create_habit
+              data:
+                title: "{{ states('input_text.yahatl_capture_text') }}"
+                frequency_goal: "{{ states('input_select.yahatl_habit_frequency') }}"
+            fill_container: true
 
   # ======================
   # INBOX VIEW
@@ -434,282 +854,99 @@ views:
     sections:
       - type: grid
         cards:
-          - type: custom:mushroom-title-card
-            title: "Inbox"
-            subtitle: "Capture now, organize later"
-
           - type: custom:mushroom-chips-card
             chips:
               - type: back
               - type: template
                 icon: mdi:inbox
                 icon_color: blue
-                content: "{{ states('sensor.yahatl_inbox_count') }} items"
+                content: "{{ states('sensor.yahatl_inbox_list') }} items"
 
-          - type: todo-list
-            entity: todo.yahatl_inbox
-            title: Inbox Items
+          - type: custom:mushroom-title-card
+            title: "Inbox"
+            subtitle: "Process your captured items"
+
+          - type: custom:auto-entities
+            card:
+              type: custom:layout-card
+              layout_type: grid
+              layout:
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+                gap: 8px
+            card_param: cards
+            filter:
+              template: |-
+                {% set items = state_attr('sensor.yahatl_inbox_list', 'items') or [] %}
+                {% for item in items %}
+                  {{
+                    {
+                      "type": "custom:mushroom-template-card",
+                      "primary": item.title,
+                      "secondary": "Captured " ~ (item.created_at[:10] if item.created_at else "unknown"),
+                      "icon": "mdi:inbox-arrow-down",
+                      "icon_color": "blue",
+                      "fill_container": true,
+                      "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": "/yahatl/process/" ~ item.id
+                      }
+                    }
+                  }},
+                {% endfor %}
 
   # ======================
-  # CHORES VIEW
+  # PROCESS INBOX ITEM VIEW
   # ======================
-  - title: Chores
-    path: chores
-    icon: mdi:broom
+  - title: Process Item
+    path: process
+    icon: mdi:inbox-arrow-up
     type: sections
+    subview: true
     sections:
       - type: grid
         cards:
-          - type: custom:mushroom-title-card
-            title: "Chores"
-            subtitle: "Recurring household tasks"
-
           - type: custom:mushroom-chips-card
             chips:
               - type: back
 
-          - type: todo-list
-            entity: todo.yahatl_chores
-            title: All Chores
-
-  # ======================
-  # HABITS VIEW
-  # ======================
-  - title: Habits
-    path: habits
-    icon: mdi:fire
-    type: sections
-    sections:
-      - type: grid
-        cards:
           - type: custom:mushroom-title-card
-            title: "Habits"
-            subtitle: "Build streaks, build yourself"
+            title: "Process Inbox Item"
+            subtitle: "Convert to task, chore, or habit"
 
-          - type: custom:mushroom-chips-card
-            chips:
-              - type: back
-              - type: template
-                icon: mdi:fire-alert
-                icon_color: |-
-                  {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
-                    orange
-                  {% else %}
-                    green
-                  {% endif %}
-                content: "{{ states('sensor.yahatl_streaks_at_risk') }} at risk"
-
-          - type: todo-list
-            entity: todo.yahatl_habits
-            title: All Habits
-
-  # ======================
-  # POMODORO VIEW
-  # ======================
-  - title: Pomodoro
-    path: pomodoro
-    icon: mdi:timer
-    type: sections
-    sections:
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: "Pomodoro Timer"
-            subtitle: "Focus and productivity"
-
-          - type: custom:mushroom-chips-card
-            chips:
-              - type: back
-
-          - type: custom:mushroom-template-card
-            primary: |-
-              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                🔴 Focus Session Active
-              {% else %}
-                ⚪ Ready to Focus
-              {% endif %}
-            secondary: |-
-              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                Session in progress. Tap to stop.
-              {% else %}
-                Choose a duration below to start focusing.
-              {% endif %}
-            icon: |-
-              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                mdi:timer-sand
-              {% else %}
-                mdi:timer-outline
-              {% endif %}
-            icon_color: |-
-              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                red
-              {% else %}
-                teal
-              {% endif %}
-            tap_action:
-              action: call-service
-              service: yahatl.stop_pomodoro
-            fill_container: true
-            multiline_secondary: true
-
-          - type: custom:mushroom-title-card
-            subtitle: "Quick Start"
+          - type: markdown
+            content: |
+              Select what to do with this item:
 
           - type: horizontal-stack
             cards:
               - type: custom:mushroom-template-card
-                primary: "15 min"
-                secondary: "Quick burst"
-                icon: mdi:clock-fast
-                icon_color: teal
+                primary: "→ Task"
+                icon: mdi:clipboard-arrow-right
+                icon_color: green
                 tap_action:
                   action: call-service
-                  service: yahatl.start_pomodoro
-                  data:
-                    duration_minutes: 15
+                  service: rest_command.yahatl_convert_to_task
 
               - type: custom:mushroom-template-card
-                primary: "25 min"
-                secondary: "Standard"
-                icon: mdi:clock-outline
-                icon_color: teal
+                primary: "→ Chore"
+                icon: mdi:broom
+                icon_color: amber
                 tap_action:
                   action: call-service
-                  service: yahatl.start_pomodoro
-                  data:
-                    duration_minutes: 25
-
-          - type: horizontal-stack
-            cards:
-              - type: custom:mushroom-template-card
-                primary: "45 min"
-                secondary: "Extended"
-                icon: mdi:clock
-                icon_color: teal
-                tap_action:
-                  action: call-service
-                  service: yahatl.start_pomodoro
-                  data:
-                    duration_minutes: 45
+                  service: rest_command.yahatl_convert_to_chore
 
               - type: custom:mushroom-template-card
-                primary: "60 min"
-                secondary: "Deep work"
-                icon: mdi:clock-plus
-                icon_color: teal
+                primary: "→ Habit"
+                icon: mdi:fire
+                icon_color: deep-orange
                 tap_action:
                   action: call-service
-                  service: yahatl.start_pomodoro
-                  data:
-                    duration_minutes: 60
+                  service: rest_command.yahatl_convert_to_habit
 
-          - type: custom:mushroom-template-card
-            primary: "Stop Timer"
-            secondary: "End the current focus session"
-            icon: mdi:stop-circle
-            icon_color: red
-            tap_action:
-              action: call-service
-              service: yahatl.stop_pomodoro
-            fill_container: true
-
-  # ======================
-  # CAPTURE VIEW
-  # ======================
-  - title: Capture
-    path: capture
-    icon: mdi:plus-circle
-    type: sections
-    sections:
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: "Quick Capture"
-            subtitle: "Add to inbox instantly"
-
-          - type: custom:mushroom-chips-card
-            chips:
-              - type: back
-
-          - type: markdown
-            content: |
-              Use the **todo.yahatl_inbox** entity to quickly add items:
-
-              1. Open Developer Tools → Services
-              2. Call `todo.add_item`
-              3. Entity: `todo.yahatl_inbox`
-              4. Enter your item text
-
-              Or use voice commands with your preferred assistant!
-
-          - type: todo-list
-            entity: todo.yahatl_inbox
-            title: Add to Inbox
-
-  # ======================
-  # NEW TASK VIEW
-  # ======================
-  - title: New Task
-    path: new-task
-    icon: mdi:clipboard-plus
-    type: sections
-    sections:
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: "Create Task"
-            subtitle: "Add a new task"
-
-          - type: custom:mushroom-chips-card
-            chips:
-              - type: back
-
-          - type: markdown
-            content: |
-              To create a new task:
-
-              1. Add an item to the tasks list below
-              2. The task will be created with default settings
-              3. Tap the item to edit details
-
-              **Tip:** Set due dates and priorities via the todo-list interface!
-
-          - type: todo-list
-            entity: todo.yahatl_tasks
-            title: Create Task
-
-  # ======================
-  # NEW CHORE VIEW
-  # ======================
-  - title: New Chore
-    path: new-chore
-    icon: mdi:broom
-    type: sections
-    sections:
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: "Create Chore"
-            subtitle: "Add a recurring chore"
-
-          - type: custom:mushroom-chips-card
-            chips:
-              - type: back
-
-          - type: markdown
-            content: |
-              To create a new chore:
-
-              1. Add an item to the chores list below
-              2. Default interval is 7 days
-              3. Edit interval via the API or mobile app
-
-              **API Endpoint:** `PUT /api/yahatl/notes/{id}/behaviours/chore`
-
-              ```json
-              { "intervalDays": 14 }
-              ```
-
-          - type: todo-list
-            entity: todo.yahatl_chores
-            title: Create Chore
+              - type: custom:mushroom-template-card
+                primary: "Archive"
+                icon: mdi:archive
+                icon_color: grey
+                tap_action:
+                  action: call-service
+                  service: rest_command.yahatl_archive_note

@@ -1,249 +1,252 @@
 # YAHATL Home Assistant Dashboard
 
-This directory contains the official Home Assistant dashboard configuration for YAHATL, designed to serve as the primary frontend through Home Assistant with full metadata editing capabilities.
+Complete Home Assistant dashboard for YAHATL that provides the **full YAHATL experience** through Home Assistant, including viewing all metadata and editing item properties.
 
 ## Prerequisites
 
-Before using this dashboard, install **Mushroom Cards** via HACS:
+### Required HACS Integrations
 
-1. Open HACS in your Home Assistant instance
-2. Navigate to **Frontend** section
-3. Click the **+** button and search for "Mushroom"
-4. Install **Mushroom Cards**
-5. Restart Home Assistant
+Install these via HACS → Frontend:
 
-Optional: Install **Mushroom Themes** for enhanced visuals.
+| Integration | Purpose |
+|-------------|---------|
+| **Mushroom Cards** | Primary UI components |
+| **auto-entities** | Dynamic card generation from sensor data |
+| **layout-card** | Grid layouts for card lists |
+
+Optional:
+- **Mushroom Themes** - Enhanced visuals
+
+### Create Access Token
+
+1. Go to your HA Profile → Security
+2. Create a Long-Lived Access Token
+3. Add to `secrets.yaml`:
+   ```yaml
+   yahatl_token: "Bearer YOUR_TOKEN_HERE"
+   ```
+
+---
 
 ## Files in This Directory
 
 | File | Purpose |
 |------|---------|
-| `yahatl-dashboard.yaml` | Main Lovelace dashboard configuration |
-| `input-helpers.yaml` | Input helper entities for editing |
-| `automations.yaml` | Automations and REST commands |
+| `yahatl-dashboard.yaml` | Main Lovelace dashboard |
+| `input-helpers.yaml` | Input entities for forms |
+| `automations.yaml` | REST commands for API calls |
 | `README.md` | This documentation |
 
 ---
 
 ## Installation
 
-### Step 1: Install the Dashboard
+### Step 1: Add Input Helpers
 
-**Method A: UI Configuration (Easy)**
-
-1. Go to **Settings** → **Dashboards**
-2. Click **Add Dashboard** → **Take control** → **Manual**
-3. Copy contents of `yahatl-dashboard.yaml` into the editor
-
-**Method B: YAML Configuration**
-
-Add to `configuration.yaml`:
+Copy `input-helpers.yaml` contents to your `configuration.yaml` or include it:
 
 ```yaml
+input_text: !include dashboards/input-helpers.yaml
+```
+
+### Step 2: Add REST Commands
+
+Copy `automations.yaml` contents to your `configuration.yaml`:
+
+```yaml
+rest_command: !include dashboards/automations.yaml
+```
+
+### Step 3: Install Dashboard
+
+**Option A: UI**
+1. Settings → Dashboards → Add Dashboard
+2. Take Control → Manual
+3. Paste `yahatl-dashboard.yaml` contents
+
+**Option B: YAML**
+```yaml
 lovelace:
-  mode: storage
   dashboards:
     yahatl:
       mode: yaml
       title: YAHATL
-      icon: mdi:checkbox-marked-outline
-      show_in_sidebar: true
       filename: dashboards/yahatl-dashboard.yaml
 ```
 
-### Step 2: Add Input Helpers (Optional - for Advanced Editing)
+### Step 4: Restart Home Assistant
 
-Copy the contents of `input-helpers.yaml` into your `configuration.yaml`:
+---
+
+## Features
+
+### Full Metadata Display
+
+Every item shows ALL its metadata:
+
+**Tasks:**
+- Title, priority (color-coded), due date
+- Status badge for overdue items
+- Tap to complete, hold for details
+
+**Chores:**
+- Title, interval (days), next due date
+- Days until due / overdue status
+- Color-coded urgency
+- Tap to complete, hold for interval settings
+
+**Habits:**
+- Title, current streak 🔥, longest streak
+- Frequency goal (daily, weekly, etc.)
+- Completed today indicator
+- Tap to log, hold for frequency settings
+
+**Inbox:**
+- Title, capture date
+- Tap to process (convert to task/chore/habit)
+
+### Edit Capabilities
+
+**From Dashboard Cards:**
+- Complete tasks, chores
+- Log habits
+- Archive inbox items
+
+**From Detail Views:**
+- Task priority (Low/Normal/High/Urgent)
+- Chore interval (1-365 days, preset buttons)
+- Habit frequency (daily, weekly, etc.)
+
+**From Create Views:**
+- New task with priority & due date
+- New chore with interval
+- New habit with frequency goal
+- Quick capture to inbox
+
+---
+
+## Dashboard Structure
+
+### Main Views
+
+| View | Path | Description |
+|------|------|-------------|
+| Dashboard | `/yahatl/dashboard` | Main overview with all items |
+| Inbox | `/yahatl/inbox` | Process captured items |
+
+### Detail Views (Subviews)
+
+| View | Path | Actions |
+|------|------|---------|
+| Task Detail | `/yahatl/task/{id}` | Edit priority |
+| Chore Detail | `/yahatl/chore/{id}` | Edit interval |
+| Habit Detail | `/yahatl/habit/{id}` | Edit frequency |
+| Process Item | `/yahatl/process/{id}` | Convert inbox item |
+
+### Create Views (Subviews)
+
+| View | Path | Creates |
+|------|------|---------|
+| Capture | `/yahatl/capture` | Inbox item |
+| New Task | `/yahatl/new-task` | Task with metadata |
+| New Chore | `/yahatl/new-chore` | Chore with interval |
+| New Habit | `/yahatl/new-habit` | Habit with frequency |
+
+---
+
+## New Sensors
+
+The integration now exposes **list sensors** with full item data:
+
+| Entity | Attributes |
+|--------|------------|
+| `sensor.yahatl_tasks_list` | `items`: Array of {id, title, status, priority, due_date, ...} |
+| `sensor.yahatl_habits_list` | `items`: Array of {id, title, current_streak, frequency_goal, ...} |
+| `sensor.yahatl_chores_list` | `items`: Array of {id, title, interval_days, next_due, is_overdue, ...} |
+| `sensor.yahatl_inbox_list` | `items`: Array of {id, title, created_at, ...} |
+
+These enable the `auto-entities` card to dynamically generate Mushroom cards for each item.
+
+---
+
+## REST Commands Available
+
+### Capture & Create
+- `rest_command.yahatl_capture`
+- `rest_command.yahatl_create_task`
+- `rest_command.yahatl_create_chore`
+- `rest_command.yahatl_create_habit`
+
+### Complete Actions
+- `rest_command.yahatl_complete_task`
+- `rest_command.yahatl_complete_chore`
+- `rest_command.yahatl_log_habit`
+
+### Update Task
+- `rest_command.yahatl_update_task_priority`
+- `rest_command.yahatl_update_task_due_date`
+- `rest_command.yahatl_update_task_status`
+
+### Update Chore
+- `rest_command.yahatl_update_chore_interval`
+
+### Update Habit
+- `rest_command.yahatl_update_habit_frequency`
+
+### Other
+- `rest_command.yahatl_archive_note`
+- `rest_command.yahatl_add_task_behaviour`
+- `rest_command.yahatl_add_chore_behaviour`
+- `rest_command.yahatl_add_habit_behaviour`
+
+---
+
+## How It Works
+
+### Dynamic Card Generation
+
+The dashboard uses `auto-entities` with a template filter that reads from the list sensor attributes:
 
 ```yaml
-# Include input helpers for YAHATL editing
-input_number: !include dashboards/yahatl-input-helpers.yaml
+- type: custom:auto-entities
+  card:
+    type: custom:layout-card
+  filter:
+    template: |-
+      {% set items = state_attr('sensor.yahatl_tasks_list', 'items') or [] %}
+      {% for task in items %}
+        {{ { "type": "custom:mushroom-template-card", ... } }},
+      {% endfor %}
 ```
 
-Or paste directly into `configuration.yaml`.
+### API Integration
 
-### Step 3: Add Automations (Optional - for Quick Capture)
+Mushroom cards use `tap_action` to call REST commands:
 
-Add REST commands and automations from `automations.yaml` to enable:
-- Quick capture via input helper
-- API-based metadata updates
-
----
-
-## Dashboard Overview
-
-### Views
-
-| View | Path | Purpose |
-|------|------|---------|
-| Dashboard | `/yahatl/dashboard` | Main overview with all sections |
-| Tasks | `/yahatl/tasks` | Detailed task management |
-| Inbox | `/yahatl/inbox` | Quick capture items |
-| Chores | `/yahatl/chores` | Recurring household tasks |
-| Habits | `/yahatl/habits` | Streak tracking |
-| Pomodoro | `/yahatl/pomodoro` | Full timer controls |
-| Capture | `/yahatl/capture` | Quick add to inbox |
-| New Task | `/yahatl/new-task` | Create new tasks |
-| New Chore | `/yahatl/new-chore` | Create new chores |
-
-### Main Dashboard Sections
-
-1. **Header** - Title + chips for quick stats (overdue, due today, inbox, streaks at risk, pomodoro status)
-2. **Summary Cards** - Mushroom template cards for each sensor with color coding
-3. **Tasks** - Todo list with quick actions
-4. **Chores** - Todo list for recurring items
-5. **Habits** - Todo list with streak info
-6. **Inbox** - Quick capture processing
-7. **Pomodoro** - Timer with quick start buttons (15/25/45/60 min)
-8. **Calendar** - Week view of upcoming items
-9. **Quick Actions** - Buttons for capture, focus, new task, new chore
-
----
-
-## Editing Metadata
-
-### Via Todo List Cards
-
-The native Home Assistant todo-list cards support:
-- ✅ Adding items
-- ✅ Completing items
-- ✅ Deleting items
-- ✅ Setting due dates (for tasks)
-
-### Via API (For Advanced Editing)
-
-The YAHATL integration exposes REST API endpoints for full metadata control:
-
-**Update Task:**
-```bash
-curl -X PUT "http://homeassistant:8123/api/yahatl/notes/{noteId}/behaviours/task" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"priority": "High", "dueDate": "2026-01-15T00:00:00"}'
+```yaml
+tap_action:
+  action: call-service
+  service: rest_command.yahatl_complete_task
+  data:
+    note_id: "{{ task.id }}"
 ```
-
-**Update Chore Interval:**
-```bash
-curl -X PUT "http://homeassistant:8123/api/yahatl/notes/{noteId}/behaviours/chore" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"intervalDays": 14}'
-```
-
-**Update Habit Frequency:**
-```bash
-curl -X PUT "http://homeassistant:8123/api/yahatl/notes/{noteId}/behaviours/habit" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"frequencyGoal": "3x per week"}'
-```
-
-### Via Input Helpers + Automations
-
-For a more integrated experience, configure the input helpers and automations.
-
----
-
-## Entity Reference
-
-### Sensors
-
-| Entity | Purpose |
-|--------|---------|
-| `sensor.yahatl_overdue_count` | Overdue tasks count |
-| `sensor.yahatl_due_today` | Tasks due today |
-| `sensor.yahatl_inbox_count` | Inbox items |
-| `sensor.yahatl_streaks_at_risk` | Habits at risk |
-| `sensor.yahatl_blocked_count` | Blocked items |
-
-### Binary Sensors
-
-| Entity | Purpose |
-|--------|---------|
-| `binary_sensor.yahatl_pomodoro_active` | Timer running |
-| `binary_sensor.yahatl_has_overdue` | Any overdue tasks |
-
-### Todo Lists
-
-| Entity | Purpose |
-|--------|---------|
-| `todo.yahatl_inbox` | Quick capture inbox |
-| `todo.yahatl_tasks` | Tasks with due dates |
-| `todo.yahatl_chores` | Recurring chores |
-| `todo.yahatl_habits` | Habit tracking |
-
-### Calendar
-
-| Entity | Purpose |
-|--------|---------|
-| `calendar.yahatl` | Tasks/chores as events |
-
----
-
-## API Endpoints Reference
-
-### Notes
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/yahatl/notes` | List all notes |
-| POST | `/api/yahatl/notes` | Create note |
-| GET | `/api/yahatl/notes/{id}` | Get note with behaviours |
-| PUT | `/api/yahatl/notes/{id}` | Update note |
-| DELETE | `/api/yahatl/notes/{id}` | Archive note |
-| POST | `/api/yahatl/notes/capture` | Quick capture |
-
-### Task Behaviour
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/yahatl/notes/{id}/behaviours/task` | Add task behaviour |
-| PUT | `/api/yahatl/notes/{id}/behaviours/task` | Update task (dueDate, priority, status) |
-| POST | `/api/yahatl/notes/{id}/behaviours/task/complete` | Complete task |
-
-### Habit Behaviour
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/yahatl/notes/{id}/behaviours/habit` | Add habit behaviour |
-| PUT | `/api/yahatl/notes/{id}/behaviours/habit` | Update habit (frequencyGoal) |
-| POST | `/api/yahatl/notes/{id}/behaviours/habit/complete` | Log habit |
-
-### Chore Behaviour
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/yahatl/notes/{id}/behaviours/chore` | Add chore behaviour |
-| PUT | `/api/yahatl/notes/{id}/behaviours/chore` | Update chore (intervalDays) |
-| POST | `/api/yahatl/notes/{id}/behaviours/chore/complete` | Complete chore |
-
-### Dashboard & Pomodoro
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/yahatl/Dashboard/summary` | Get stats |
-| POST | `/api/yahatl/Pomodoro/start` | Start timer |
-| POST | `/api/yahatl/Pomodoro/stop` | Stop timer |
-| GET | `/api/yahatl/Pomodoro/current` | Get current session |
 
 ---
 
 ## Troubleshooting
 
-### Cards Not Loading
-1. Ensure Mushroom Cards is installed via HACS
-2. Clear browser cache
-3. Restart Home Assistant
+### Cards Not Generating
 
-### Missing Entities
-1. Check YAHATL integration is configured
-2. Go to Developer Tools → States
-3. Search for "yahatl"
+1. Verify `auto-entities` and `layout-card` are installed
+2. Check sensor has items: Developer Tools → States → `sensor.yahatl_tasks_list`
+3. Look for errors in browser console
 
-### API Errors
-1. Check long-lived access token is valid
-2. Verify integration is running
-3. Check Home Assistant logs
+### REST Commands Failing
 
-### Template Errors
-Requires Home Assistant 2023.4+ for full template support.
+1. Check `secrets.yaml` has `yahatl_token`
+2. Verify token is valid (test in Developer Tools → Services)
+3. Watch Home Assistant logs for errors
+
+### Items Not Updating
+
+The coordinator refreshes every 60 seconds by default. To force refresh, reload the YAHATL integration.

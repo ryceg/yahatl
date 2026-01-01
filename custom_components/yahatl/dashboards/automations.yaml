@@ -1,183 +1,32 @@
-# YAHATL REST Commands and Automations
-# Add these to your Home Assistant configuration.yaml
+# YAHATL Automations
+# Include in configuration.yaml under automation:
 #
-# These enable the dashboard to fire API requests for all YAHATL actions
+# automation: !include custom_components/yahatl/dashboards/automations.yaml
+#
+# Or add to existing automation includes:
+# automation: !include_dir_merge_list automations/
+# (then copy this file to your automations/ directory)
 
-# NOTE: Replace YOUR_HA_TOKEN with a long-lived access token
-# Create one at: Profile -> Security -> Long-Lived Access Tokens
-
-rest_command:
-  # ===== CAPTURE & CREATE =====
-  yahatl_capture:
-    url: "http://localhost:8123/api/yahatl/notes/capture"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"title": "{{ title }}"}'
-
-  yahatl_create_task:
-    url: "http://localhost:8123/api/yahatl/notes"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: >-
-      {
-        "title": "{{ title }}",
-        "templateType": "Task"
-      }
-    # Note: After creation, need to add task behaviour via separate call
-
-  yahatl_create_chore:
-    url: "http://localhost:8123/api/yahatl/notes"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: >-
-      {
-        "title": "{{ title }}",
-        "templateType": "Chore"
-      }
-
-  yahatl_create_habit:
-    url: "http://localhost:8123/api/yahatl/notes"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: >-
-      {
-        "title": "{{ title }}",
-        "templateType": "Habit"
-      }
-
-  # ===== COMPLETE ACTIONS =====
-  yahatl_complete_task:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task/complete"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-
-  yahatl_complete_chore:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore/complete"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-
-  yahatl_log_habit:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit/complete"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-
-  # ===== UPDATE TASK =====
-  yahatl_update_task_priority:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
-    method: PUT
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"priority": "{{ priority }}"}'
-
-  yahatl_update_task_due_date:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
-    method: PUT
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"dueDate": "{{ due_date }}"}'
-
-  yahatl_update_task_status:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
-    method: PUT
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"status": "{{ status }}"}'
-
-  # ===== UPDATE CHORE =====
-  yahatl_update_chore_interval:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore"
-    method: PUT
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"intervalDays": {{ interval_days }}}'
-
-  # ===== UPDATE HABIT =====
-  yahatl_update_habit_frequency:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit"
-    method: PUT
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"frequencyGoal": "{{ frequency_goal }}"}'
-
-  # ===== ARCHIVE =====
-  yahatl_archive_note:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}"
-    method: DELETE
-    headers:
-      Authorization: !secret yahatl_token
-
-  # ===== CONVERT INBOX ITEMS =====
-  yahatl_add_task_behaviour:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"priority": "Normal"}'
-
-  yahatl_add_chore_behaviour:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"intervalDays": 7}'
-
-  yahatl_add_habit_behaviour:
-    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit"
-    method: POST
-    headers:
-      Authorization: !secret yahatl_token
-      Content-Type: "application/json"
-    payload: '{"frequencyGoal": "daily"}'
-
-
-# ===== AUTOMATIONS =====
-automation:
-  # Quick Capture from input helper
-  - id: yahatl_quick_capture_automation
-    alias: "YAHATL: Quick Capture"
-    description: "Capture text to inbox when input is set"
-    trigger:
-      - platform: state
+# Quick Capture from input helper
+- id: yahatl_quick_capture_automation
+  alias: "YAHATL: Quick Capture"
+  description: "Capture text to inbox when input is set"
+  trigger:
+    - platform: state
+      entity_id: input_text.yahatl_capture_text
+  condition:
+    - condition: template
+      value_template: "{{ trigger.to_state.state | length > 0 }}"
+  action:
+    - service: rest_command.yahatl_capture
+      data:
+        title: "{{ trigger.to_state.state }}"
+    - service: input_text.set_value
+      target:
         entity_id: input_text.yahatl_capture_text
-    condition:
-      - condition: template
-        value_template: "{{ trigger.to_state.state | length > 0 }}"
-    action:
-      - service: rest_command.yahatl_capture
-        data:
-          title: "{{ trigger.to_state.state }}"
-      - service: input_text.set_value
-        target:
-          entity_id: input_text.yahatl_capture_text
-        data:
-          value: ""
-      - service: persistent_notification.create
-        data:
-          title: "YAHATL"
-          message: "Captured: {{ trigger.to_state.state }}"
-
-
-# ===== SECRETS =====
-# Add to secrets.yaml:
-# yahatl_token: "Bearer YOUR_LONG_LIVED_ACCESS_TOKEN"
+      data:
+        value: ""
+    - service: persistent_notification.create
+      data:
+        title: "YAHATL"
+        message: "Captured: {{ trigger.to_state.state }}"

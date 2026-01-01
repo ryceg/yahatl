@@ -1,8 +1,37 @@
 # YAHATL Input Helpers Configuration
-# Add this to your Home Assistant configuration.yaml
 #
-# These input helpers enable editing of YAHATL item metadata via the dashboard
+# IMPORTANT: This file contains MULTIPLE input types that must be added
+# to their respective sections in your configuration.yaml:
+#
+# ============================================================
+# OPTION 1: Copy each section to your configuration.yaml
+# ============================================================
+#
+# input_text:
+#   yahatl_capture_text:
+#     ...
+#   yahatl_selected_note_id:
+#     ...
+#
+# input_number:
+#   yahatl_chore_interval:
+#     ...
+#
+# (etc. for each section below)
+#
+# ============================================================
+# OPTION 2: Use packages (recommended)
+# ============================================================
+#
+# 1. Create a packages directory: config/packages/
+# 2. Add to configuration.yaml:
+#    homeassistant:
+#      packages: !include_dir_named packages
+# 3. Copy this entire file to: config/packages/yahatl_inputs.yaml
+#
+# ============================================================
 
+# ----- input_text section -----
 input_text:
   yahatl_capture_text:
     name: Quick Capture
@@ -16,6 +45,7 @@ input_text:
     max: 50
     mode: text
 
+# ----- input_number section -----
 input_number:
   yahatl_chore_interval:
     name: Chore Repeat Interval
@@ -35,6 +65,7 @@ input_number:
     unit_of_measurement: minutes
     mode: slider
 
+# ----- input_select section -----
 input_select:
   yahatl_task_priority:
     name: Task Priority
@@ -68,6 +99,7 @@ input_select:
       - Cancelled
     initial: Pending
 
+# ----- input_datetime section -----
 input_datetime:
   yahatl_task_due_date:
     name: Task Due Date

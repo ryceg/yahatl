@@ -1,0 +1,150 @@
+# YAHATL REST Commands
+# Include in configuration.yaml under rest_command:
+#
+# rest_command: !include custom_components/yahatl/dashboards/rest-commands.yaml
+#
+# NOTE: You must first add to secrets.yaml:
+# yahatl_token: "Bearer YOUR_LONG_LIVED_ACCESS_TOKEN"
+# Create token at: Profile -> Security -> Long-Lived Access Tokens
+
+# ===== CAPTURE & CREATE =====
+yahatl_capture:
+  url: "http://localhost:8123/api/yahatl/notes/capture"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"title": "{{ title }}"}'
+
+yahatl_create_task:
+  url: "http://localhost:8123/api/yahatl/notes"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: >-
+    {
+      "title": "{{ title }}",
+      "templateType": "Task"
+    }
+
+yahatl_create_chore:
+  url: "http://localhost:8123/api/yahatl/notes"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: >-
+    {
+      "title": "{{ title }}",
+      "templateType": "Chore"
+    }
+
+yahatl_create_habit:
+  url: "http://localhost:8123/api/yahatl/notes"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: >-
+    {
+      "title": "{{ title }}",
+      "templateType": "Habit"
+    }
+
+# ===== COMPLETE ACTIONS =====
+yahatl_complete_task:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task/complete"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+
+yahatl_complete_chore:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore/complete"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+
+yahatl_log_habit:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit/complete"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+
+# ===== UPDATE TASK =====
+yahatl_update_task_priority:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
+  method: PUT
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"priority": "{{ priority }}"}'
+
+yahatl_update_task_due_date:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
+  method: PUT
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"dueDate": "{{ due_date }}"}'
+
+yahatl_update_task_status:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
+  method: PUT
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"status": "{{ status }}"}'
+
+# ===== UPDATE CHORE =====
+yahatl_update_chore_interval:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore"
+  method: PUT
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"intervalDays": {{ interval_days }}}'
+
+# ===== UPDATE HABIT =====
+yahatl_update_habit_frequency:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit"
+  method: PUT
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"frequencyGoal": "{{ frequency_goal }}"}'
+
+# ===== ARCHIVE =====
+yahatl_archive_note:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}"
+  method: DELETE
+  headers:
+    Authorization: !secret yahatl_token
+
+# ===== CONVERT INBOX ITEMS =====
+yahatl_add_task_behaviour:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"priority": "Normal"}'
+
+yahatl_add_chore_behaviour:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"intervalDays": 7}'
+
+yahatl_add_habit_behaviour:
+  url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit"
+  method: POST
+  headers:
+    Authorization: !secret yahatl_token
+    Content-Type: "application/json"
+  payload: '{"frequencyGoal": "daily"}'

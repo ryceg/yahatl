@@ -33,31 +33,58 @@ Optional:
 | File | Purpose |
 |------|---------|
 | `yahatl-dashboard.yaml` | Main Lovelace dashboard |
-| `input-helpers.yaml` | Input entities for forms |
-| `automations.yaml` | REST commands for API calls |
+| `input-helpers.yaml` | Input entities for forms (use as package) |
+| `rest-commands.yaml` | REST commands for API calls |
+| `automations.yaml` | Automations for quick capture |
 | `README.md` | This documentation |
 
 ---
 
 ## Installation
 
-### Step 1: Add Input Helpers
+### Step 1: Add Input Helpers (Choose ONE method)
 
-Copy `input-helpers.yaml` contents to your `configuration.yaml` or include it:
+**Option A: Using Packages (Recommended)**
 
-```yaml
-input_text: !include custom_components/yahatl/dashboards/input-helpers.yaml
-```
+1. Create a packages directory if it doesn't exist: `config/packages/`
+2. Add to your `configuration.yaml`:
+   ```yaml
+   homeassistant:
+     packages: !include_dir_named packages
+   ```
+3. Copy `input-helpers.yaml` to `config/packages/yahatl_inputs.yaml`
+
+**Option B: Manual Copy**
+
+Copy each section from `input-helpers.yaml` to the corresponding section in your `configuration.yaml`:
+- `input_text:` entries go under your `input_text:` section
+- `input_number:` entries go under your `input_number:` section
+- `input_select:` entries go under your `input_select:` section
+- `input_datetime:` entries go under your `input_datetime:` section
 
 ### Step 2: Add REST Commands
 
-Copy `automations.yaml` contents to your `configuration.yaml`:
+Add to your `configuration.yaml`:
 
 ```yaml
-rest_command: !include custom_components/yahatl/dashboards/automations.yaml
+rest_command: !include custom_components/yahatl/dashboards/rest-commands.yaml
 ```
 
-### Step 3: Install Dashboard
+### Step 3: Add Automations
+
+Add to your `configuration.yaml`:
+
+```yaml
+automation: !include custom_components/yahatl/dashboards/automations.yaml
+```
+
+Or if you already have automation includes:
+```yaml
+automation: !include_dir_merge_list automations/
+```
+(Copy `automations.yaml` to your automations directory)
+
+### Step 4: Install Dashboard
 
 **Option A: UI**
 1. Settings → Dashboards → Add Dashboard
@@ -74,7 +101,7 @@ lovelace:
       filename: custom_components/yahatl/dashboards/yahatl-dashboard.yaml
 ```
 
-### Step 4: Restart Home Assistant
+### Step 5: Restart Home Assistant
 
 ---
 

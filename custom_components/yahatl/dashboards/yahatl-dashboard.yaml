@@ -21,7 +21,7 @@ views:
               - type: template
                 icon: mdi:alert-circle
                 icon_color: |-
-                  {% if states('sensor.yahatl_overdue_count') | int > 0 %}
+                  {% if states('sensor.yahatl_overdue_count') | int(0) > 0 %}
                     red
                   {% else %}
                     green
@@ -34,7 +34,7 @@ views:
               - type: template
                 icon: mdi:calendar-today
                 icon_color: |-
-                  {% if states('sensor.yahatl_due_today') | int > 0 %}
+                  {% if states('sensor.yahatl_due_today') | int(0) > 0 %}
                     orange
                   {% else %}
                     grey
@@ -44,7 +44,7 @@ views:
               - type: template
                 icon: mdi:inbox
                 icon_color: |-
-                  {% if states('sensor.yahatl_inbox_count') | int > 0 %}
+                  {% if states('sensor.yahatl_inbox_count') | int(0) > 0 %}
                     blue
                   {% else %}
                     grey
@@ -57,7 +57,7 @@ views:
               - type: template
                 icon: mdi:fire
                 icon_color: |-
-                  {% if states('sensor.yahatl_streaks_at_risk') | int > 0 %}
+                  {% if states('sensor.yahatl_streaks_at_risk') | int(0) > 0 %}
                     deep-orange
                   {% else %}
                     green

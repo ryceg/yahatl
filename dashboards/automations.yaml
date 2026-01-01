@@ -1,0 +1,83 @@
+# YAHATL Automations
+# Add these automations to Home Assistant for enhanced functionality
+
+automation:
+  # Quick Capture Automation
+  # Triggers when capture text is entered and creates an inbox item
+  - id: yahatl_quick_capture
+    alias: "YAHATL: Quick Capture to Inbox"
+    description: "Capture text to YAHATL inbox when input helper is set"
+    trigger:
+      - platform: state
+        entity_id: input_text.yahatl_capture_text
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state | length > 0 }}"
+    action:
+      - service: rest_command.yahatl_capture
+        data:
+          title: "{{ states('input_text.yahatl_capture_text') }}"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.yahatl_capture_text
+        data:
+          value: ""
+      - service: persistent_notification.create
+        data:
+          title: "YAHATL"
+          message: "Captured: {{ trigger.to_state.state }}"
+          notification_id: yahatl_capture
+
+  # Start Pomodoro with Custom Duration
+  - id: yahatl_custom_pomodoro
+    alias: "YAHATL: Start Custom Pomodoro"
+    description: "Start a pomodoro with the duration set in the input helper"
+    trigger:
+      - platform: event
+        event_type: yahatl_start_custom_pomodoro
+    action:
+      - service: yahatl.start_pomodoro
+        data:
+          duration_minutes: "{{ states('input_number.yahatl_pomodoro_duration') | int }}"
+
+# REST Commands for API calls
+rest_command:
+  yahatl_capture:
+    url: "http://localhost:8123/api/yahatl/notes/capture"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ states('input_text.yahatl_api_token') }}"
+      Content-Type: "application/json"
+    payload: '{"title": "{{ title }}"}'
+
+  yahatl_update_chore_interval:
+    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/chore"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ states('input_text.yahatl_api_token') }}"
+      Content-Type: "application/json"
+    payload: '{"intervalDays": {{ interval_days }}}'
+
+  yahatl_update_task_priority:
+    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ states('input_text.yahatl_api_token') }}"
+      Content-Type: "application/json"
+    payload: '{"priority": "{{ priority }}"}'
+
+  yahatl_update_task_due_date:
+    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/task"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ states('input_text.yahatl_api_token') }}"
+      Content-Type: "application/json"
+    payload: '{"dueDate": "{{ due_date }}"}'
+
+  yahatl_update_habit_frequency:
+    url: "http://localhost:8123/api/yahatl/notes/{{ note_id }}/behaviours/habit"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ states('input_text.yahatl_api_token') }}"
+      Content-Type: "application/json"
+    payload: '{"frequencyGoal": "{{ frequency_goal }}"}'

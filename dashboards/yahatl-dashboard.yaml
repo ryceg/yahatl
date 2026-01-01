@@ -85,13 +85,8 @@ views:
                     Ready
                   {% endif %}
                 tap_action:
-                  action: call-service
-                  service: |-
-                    {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
-                      yahatl.stop_pomodoro
-                    {% else %}
-                      yahatl.start_pomodoro
-                    {% endif %}
+                  action: navigate
+                  navigation_path: /yahatl/pomodoro
 
       # ======================
       # SUMMARY CARDS SECTION
@@ -193,6 +188,59 @@ views:
             fill_container: true
 
       # ======================
+      # TASKS SECTION (Detailed)
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Tasks
+            subtitle: Tap any task for details
+
+          # Use a native todo-list for tasks with enhanced features
+          - type: todo-list
+            entity: todo.yahatl_tasks
+            title: ""
+
+      # ======================
+      # CHORES SECTION (Detailed)
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Chores
+            subtitle: Recurring household tasks
+
+          - type: todo-list
+            entity: todo.yahatl_chores
+            title: ""
+
+      # ======================
+      # HABITS SECTION (Detailed)
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Habits
+            subtitle: "Keep your streaks alive"
+
+          - type: todo-list
+            entity: todo.yahatl_habits
+            title: ""
+
+      # ======================
+      # INBOX SECTION
+      # ======================
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: Inbox
+            subtitle: "Quick captures to process"
+
+          - type: todo-list
+            entity: todo.yahatl_inbox
+            title: ""
+
+      # ======================
       # POMODORO SECTION
       # ======================
       - type: grid
@@ -242,7 +290,7 @@ views:
             cards:
               - type: custom:mushroom-template-card
                 primary: "15 min"
-                icon: mdi:timer-15
+                icon: mdi:clock-fast
                 icon_color: teal
                 layout: vertical
                 tap_action:
@@ -253,7 +301,7 @@ views:
 
               - type: custom:mushroom-template-card
                 primary: "25 min"
-                icon: mdi:timer-25
+                icon: mdi:clock-outline
                 icon_color: teal
                 layout: vertical
                 tap_action:
@@ -264,7 +312,7 @@ views:
 
               - type: custom:mushroom-template-card
                 primary: "45 min"
-                icon: mdi:timer-45
+                icon: mdi:clock
                 icon_color: teal
                 layout: vertical
                 tap_action:
@@ -275,7 +323,7 @@ views:
 
               - type: custom:mushroom-template-card
                 primary: "60 min"
-                icon: mdi:timer-60
+                icon: mdi:clock-plus
                 icon_color: teal
                 layout: vertical
                 tap_action:
@@ -283,53 +331,6 @@ views:
                   service: yahatl.start_pomodoro
                   data:
                     duration_minutes: 60
-
-      # ======================
-      # TODO LISTS SECTION
-      # ======================
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: Tasks
-            subtitle: Manage your to-do items
-
-          # Tasks List
-          - type: todo-list
-            entity: todo.yahatl_tasks
-            title: Tasks
-
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: Inbox
-            subtitle: Quick capture items to process
-
-          # Inbox List
-          - type: todo-list
-            entity: todo.yahatl_inbox
-            title: Inbox
-
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: Chores
-            subtitle: Recurring household tasks
-
-          # Chores List
-          - type: todo-list
-            entity: todo.yahatl_chores
-            title: Chores
-
-      - type: grid
-        cards:
-          - type: custom:mushroom-title-card
-            title: Habits
-            subtitle: "Build streaks, build yourself"
-
-          # Habits List
-          - type: todo-list
-            entity: todo.yahatl_habits
-            title: Habits
 
       # ======================
       # CALENDAR SECTION
@@ -363,11 +364,8 @@ views:
                 icon_color: blue
                 layout: vertical
                 tap_action:
-                  action: call-service
-                  service: yahatl.capture
-                  data:
-                    title: ""
-                  target: {}
+                  action: navigate
+                  navigation_path: /yahatl/capture
 
               - type: custom:mushroom-template-card
                 primary: "Focus"
@@ -375,18 +373,26 @@ views:
                 icon_color: teal
                 layout: vertical
                 tap_action:
-                  action: call-service
-                  service: yahatl.start_pomodoro
+                  action: navigate
+                  navigation_path: /yahatl/pomodoro
 
-          - type: custom:mushroom-template-card
-            primary: "Open Mobile App"
-            secondary: "Access the full YAHATL experience"
-            icon: mdi:cellphone
-            icon_color: indigo
-            tap_action:
-              action: url
-              url_path: "/api/yahatl"
-            fill_container: true
+              - type: custom:mushroom-template-card
+                primary: "New Task"
+                icon: mdi:clipboard-plus
+                icon_color: green
+                layout: vertical
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/new-task
+
+              - type: custom:mushroom-template-card
+                primary: "New Chore"
+                icon: mdi:broom
+                icon_color: amber
+                layout: vertical
+                tap_action:
+                  action: navigate
+                  navigation_path: /yahatl/new-chore
 
   # ======================
   # TASKS VIEW
@@ -400,7 +406,7 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: "Tasks"
-            subtitle: "All your tasks in one place"
+            subtitle: "Manage your tasks and to-dos"
 
           - type: custom:mushroom-chips-card
             chips:
@@ -456,7 +462,7 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: "Chores"
-            subtitle: "Keep your space tidy"
+            subtitle: "Recurring household tasks"
 
           - type: custom:mushroom-chips-card
             chips:
@@ -478,7 +484,7 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: "Habits"
-            subtitle: "Small steps, big changes"
+            subtitle: "Build streaks, build yourself"
 
           - type: custom:mushroom-chips-card
             chips:
@@ -496,3 +502,214 @@ views:
           - type: todo-list
             entity: todo.yahatl_habits
             title: All Habits
+
+  # ======================
+  # POMODORO VIEW
+  # ======================
+  - title: Pomodoro
+    path: pomodoro
+    icon: mdi:timer
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Pomodoro Timer"
+            subtitle: "Focus and productivity"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: custom:mushroom-template-card
+            primary: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                🔴 Focus Session Active
+              {% else %}
+                ⚪ Ready to Focus
+              {% endif %}
+            secondary: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                Session in progress. Tap to stop.
+              {% else %}
+                Choose a duration below to start focusing.
+              {% endif %}
+            icon: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                mdi:timer-sand
+              {% else %}
+                mdi:timer-outline
+              {% endif %}
+            icon_color: |-
+              {% if is_state('binary_sensor.yahatl_pomodoro_active', 'on') %}
+                red
+              {% else %}
+                teal
+              {% endif %}
+            tap_action:
+              action: call-service
+              service: yahatl.stop_pomodoro
+            fill_container: true
+            multiline_secondary: true
+
+          - type: custom:mushroom-title-card
+            subtitle: "Quick Start"
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "15 min"
+                secondary: "Quick burst"
+                icon: mdi:clock-fast
+                icon_color: teal
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 15
+
+              - type: custom:mushroom-template-card
+                primary: "25 min"
+                secondary: "Standard"
+                icon: mdi:clock-outline
+                icon_color: teal
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 25
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: "45 min"
+                secondary: "Extended"
+                icon: mdi:clock
+                icon_color: teal
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 45
+
+              - type: custom:mushroom-template-card
+                primary: "60 min"
+                secondary: "Deep work"
+                icon: mdi:clock-plus
+                icon_color: teal
+                tap_action:
+                  action: call-service
+                  service: yahatl.start_pomodoro
+                  data:
+                    duration_minutes: 60
+
+          - type: custom:mushroom-template-card
+            primary: "Stop Timer"
+            secondary: "End the current focus session"
+            icon: mdi:stop-circle
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: yahatl.stop_pomodoro
+            fill_container: true
+
+  # ======================
+  # CAPTURE VIEW
+  # ======================
+  - title: Capture
+    path: capture
+    icon: mdi:plus-circle
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Quick Capture"
+            subtitle: "Add to inbox instantly"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: markdown
+            content: |
+              Use the **todo.yahatl_inbox** entity to quickly add items:
+
+              1. Open Developer Tools → Services
+              2. Call `todo.add_item`
+              3. Entity: `todo.yahatl_inbox`
+              4. Enter your item text
+
+              Or use voice commands with your preferred assistant!
+
+          - type: todo-list
+            entity: todo.yahatl_inbox
+            title: Add to Inbox
+
+  # ======================
+  # NEW TASK VIEW
+  # ======================
+  - title: New Task
+    path: new-task
+    icon: mdi:clipboard-plus
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Create Task"
+            subtitle: "Add a new task"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: markdown
+            content: |
+              To create a new task:
+
+              1. Add an item to the tasks list below
+              2. The task will be created with default settings
+              3. Tap the item to edit details
+
+              **Tip:** Set due dates and priorities via the todo-list interface!
+
+          - type: todo-list
+            entity: todo.yahatl_tasks
+            title: Create Task
+
+  # ======================
+  # NEW CHORE VIEW
+  # ======================
+  - title: New Chore
+    path: new-chore
+    icon: mdi:broom
+    type: sections
+    sections:
+      - type: grid
+        cards:
+          - type: custom:mushroom-title-card
+            title: "Create Chore"
+            subtitle: "Add a recurring chore"
+
+          - type: custom:mushroom-chips-card
+            chips:
+              - type: back
+
+          - type: markdown
+            content: |
+              To create a new chore:
+
+              1. Add an item to the chores list below
+              2. Default interval is 7 days
+              3. Edit interval via the API or mobile app
+
+              **API Endpoint:** `PUT /api/yahatl/notes/{id}/behaviours/chore`
+
+              ```json
+              { "intervalDays": 14 }
+              ```
+
+          - type: todo-list
+            entity: todo.yahatl_chores
+            title: Create Chore

@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Create a yahatl list",
+        "description": "Enter a name for your new todo list.",
+        "data": {
+          "list_name": "List name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "A list with this name already exists."
+    }
+  }
+}

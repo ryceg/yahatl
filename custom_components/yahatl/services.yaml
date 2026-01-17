@@ -1,0 +1,538 @@
+add_item:
+  name: Add Item
+  description: Add a new item to a yahatl list with extended properties.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    title:
+      name: Title
+      description: The title of the item.
+      required: true
+      selector:
+        text:
+    description:
+      name: Description
+      description: Optional description for the item.
+      required: false
+      selector:
+        text:
+          multiline: true
+    traits:
+      name: Traits
+      description: Traits to set on the item.
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - actionable
+            - recurring
+            - habit
+            - chore
+            - reminder
+            - note
+    tags:
+      name: Tags
+      description: Tags to add to the item.
+      required: false
+      selector:
+        text:
+    due:
+      name: Due
+      description: Due date/time for the item.
+      required: false
+      selector:
+        datetime:
+    time_estimate:
+      name: Time Estimate
+      description: Estimated time to complete in minutes.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: minutes
+    needs_detail:
+      name: Needs Detail
+      description: Flag the item as needing more detail.
+      required: false
+      default: false
+      selector:
+        boolean:
+
+complete_item:
+  name: Complete Item
+  description: Mark an item as completed and record completion history.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to complete.
+      required: true
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID to record who completed the item.
+      required: false
+      selector:
+        text:
+
+update_item:
+  name: Update Item
+  description: Update properties of an existing yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    title:
+      name: Title
+      description: New title for the item.
+      required: false
+      selector:
+        text:
+    description:
+      name: Description
+      description: New description for the item.
+      required: false
+      selector:
+        text:
+          multiline: true
+    status:
+      name: Status
+      description: New status for the item.
+      required: false
+      selector:
+        select:
+          options:
+            - pending
+            - in_progress
+            - completed
+            - missed
+    due:
+      name: Due
+      description: New due date/time.
+      required: false
+      selector:
+        datetime:
+    time_estimate:
+      name: Time Estimate
+      description: Estimated time to complete in minutes.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: minutes
+    buffer_before:
+      name: Buffer Before
+      description: Buffer time needed before task in minutes.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: minutes
+    buffer_after:
+      name: Buffer After
+      description: Buffer time needed after task in minutes.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: minutes
+
+set_traits:
+  name: Set Traits
+  description: Set the traits (type flags) for a yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    traits:
+      name: Traits
+      description: List of traits to set on the item.
+      required: true
+      selector:
+        select:
+          multiple: true
+          options:
+            - actionable
+            - recurring
+            - habit
+            - chore
+            - reminder
+            - note
+
+add_tags:
+  name: Add Tags
+  description: Add tags to a yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    tags:
+      name: Tags
+      description: Tags to add to the item.
+      required: true
+      selector:
+        text:
+
+remove_tags:
+  name: Remove Tags
+  description: Remove tags from a yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    tags:
+      name: Tags
+      description: Tags to remove from the item.
+      required: true
+      selector:
+        text:
+
+flag_needs_detail:
+  name: Flag Needs Detail
+  description: Mark an item as needing more detail (for later fleshing out).
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to flag.
+      required: true
+      selector:
+        text:
+    needs_detail:
+      name: Needs Detail
+      description: Whether the item needs more detail.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+set_list_visibility:
+  name: Set List Visibility
+  description: Set the visibility and sharing settings for a yahatl list.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    visibility:
+      name: Visibility
+      description: Whether the list is private or shared.
+      required: true
+      selector:
+        select:
+          options:
+            - private
+            - shared
+    shared_with:
+      name: Shared With
+      description: List of user IDs to share with (if visibility is shared). Empty means all users.
+      required: false
+      selector:
+        text:
+
+set_recurrence:
+  name: Set Recurrence
+  description: Configure recurrence rules for an item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    recurrence_type:
+      name: Recurrence Type
+      description: Type of recurrence (calendar, elapsed, frequency, or none to remove).
+      required: true
+      selector:
+        select:
+          options:
+            - calendar
+            - elapsed
+            - frequency
+            - none
+    calendar_pattern:
+      name: Calendar Pattern
+      description: Pattern for calendar-based recurrence (e.g., "daily", "weekly", "monthly").
+      required: false
+      selector:
+        text:
+    elapsed_interval:
+      name: Elapsed Interval
+      description: Interval for elapsed-based recurrence.
+      required: false
+      selector:
+        number:
+          min: 1
+    elapsed_unit:
+      name: Elapsed Unit
+      description: Unit for elapsed interval.
+      required: false
+      selector:
+        select:
+          options:
+            - days
+            - weeks
+            - months
+            - years
+    frequency_count:
+      name: Frequency Count
+      description: Number of completions required per period.
+      required: false
+      selector:
+        number:
+          min: 1
+    frequency_period:
+      name: Frequency Period
+      description: Period length for frequency goals.
+      required: false
+      selector:
+        number:
+          min: 1
+    frequency_unit:
+      name: Frequency Unit
+      description: Unit for frequency period.
+      required: false
+      selector:
+        select:
+          options:
+            - days
+            - weeks
+            - months
+
+set_blockers:
+  name: Set Blockers
+  description: Configure blockers for an item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    mode:
+      name: Blocker Mode
+      description: Whether ANY or ALL blockers must be active to block the item.
+      required: false
+      default: ALL
+      selector:
+        select:
+          options:
+            - ANY
+            - ALL
+    items:
+      name: Blocking Items
+      description: List of item IDs that block this item.
+      required: false
+      selector:
+        text:
+    sensors:
+      name: Blocking Sensors
+      description: List of binary sensor entity IDs that block this item when "on".
+      required: false
+      selector:
+        text:
+
+set_requirements:
+  name: Set Requirements
+  description: Configure requirements for an item to appear in the queue.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    mode:
+      name: Requirements Mode
+      description: Whether ANY or ALL requirements must be met.
+      required: false
+      default: ANY
+      selector:
+        select:
+          options:
+            - ANY
+            - ALL
+    location:
+      name: Location
+      description: Required locations (e.g., home, office, out).
+      required: false
+      selector:
+        text:
+    people:
+      name: People
+      description: Required people to be present.
+      required: false
+      selector:
+        text:
+    time_constraints:
+      name: Time Constraints
+      description: Required time constraints (e.g., business_hours, weekend, evening).
+      required: false
+      selector:
+        text:
+    context:
+      name: Context
+      description: Required contexts (e.g., computer, phone, car).
+      required: false
+      selector:
+        text:
+    sensors:
+      name: Required Sensors
+      description: Sensors that must be "on" for this item to appear.
+      required: false
+      selector:
+        text:
+
+get_queue:
+  name: Get Queue
+  description: Generate a prioritized task queue based on current context.
+  fields:
+    available_time:
+      name: Available Time
+      description: Available time in minutes (filters tasks by time estimate).
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: minutes
+    location:
+      name: Location
+      description: Current location override (e.g., home, office, out).
+      required: false
+      selector:
+        text:
+    people:
+      name: People
+      description: People currently present (comma-separated).
+      required: false
+      selector:
+        text:
+    contexts:
+      name: Contexts
+      description: Available contexts (e.g., computer, phone, car) (comma-separated).
+      required: false
+      selector:
+        text:
+
+update_context:
+  name: Update Context
+  description: Manually update the current context for queue generation.
+  fields:
+    location:
+      name: Location
+      description: Current location (e.g., home, office, out).
+      required: false
+      selector:
+        text:
+    people:
+      name: People
+      description: People currently present (comma-separated).
+      required: false
+      selector:
+        text:
+    contexts:
+      name: Contexts
+      description: Available contexts (e.g., computer, phone, car) (comma-separated).
+      required: false
+      selector:
+        text:

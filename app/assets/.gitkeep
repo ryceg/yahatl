@@ -1,0 +1,3 @@
+# Assets directory
+# Add icon.png, splash.png, adaptive-icon.png, favicon.png, and notification-icon.png here
+# These can be generated using: npx expo prebuild or manually created

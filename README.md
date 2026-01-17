@@ -24,7 +24,7 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 - **Requirements** - location, people, time, context, and sensor requirements
 - **Streak tracking** - maintain habit streaks with automatic calculation
 
-### Phase 3 - Queue & Context (NEW!)
+### Phase 3 - Queue & Context
 
 - **Priority queue algorithm** - dynamic task prioritization based on context
 - **Scoring system** - weights for overdue, due dates, streaks, frequency goals, and explicit priority
@@ -32,6 +32,19 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 - **Manual context override** - set current location, people present, and available contexts
 - **Automatic context detection** - infers context from Home Assistant state
 - **Time-based filtering** - filter tasks by available time
+
+### Phase 4 - Dashboard (NEW!)
+
+- **Lovelace dashboard** - Beautiful UI with Mushroom cards
+- **Planning tab** - Priority queue, context status, quick stats, pomodoro timer
+- **Capture tab** - Quick capture input, inbox management, triage workflow
+- **Notes tab** - Search, tag filtering, notes list
+- **Custom card** - Rich item display with traits, tags, streaks, blockers
+- **Template sensors** - Real-time statistics (queue count, overdue, habits at risk)
+- **Automations** - Auto-refresh queue, notifications, location-based updates
+- **Scripts** - Common operations (quick add, triage, snooze, pomodoro)
+
+See [dashboards/SETUP_GUIDE.md](dashboards/SETUP_GUIDE.md) for installation and configuration.
 
 ## Installation
 
@@ -297,6 +310,18 @@ See [docs/plans/2026-01-17-yahatl-design.md](docs/plans/2026-01-17-yahatl-design
 - ✅ Scoring system with configurable weights
 - ✅ get_queue and update_context services
 
-### Phase 4+: React Native App & Dashboard
+### Phase 4: Dashboard ✅ COMPLETED
+- ✅ Home Assistant Lovelace dashboard with Mushroom cards
+- ✅ Three-tab interface (Planning, Capture, Notes)
+- ✅ Custom Lovelace card for rich item display
+- ✅ Template sensors for statistics
+- ✅ Helper entities for context and input
+- ✅ Example automations for common workflows
+- ✅ Comprehensive setup guide
+
+See [dashboards/README.md](dashboards/README.md) for dashboard documentation.
+
+### Phase 5: React Native Mobile App
 - Mobile app for Android
-- Home Assistant dashboard with Mushroom cards
+- Offline support with read-only caching
+- Long-lived token authentication

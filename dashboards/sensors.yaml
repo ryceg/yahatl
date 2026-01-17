@@ -1,0 +1,208 @@
+# YAHATL Template Sensors
+# Add these to your configuration.yaml under 'template:'
+#
+# These sensors provide statistics and state information for the dashboard
+# Replace 'my_list' with your actual YAHATL list entity ID
+
+template:
+  - sensor:
+      # Current time period (morning, business_hours, evening, night, weekend)
+      - name: YAHATL Time Period
+        unique_id: yahatl_time_period
+        icon: mdi:clock-outline
+        state: >
+          {% set hour = now().hour %}
+          {% set weekday = now().weekday() %}
+          {% if weekday >= 5 %}
+            weekend
+          {% elif 6 <= hour < 9 %}
+            morning
+          {% elif 9 <= hour < 17 %}
+            business_hours
+          {% elif 17 <= hour < 21 %}
+            evening
+          {% else %}
+            night
+          {% endif %}
+
+      # Queue count (items in current queue)
+      - name: YAHATL Queue Count
+        unique_id: yahatl_queue_count
+        icon: mdi:format-list-checks
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {% for item in items %}
+              {% if item.status == 'needs_action' %}
+                {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+      # Overdue count
+      - name: YAHATL Overdue Count
+        unique_id: yahatl_overdue_count
+        icon: mdi:alert-circle
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {% for item in items %}
+              {% if item.due and item.status == 'needs_action' %}
+                {% set due_date = item.due | as_timestamp %}
+                {% set now_ts = now().timestamp() %}
+                {% if due_date < now_ts %}
+                  {% set ns.count = ns.count + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+        attributes:
+          severity: >
+            {% set count = states('sensor.yahatl_overdue_count') | int(0) %}
+            {% if count == 0 %}
+              none
+            {% elif count <= 2 %}
+              low
+            {% elif count <= 5 %}
+              medium
+            {% else %}
+              high
+            {% endif %}
+
+      # Inbox count (items with needs_detail flag)
+      - name: YAHATL Inbox Count
+        unique_id: yahatl_inbox_count
+        icon: mdi:inbox
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {% for item in items %}
+              {# This would need custom attribute support in the integration #}
+              {% set ns.count = ns.count + 0 %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+      # Notes count (items with 'note' trait)
+      - name: YAHATL Notes Count
+        unique_id: yahatl_notes_count
+        icon: mdi:note-multiple
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {# Would need trait information from integration #}
+            {% set ns.count = items | length %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+      # Needs detail count
+      - name: YAHATL Needs Detail Count
+        unique_id: yahatl_needs_detail_count
+        icon: mdi:alert-decagram
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {# Would need needs_detail flag from integration #}
+            {% set ns.count = 0 %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+      # Streak at risk count (habits with at-risk streaks)
+      - name: YAHATL Streak Risk Count
+        unique_id: yahatl_streak_risk_count
+        icon: mdi:fire-alert
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {# Would need streak information from integration #}
+            {% set ns.count = 0 %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+      # Pomodoro state
+      - name: YAHATL Pomodoro State
+        unique_id: yahatl_pomodoro_state
+        icon: mdi:timer
+        state: >
+          {% if is_state('input_boolean.yahatl_pomodoro_active', 'on') %}
+            active
+          {% else %}
+            inactive
+          {% endif %}
+
+      # Pomodoro task (current task being worked on)
+      - name: YAHATL Pomodoro Task
+        unique_id: yahatl_pomodoro_task
+        icon: mdi:clipboard-text
+        state: >
+          {{ states('input_text.yahatl_pomodoro_task') | default('No task') }}
+
+      # Pomodoro time left
+      - name: YAHATL Pomodoro Time Left
+        unique_id: yahatl_pomodoro_time_left
+        icon: mdi:timer-sand
+        state: >
+          {% if is_state('input_boolean.yahatl_pomodoro_active', 'on') %}
+            {{ states('timer.yahatl_pomodoro') | default('0') }}
+          {% else %}
+            0
+          {% endif %}
+        unit_of_measurement: seconds
+
+      # Pomodoro type (work or break)
+      - name: YAHATL Pomodoro Type
+        unique_id: yahatl_pomodoro_type
+        icon: mdi:timer-cog
+        state: >
+          {{ states('input_select.yahatl_pomodoro_type') | default('work') }}
+
+  - binary_sensor:
+      # Is queue stale (needs refresh)
+      - name: YAHATL Queue Stale
+        unique_id: yahatl_queue_stale
+        icon: mdi:refresh-circle
+        state: >
+          {% set last_update = states('sensor.yahatl_queue_last_updated') %}
+          {% if last_update %}
+            {% set age = (now().timestamp() - (last_update | as_timestamp)) / 60 %}
+            {{ age > 15 }}
+          {% else %}
+            true
+          {% endif %}
+        attributes:
+          minutes_since_update: >
+            {% set last_update = states('sensor.yahatl_queue_last_updated') %}
+            {% if last_update %}
+              {{ ((now().timestamp() - (last_update | as_timestamp)) / 60) | round(0) }}
+            {% else %}
+              999
+            {% endif %}
+
+      # Has overdue items
+      - name: YAHATL Has Overdue
+        unique_id: yahatl_has_overdue
+        icon: mdi:alert
+        device_class: problem
+        state: >
+          {{ states('sensor.yahatl_overdue_count') | int(0) > 0 }}
+
+      # Has inbox items
+      - name: YAHATL Has Inbox
+        unique_id: yahatl_has_inbox
+        icon: mdi:inbox-full
+        state: >
+          {{ states('sensor.yahatl_inbox_count') | int(0) > 0 }}

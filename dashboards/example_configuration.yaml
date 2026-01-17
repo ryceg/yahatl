@@ -1,0 +1,243 @@
+# Example Home Assistant Configuration for YAHATL Dashboard
+#
+# This is a complete example showing how to integrate all YAHATL dashboard
+# components into your Home Assistant configuration.
+#
+# You can use this as a reference or copy sections to your configuration.
+
+# ============================================================
+# METHOD 1: Using Packages (Recommended)
+# ============================================================
+# In configuration.yaml:
+homeassistant:
+  packages:
+    yahatl: !include packages/yahatl.yaml
+
+# Then create config/packages/yahatl.yaml with the contents below
+
+# ============================================================
+# METHOD 2: Direct in configuration.yaml
+# ============================================================
+# Add these sections directly to your configuration.yaml
+
+# Input Text Helpers
+input_text:
+  yahatl_quick_capture:
+    name: YAHATL Quick Capture
+    icon: mdi:inbox-arrow-down
+    max: 255
+
+  yahatl_search:
+    name: YAHATL Search
+    icon: mdi:magnify
+    max: 100
+
+  yahatl_pomodoro_task:
+    name: Current Pomodoro Task
+    icon: mdi:clipboard-text
+    max: 255
+
+# Input Select Helpers
+input_select:
+  yahatl_location:
+    name: YAHATL Location
+    icon: mdi:map-marker
+    options:
+      - home
+      - work
+      - gym
+      - grocery_store
+      - commute
+      - away
+      - other
+
+  yahatl_context:
+    name: YAHATL Context
+    icon: mdi:tag-multiple
+    options:
+      - focused_work
+      - calls_ok
+      - social
+      - errands
+      - exercise
+      - relaxation
+      - creative
+      - learning
+
+  yahatl_pomodoro_type:
+    name: Pomodoro Type
+    icon: mdi:timer-cog
+    options:
+      - work
+      - break
+
+# Input Number Helpers
+input_number:
+  yahatl_available_time:
+    name: Available Time (minutes)
+    icon: mdi:clock-outline
+    min: 5
+    max: 480
+    step: 5
+    mode: slider
+    unit_of_measurement: min
+
+# Input Boolean Helpers
+input_boolean:
+  yahatl_pomodoro_active:
+    name: Pomodoro Active
+    icon: mdi:timer
+
+  yahatl_auto_queue:
+    name: Auto-Update Queue
+    icon: mdi:refresh-auto
+    initial: true
+
+# Timer
+timer:
+  yahatl_pomodoro:
+    name: Pomodoro Timer
+    duration: "00:25:00"
+
+# Template Sensors
+template:
+  - sensor:
+      - name: YAHATL Time Period
+        unique_id: yahatl_time_period
+        icon: mdi:clock-outline
+        state: >
+          {% set hour = now().hour %}
+          {% set weekday = now().weekday() %}
+          {% if weekday >= 5 %}
+            weekend
+          {% elif 6 <= hour < 9 %}
+            morning
+          {% elif 9 <= hour < 17 %}
+            business_hours
+          {% elif 17 <= hour < 21 %}
+            evening
+          {% else %}
+            night
+          {% endif %}
+
+      - name: YAHATL Queue Count
+        unique_id: yahatl_queue_count
+        icon: mdi:format-list-checks
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {% for item in items %}
+              {% if item.status == 'needs_action' %}
+                {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+      - name: YAHATL Overdue Count
+        unique_id: yahatl_overdue_count
+        icon: mdi:alert-circle
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set items = state_attr('todo.yahatl_my_list', 'items') %}
+          {% if items %}
+            {% for item in items %}
+              {% if item.due and item.status == 'needs_action' %}
+                {% set due_date = item.due | as_timestamp %}
+                {% set now_ts = now().timestamp() %}
+                {% if due_date < now_ts %}
+                  {% set ns.count = ns.count + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        unit_of_measurement: items
+
+  - binary_sensor:
+      - name: YAHATL Has Overdue
+        unique_id: yahatl_has_overdue
+        icon: mdi:alert
+        device_class: problem
+        state: >
+          {{ states('sensor.yahatl_overdue_count') | int(0) > 0 }}
+
+# Scripts
+script: !include scripts.yaml
+# OR include specific scripts:
+# script:
+#   yahatl_quick_add: !include scripts/yahatl_quick_add.yaml
+#   yahatl_refresh_queue: !include scripts/yahatl_refresh_queue.yaml
+
+# Automations
+automation: !include automations.yaml
+# OR append to existing automations:
+# automation: !include_dir_merge_list automations/
+
+# ============================================================
+# LOVELACE RESOURCES
+# ============================================================
+# Add these via UI: Settings → Dashboards → Resources
+# Or in lovelace configuration:
+
+lovelace:
+  mode: storage  # Or yaml
+  resources:
+    # Mushroom Cards (required)
+    - url: /hacsfiles/lovelace-mushroom/mushroom.js
+      type: module
+
+    # Card Mod (optional but recommended)
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js
+      type: module
+
+    # Auto Entities (optional)
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module
+
+    # YAHATL Custom Card
+    - url: /local/yahatl-item-card.js
+      type: module
+
+# ============================================================
+# DASHBOARD
+# ============================================================
+# Create a new dashboard with the contents of yahatl_dashboard.yaml
+# Or add it to an existing dashboard
+
+# ============================================================
+# CUSTOMIZATION
+# ============================================================
+
+# Update entity IDs throughout:
+# - Replace 'todo.yahatl_my_list' with your actual YAHATL entity
+# - Update person entities, zones, lights, media players as needed
+# - Add/remove locations and contexts based on your workflow
+# - Customize tag filters and quick actions
+
+# Example customization for multiple lists:
+# input_select:
+#   yahatl_active_list:
+#     name: Active List
+#     icon: mdi:format-list-bulleted
+#     options:
+#       - todo.yahatl_work
+#       - todo.yahatl_personal
+#       - todo.yahatl_home
+
+# ============================================================
+# NOTIFICATIONS
+# ============================================================
+# Update notify platform in automations:
+# - Replace 'notify.mobile_app' with your notify service
+# - Add your device name: 'notify.mobile_app_pixel_6'
+
+# Example for multiple devices:
+# notify:
+#   - name: all_devices
+#     platform: group
+#     services:
+#       - service: mobile_app_phone
+#       - service: mobile_app_tablet

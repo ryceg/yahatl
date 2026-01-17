@@ -1,0 +1,307 @@
+# YAHATL Automation Examples
+# These automations provide useful behaviors for your YAHATL dashboard
+#
+# Add these to your automations.yaml or create them via the UI
+
+# ============================================================
+# AUTO-REFRESH QUEUE ON CONTEXT CHANGES
+# ============================================================
+- id: yahatl_auto_refresh_queue
+  alias: YAHATL - Auto Refresh Queue
+  description: Automatically refresh the queue when context changes
+  trigger:
+    # When someone arrives or leaves home
+    - platform: state
+      entity_id: group.all_persons
+
+    # When location changes
+    - platform: state
+      entity_id: input_select.yahatl_location
+
+    # When context changes
+    - platform: state
+      entity_id: input_select.yahatl_context
+
+    # Every hour (in case time-based requirements change)
+    - platform: time_pattern
+      hours: "/1"
+
+  condition:
+    # Only if auto-queue is enabled
+    - condition: state
+      entity_id: input_boolean.yahatl_auto_queue
+      state: 'on'
+
+  action:
+    - service: yahatl.get_queue
+      data:
+        entity_id: todo.yahatl_my_list
+        available_time: "{{ states('input_number.yahatl_available_time') | int }}"
+        current_context:
+          location: "{{ states('input_select.yahatl_location') }}"
+          contexts: ["{{ states('input_select.yahatl_context') }}"]
+
+# ============================================================
+# QUICK CAPTURE - CLEAR INPUT AFTER ADDING
+# ============================================================
+- id: yahatl_clear_quick_capture
+  alias: YAHATL - Clear Quick Capture
+  description: Clear the quick capture input after adding an item
+  trigger:
+    - platform: event
+      event_type: yahatl_updated
+
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.yahatl_quick_capture') | length > 0 }}"
+
+  action:
+    - service: input_text.set_value
+      data:
+        entity_id: input_text.yahatl_quick_capture
+        value: ""
+
+# ============================================================
+# MORNING BRIEFING - SHOW QUEUE FOR THE DAY
+# ============================================================
+- id: yahatl_morning_briefing
+  alias: YAHATL - Morning Briefing
+  description: Send a notification with today's queue
+  trigger:
+    - platform: time
+      at: "08:00:00"
+
+  condition:
+    # Only on weekdays
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+
+  action:
+    # Refresh queue first
+    - service: yahatl.get_queue
+      data:
+        entity_id: todo.yahatl_my_list
+      response_variable: queue_data
+
+    # Send notification
+    - service: notify.mobile_app
+      data:
+        title: "Good morning! Here's your queue"
+        message: |
+          You have {{ queue_data.queue | length }} tasks in your queue:
+          {% for item in queue_data.queue[:5] %}
+          - {{ item.item.title }}
+          {% endfor %}
+          {% if queue_data.queue | length > 5 %}
+          ... and {{ queue_data.queue | length - 5 }} more
+          {% endif %}
+        data:
+          clickAction: /lovelace/yahatl-planning
+
+# ============================================================
+# OVERDUE REMINDER
+# ============================================================
+- id: yahatl_overdue_reminder
+  alias: YAHATL - Overdue Reminder
+  description: Remind about overdue items
+  trigger:
+    - platform: time_pattern
+      hours: "/3"
+
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.yahatl_overdue_count
+      above: 0
+
+  action:
+    - service: persistent_notification.create
+      data:
+        title: Overdue Tasks
+        message: |
+          You have {{ states('sensor.yahatl_overdue_count') }} overdue tasks.
+          Check your YAHATL dashboard!
+        notification_id: yahatl_overdue
+
+# ============================================================
+# INBOX REMINDER - TRIAGE NEEDED
+# ============================================================
+- id: yahatl_inbox_reminder
+  alias: YAHATL - Inbox Reminder
+  description: Remind to triage inbox items
+  trigger:
+    - platform: time
+      at: "20:00:00"
+
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.yahatl_inbox_count
+      above: 5
+
+  action:
+    - service: notify.mobile_app
+      data:
+        title: YAHATL Inbox
+        message: |
+          You have {{ states('sensor.yahatl_inbox_count') }} items in your inbox.
+          Time to do some triage!
+        data:
+          clickAction: /lovelace/yahatl-capture
+
+# ============================================================
+# HABIT STREAK AT RISK
+# ============================================================
+- id: yahatl_streak_at_risk
+  alias: YAHATL - Habit Streak At Risk
+  description: Alert when habit streaks are at risk
+  trigger:
+    - platform: time
+      at: "18:00:00"
+
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.yahatl_streak_risk_count
+      above: 0
+
+  action:
+    - service: notify.mobile_app
+      data:
+        title: Habit Streak Alert!
+        message: |
+          {{ states('sensor.yahatl_streak_risk_count') }} of your habits are at risk of breaking their streak!
+        data:
+          clickAction: /lovelace/yahatl-planning
+          tag: yahatl_streak_risk
+          importance: high
+
+# ============================================================
+# LOCATION-BASED QUEUE REFRESH
+# ============================================================
+- id: yahatl_location_queue_refresh
+  alias: YAHATL - Location-Based Queue Refresh
+  description: Update location and refresh queue when arriving at key locations
+  trigger:
+    - platform: zone
+      entity_id: person.user
+      zone: zone.home
+      event: enter
+
+    - platform: zone
+      entity_id: person.user
+      zone: zone.work
+      event: enter
+
+    - platform: zone
+      entity_id: person.user
+      zone: zone.gym
+      event: enter
+
+  action:
+    # Update location based on zone
+    - service: input_select.select_option
+      data:
+        entity_id: input_select.yahatl_location
+        option: >
+          {% if trigger.zone.attributes.friendly_name == 'Home' %}
+            home
+          {% elif trigger.zone.attributes.friendly_name == 'Work' %}
+            work
+          {% elif trigger.zone.attributes.friendly_name == 'Gym' %}
+            gym
+          {% else %}
+            other
+          {% endif %}
+
+    # Refresh queue
+    - service: yahatl.get_queue
+      data:
+        entity_id: todo.yahatl_my_list
+
+# ============================================================
+# COMPLETION CELEBRATION
+# ============================================================
+- id: yahatl_completion_celebration
+  alias: YAHATL - Completion Celebration
+  description: Celebrate completing items
+  trigger:
+    - platform: event
+      event_type: yahatl_item_completed
+
+  action:
+    # Flash lights (if available)
+    - service: light.turn_on
+      data:
+        entity_id: light.living_room
+        flash: short
+
+    # Play sound (if available)
+    - service: media_player.play_media
+      data:
+        entity_id: media_player.home
+        media_content_id: /local/sounds/completion.mp3
+        media_content_type: music
+
+  mode: queued
+
+# ============================================================
+# WEEKLY REVIEW REMINDER
+# ============================================================
+- id: yahatl_weekly_review
+  alias: YAHATL - Weekly Review Reminder
+  description: Remind to do weekly review
+  trigger:
+    - platform: time
+      at: "10:00:00"
+
+  condition:
+    - condition: time
+      weekday:
+        - sun
+
+  action:
+    - service: notify.mobile_app
+      data:
+        title: Weekly Review
+        message: |
+          Time for your weekly YAHATL review!
+          - Review completed items
+          - Update recurring tasks
+          - Plan for the week ahead
+        data:
+          clickAction: /lovelace/yahatl-planning
+
+# ============================================================
+# CONTEXT SUGGESTION BASED ON TIME
+# ============================================================
+- id: yahatl_suggest_context
+  alias: YAHATL - Suggest Context
+  description: Suggest context based on time of day
+  trigger:
+    - platform: time
+      at:
+        - "09:00:00"  # Morning - start work
+        - "12:00:00"  # Lunch
+        - "17:00:00"  # End of work
+        - "20:00:00"  # Evening
+
+  action:
+    - service: input_select.select_option
+      data:
+        entity_id: input_select.yahatl_context
+        option: >
+          {% set hour = now().hour %}
+          {% if 9 <= hour < 12 %}
+            focused_work
+          {% elif 12 <= hour < 13 %}
+            relaxation
+          {% elif 13 <= hour < 17 %}
+            focused_work
+          {% elif 17 <= hour < 20 %}
+            errands
+          {% else %}
+            relaxation
+          {% endif %}

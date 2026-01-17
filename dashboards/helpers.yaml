@@ -1,0 +1,76 @@
+# YAHATL Helper Entities
+# Add these to your configuration.yaml or include them via packages
+#
+# These helpers are used by the YAHATL dashboard for:
+# - Quick capture input
+# - Search functionality
+# - Context overrides
+# - Location tracking
+
+# Input Text Helpers
+input_text:
+  # Quick capture for inbox
+  yahatl_quick_capture:
+    name: YAHATL Quick Capture
+    icon: mdi:inbox-arrow-down
+    max: 255
+
+  # Search input for notes
+  yahatl_search:
+    name: YAHATL Search
+    icon: mdi:magnify
+    max: 100
+
+# Input Select Helpers
+input_select:
+  # Manual location override
+  yahatl_location:
+    name: YAHATL Location
+    icon: mdi:map-marker
+    options:
+      - home
+      - work
+      - gym
+      - grocery_store
+      - commute
+      - away
+      - other
+
+  # Manual context override
+  yahatl_context:
+    name: YAHATL Context
+    icon: mdi:tag-multiple
+    options:
+      - focused_work
+      - calls_ok
+      - social
+      - errands
+      - exercise
+      - relaxation
+      - creative
+      - learning
+
+# Input Number Helpers
+input_number:
+  # Available time for queue filtering
+  yahatl_available_time:
+    name: Available Time (minutes)
+    icon: mdi:clock-outline
+    min: 5
+    max: 480
+    step: 5
+    mode: slider
+    unit_of_measurement: min
+
+# Input Boolean Helpers
+input_boolean:
+  # Pomodoro timer state
+  yahatl_pomodoro_active:
+    name: Pomodoro Active
+    icon: mdi:timer
+
+  # Auto-update queue based on context changes
+  yahatl_auto_queue:
+    name: Auto-Update Queue
+    icon: mdi:refresh-auto
+    initial: true

@@ -14,6 +14,7 @@ from .const import ALL_TRAITS, DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_ADD_ITEM = "add_item"
+SERVICE_COMPLETE_ITEM = "complete_item"
 SERVICE_SET_TRAITS = "set_traits"
 SERVICE_ADD_TAGS = "add_tags"
 SERVICE_REMOVE_TAGS = "remove_tags"
@@ -28,6 +29,7 @@ ATTR_TAGS = "tags"
 ATTR_DUE = "due"
 ATTR_TIME_ESTIMATE = "time_estimate"
 ATTR_NEEDS_DETAIL = "needs_detail"
+ATTR_USER_ID = "user_id"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -63,6 +65,14 @@ SERVICE_ADD_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DUE): cv.datetime,
         vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
         vol.Optional(ATTR_NEEDS_DETAIL, default=False): cv.boolean,
+    }
+)
+
+SERVICE_COMPLETE_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Optional(ATTR_USER_ID): cv.string,
     }
 )
 
@@ -115,6 +125,56 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         list_data.add_item(item)
         await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+
+    async def handle_complete_item(call: ServiceCall) -> None:
+        """Handle complete_item service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+        item_id = call.data[ATTR_ITEM_ID]
+        user_id = call.data.get(ATTR_USER_ID, "")
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        item = list_data.get_item(item_id)
+        if item is None:
+            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
+            return
+
+        # Mark as completed with history
+        from datetime import datetime
+        from .models import CompletionRecord
+        from .const import COMPLETION_HISTORY_CAP, STATUS_COMPLETED
+
+        item.status = STATUS_COMPLETED
+
+        record = CompletionRecord(
+            user_id=user_id,
+            timestamp=datetime.now(),
+        )
+        item.completion_history.append(record)
+
+        # Cap history
+        if len(item.completion_history) > COMPLETION_HISTORY_CAP:
+            item.completion_history = item.completion_history[-COMPLETION_HISTORY_CAP:]
+
+        await store.async_save(list_data)
+
+        # Fire completion event
+        hass.bus.async_fire(
+            f"{DOMAIN}_item_completed",
+            {
+                "entity_id": entity_id,
+                "item_id": item_id,
+                "item_title": item.title,
+                "user_id": user_id,
+            },
+        )
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_traits(call: ServiceCall) -> None:
@@ -222,6 +282,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
     hass.services.async_register(
+        DOMAIN,
+        SERVICE_COMPLETE_ITEM,
+        handle_complete_item,
+        schema=SERVICE_COMPLETE_ITEM_SCHEMA,
+    )
+    hass.services.async_register(
         DOMAIN, SERVICE_SET_TRAITS, handle_set_traits, schema=SERVICE_SET_TRAITS_SCHEMA
     )
     hass.services.async_register(
@@ -241,6 +307,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload yahatl services."""
     hass.services.async_remove(DOMAIN, SERVICE_ADD_ITEM)
+    hass.services.async_remove(DOMAIN, SERVICE_COMPLETE_ITEM)
     hass.services.async_remove(DOMAIN, SERVICE_SET_TRAITS)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_TAGS)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_TAGS)

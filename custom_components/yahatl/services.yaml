@@ -66,6 +66,31 @@ add_item:
       selector:
         boolean:
 
+complete_item:
+  name: Complete Item
+  description: Mark an item as completed and record completion history.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to complete.
+      required: true
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID to record who completed the item.
+      required: false
+      selector:
+        text:
+
 set_traits:
   name: Set Traits
   description: Set the traits (type flags) for a yahatl item.

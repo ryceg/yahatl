@@ -14,7 +14,7 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 - **Needs detail flag** for quick capture and later triage
 - **List sharing** - private or shared lists
 
-### Phase 2 - Recurrence & Blocking (NEW!)
+### Phase 2 - Recurrence & Blocking
 
 - **Calendar-based recurrence** - daily, weekly, monthly, yearly patterns
 - **Elapsed-based recurrence** - repeat X time after last completion
@@ -23,6 +23,15 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 - **Sensor blockers** - block items while sensors are active
 - **Requirements** - location, people, time, context, and sensor requirements
 - **Streak tracking** - maintain habit streaks with automatic calculation
+
+### Phase 3 - Queue & Context (NEW!)
+
+- **Priority queue algorithm** - dynamic task prioritization based on context
+- **Scoring system** - weights for overdue, due dates, streaks, frequency goals, and explicit priority
+- **Context-aware filtering** - tasks appear based on location, people, time, and available contexts
+- **Manual context override** - set current location, people present, and available contexts
+- **Automatic context detection** - infers context from Home Assistant state
+- **Time-based filtering** - filter tasks by available time
 
 ## Installation
 
@@ -217,6 +226,43 @@ data:
     - binary_sensor.good_weather
 ```
 
+### yahatl.get_queue (Phase 3)
+
+Generate a prioritized task queue based on current context.
+
+```yaml
+# Get queue with auto-detected context
+service: yahatl.get_queue
+
+# Get queue with manual context override
+service: yahatl.get_queue
+data:
+  available_time: 60  # Only show tasks <= 60 minutes
+  location: "home"
+  people:
+    - "John"
+    - "Jane"
+  contexts:
+    - "computer"
+
+# Queue is returned via yahatl_queue_updated event
+```
+
+### yahatl.update_context (Phase 3)
+
+Manually update the current context for queue generation.
+
+```yaml
+service: yahatl.update_context
+data:
+  location: "office"
+  people:
+    - "John"
+  contexts:
+    - "computer"
+    - "phone"
+```
+
 ## Events
 
 ### yahatl_item_completed
@@ -244,10 +290,12 @@ See [docs/plans/2026-01-17-yahatl-design.md](docs/plans/2026-01-17-yahatl-design
 - ✅ Requirements (location, people, time, context, sensors)
 - ✅ Streak tracking for habits
 
-### Phase 3: Queue & Context
-- Priority queue algorithm
-- Context-aware task surfacing
-- Location/people/time requirements
+### Phase 3: Queue & Context ✅ COMPLETED
+- ✅ Priority queue algorithm
+- ✅ Context-aware task surfacing
+- ✅ Automatic and manual context management
+- ✅ Scoring system with configurable weights
+- ✅ get_queue and update_context services
 
 ### Phase 4+: React Native App & Dashboard
 - Mobile app for Android

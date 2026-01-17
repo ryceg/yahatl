@@ -193,6 +193,9 @@ class YahtlItem:
     # Requirements
     requirements: RequirementsConfig | None = None
 
+    # Priority
+    priority: str | None = None  # low, medium, high
+
     # Tracking
     completion_history: list[CompletionRecord] = field(default_factory=list)
     current_streak: int = 0
@@ -227,6 +230,7 @@ class YahtlItem:
             "recurrence": self.recurrence.to_dict() if self.recurrence else None,
             "blockers": self.blockers.to_dict() if self.blockers else None,
             "requirements": self.requirements.to_dict() if self.requirements else None,
+            "priority": self.priority,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
             "last_completed": self.last_completed.isoformat() if self.last_completed else None,
@@ -252,6 +256,7 @@ class YahtlItem:
             recurrence=RecurrenceConfig.from_dict(data["recurrence"]) if data.get("recurrence") else None,
             blockers=BlockerConfig.from_dict(data["blockers"]) if data.get("blockers") else None,
             requirements=RequirementsConfig.from_dict(data["requirements"]) if data.get("requirements") else None,
+            priority=data.get("priority"),
             completion_history=[
                 CompletionRecord.from_dict(r)
                 for r in data.get("completion_history", [])
@@ -318,3 +323,32 @@ class YahtlList:
                 self.items.pop(i)
                 return True
         return False
+
+
+@dataclass
+class ContextOverride:
+    """Manual context override for queue generation."""
+
+    location: str | None = None
+    people: list[str] = field(default_factory=list)
+    contexts: list[str] = field(default_factory=list)
+    updated_at: datetime = field(default_factory=datetime.now)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for storage."""
+        return {
+            "location": self.location,
+            "people": self.people,
+            "contexts": self.contexts,
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ContextOverride:
+        """Create from dictionary."""
+        return cls(
+            location=data.get("location"),
+            people=data.get("people", []),
+            contexts=data.get("contexts", []),
+            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.now(),
+        )

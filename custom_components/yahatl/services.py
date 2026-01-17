@@ -24,6 +24,8 @@ SERVICE_SET_LIST_VISIBILITY = "set_list_visibility"
 SERVICE_SET_RECURRENCE = "set_recurrence"
 SERVICE_SET_BLOCKERS = "set_blockers"
 SERVICE_SET_REQUIREMENTS = "set_requirements"
+SERVICE_GET_QUEUE = "get_queue"
+SERVICE_UPDATE_CONTEXT = "update_context"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
@@ -63,6 +65,10 @@ ATTR_PEOPLE = "people"
 ATTR_TIME_CONSTRAINTS = "time_constraints"
 ATTR_CONTEXT = "context"
 ATTR_REQ_SENSORS = "sensors"
+
+# Queue attributes
+ATTR_AVAILABLE_TIME = "available_time"
+ATTR_CONTEXTS = "contexts"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -169,6 +175,23 @@ SERVICE_SET_REQUIREMENTS_SCHEMA = vol.Schema(
     }
 )
 
+SERVICE_GET_QUEUE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_AVAILABLE_TIME): cv.positive_int,
+        vol.Optional(ATTR_LOCATION): cv.string,
+        vol.Optional(ATTR_PEOPLE): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_CONTEXTS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SERVICE_UPDATE_CONTEXT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_LOCATION): cv.string,
+        vol.Optional(ATTR_PEOPLE): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_CONTEXTS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
 
 def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | None:
     """Get entry data for an entity."""
@@ -180,6 +203,19 @@ def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | Non
             if entity_id == expected_entity:
                 return data
     return None
+
+
+def _get_all_lists(hass: HomeAssistant) -> list:
+    """Get all yahatl lists."""
+    from .models import YahtlList
+
+    lists = []
+    for entry_id, data in hass.data.get(DOMAIN, {}).items():
+        if isinstance(data, dict) and "data" in data:
+            list_data = data["data"]
+            if isinstance(list_data, YahtlList):
+                lists.append(list_data)
+    return lists
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -572,6 +608,96 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await store.async_save(list_data)
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
+    async def handle_get_queue(call: ServiceCall) -> None:
+        """Handle get_queue service call."""
+        from .queue import get_prioritized_queue, get_current_context_from_hass
+        from .models import ContextOverride
+
+        # Get context from call data or use HA state
+        context = {}
+
+        # Check for stored context override
+        context_store_key = "yahatl_context"
+        if context_store_key in hass.data.get(DOMAIN, {}):
+            stored_context = hass.data[DOMAIN][context_store_key]
+            if isinstance(stored_context, ContextOverride):
+                context = {
+                    "location": stored_context.location,
+                    "people": stored_context.people,
+                    "contexts": stored_context.contexts,
+                }
+
+        # Override with call data if provided
+        if ATTR_LOCATION in call.data:
+            context["location"] = call.data[ATTR_LOCATION]
+        if ATTR_PEOPLE in call.data:
+            context["people"] = call.data[ATTR_PEOPLE]
+        if ATTR_CONTEXTS in call.data:
+            context["contexts"] = call.data[ATTR_CONTEXTS]
+
+        # If no manual context, get from HA
+        if not context:
+            context = get_current_context_from_hass(hass)
+
+        # Add time constraint from current time
+        from .queue import _get_time_constraint
+        if "time_constraint" not in context:
+            context["time_constraint"] = _get_time_constraint()
+
+        # Get available time
+        available_time = call.data.get(ATTR_AVAILABLE_TIME)
+
+        # Get all lists
+        all_lists = _get_all_lists(hass)
+
+        # Generate queue
+        queue = await get_prioritized_queue(hass, all_lists, context, available_time)
+
+        # Fire event with queue data
+        hass.bus.async_fire(
+            f"{DOMAIN}_queue_updated",
+            {
+                "queue": queue,
+                "context": context,
+                "count": len(queue),
+            }
+        )
+
+        # Log for debugging
+        _LOGGER.info("Generated queue with %d items", len(queue))
+        return {"queue": queue}
+
+    async def handle_update_context(call: ServiceCall) -> None:
+        """Handle update_context service call."""
+        from .models import ContextOverride
+        from datetime import datetime
+
+        # Create or update context override
+        context_override = ContextOverride(
+            location=call.data.get(ATTR_LOCATION),
+            people=call.data.get(ATTR_PEOPLE, []),
+            contexts=call.data.get(ATTR_CONTEXTS, []),
+            updated_at=datetime.now(),
+        )
+
+        # Store in hass.data
+        context_store_key = "yahatl_context"
+        if DOMAIN not in hass.data:
+            hass.data[DOMAIN] = {}
+        hass.data[DOMAIN][context_store_key] = context_override
+
+        # Fire event
+        hass.bus.async_fire(
+            f"{DOMAIN}_context_updated",
+            {
+                "location": context_override.location,
+                "people": context_override.people,
+                "contexts": context_override.contexts,
+            }
+        )
+
+        _LOGGER.info("Context updated: %s", context_override.to_dict())
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
@@ -623,6 +749,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_set_requirements,
         schema=SERVICE_SET_REQUIREMENTS_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_QUEUE,
+        handle_get_queue,
+        schema=SERVICE_GET_QUEUE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_CONTEXT,
+        handle_update_context,
+        schema=SERVICE_UPDATE_CONTEXT_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -638,3 +776,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SET_RECURRENCE)
     hass.services.async_remove(DOMAIN, SERVICE_SET_BLOCKERS)
     hass.services.async_remove(DOMAIN, SERVICE_SET_REQUIREMENTS)
+    hass.services.async_remove(DOMAIN, SERVICE_GET_QUEUE)
+    hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CONTEXT)

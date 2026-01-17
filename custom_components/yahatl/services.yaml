@@ -481,3 +481,58 @@ set_requirements:
       required: false
       selector:
         text:
+
+get_queue:
+  name: Get Queue
+  description: Generate a prioritized task queue based on current context.
+  fields:
+    available_time:
+      name: Available Time
+      description: Available time in minutes (filters tasks by time estimate).
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: minutes
+    location:
+      name: Location
+      description: Current location override (e.g., home, office, out).
+      required: false
+      selector:
+        text:
+    people:
+      name: People
+      description: People currently present (comma-separated).
+      required: false
+      selector:
+        text:
+    contexts:
+      name: Contexts
+      description: Available contexts (e.g., computer, phone, car) (comma-separated).
+      required: false
+      selector:
+        text:
+
+update_context:
+  name: Update Context
+  description: Manually update the current context for queue generation.
+  fields:
+    location:
+      name: Location
+      description: Current location (e.g., home, office, out).
+      required: false
+      selector:
+        text:
+    people:
+      name: People
+      description: People currently present (comma-separated).
+      required: false
+      selector:
+        text:
+    contexts:
+      name: Contexts
+      description: Available contexts (e.g., computer, phone, car) (comma-separated).
+      required: false
+      selector:
+        text:

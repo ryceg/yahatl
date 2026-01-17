@@ -20,6 +20,7 @@ SERVICE_SET_TRAITS = "set_traits"
 SERVICE_ADD_TAGS = "add_tags"
 SERVICE_REMOVE_TAGS = "remove_tags"
 SERVICE_FLAG_NEEDS_DETAIL = "flag_needs_detail"
+SERVICE_SET_LIST_VISIBILITY = "set_list_visibility"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
@@ -34,6 +35,8 @@ ATTR_BUFFER_BEFORE = "buffer_before"
 ATTR_BUFFER_AFTER = "buffer_after"
 ATTR_NEEDS_DETAIL = "needs_detail"
 ATTR_USER_ID = "user_id"
+ATTR_VISIBILITY = "visibility"
+ATTR_SHARED_WITH = "shared_with"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -91,6 +94,14 @@ SERVICE_UPDATE_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
         vol.Optional(ATTR_BUFFER_BEFORE): cv.positive_int,
         vol.Optional(ATTR_BUFFER_AFTER): cv.positive_int,
+    }
+)
+
+SERVICE_SET_LIST_VISIBILITY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_VISIBILITY): vol.In(["private", "shared"]),
+        vol.Optional(ATTR_SHARED_WITH): vol.All(cv.ensure_list, [cv.string]),
     }
 )
 
@@ -333,6 +344,26 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await store.async_save(list_data)
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
+    async def handle_set_list_visibility(call: ServiceCall) -> None:
+        """Handle set_list_visibility service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+        visibility = call.data[ATTR_VISIBILITY]
+        shared_with = call.data.get(ATTR_SHARED_WITH, [])
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        list_data.visibility = visibility
+        list_data.shared_with = shared_with
+
+        await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
@@ -360,6 +391,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_flag_needs_detail,
         schema=SERVICE_FLAG_NEEDS_DETAIL_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_LIST_VISIBILITY,
+        handle_set_list_visibility,
+        schema=SERVICE_SET_LIST_VISIBILITY_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -371,3 +408,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_ADD_TAGS)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_TAGS)
     hass.services.async_remove(DOMAIN, SERVICE_FLAG_NEEDS_DETAIL)
+    hass.services.async_remove(DOMAIN, SERVICE_SET_LIST_VISIBILITY)

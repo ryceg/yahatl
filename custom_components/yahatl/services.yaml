@@ -275,3 +275,31 @@ flag_needs_detail:
       default: true
       selector:
         boolean:
+
+set_list_visibility:
+  name: Set List Visibility
+  description: Set the visibility and sharing settings for a yahatl list.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    visibility:
+      name: Visibility
+      description: Whether the list is private or shared.
+      required: true
+      selector:
+        select:
+          options:
+            - private
+            - shared
+    shared_with:
+      name: Shared With
+      description: List of user IDs to share with (if visibility is shared). Empty means all users.
+      required: false
+      selector:
+        text:

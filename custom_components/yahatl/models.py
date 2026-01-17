@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 import uuid
 
@@ -31,6 +31,138 @@ class CompletionRecord:
 
 
 @dataclass
+class RecurrenceThreshold:
+    """Threshold configuration for frequency-based recurrence."""
+
+    at_days_remaining: int
+    priority: str  # low, medium, high, critical
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for storage."""
+        return {
+            "at_days_remaining": self.at_days_remaining,
+            "priority": self.priority,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RecurrenceThreshold:
+        """Create from dictionary."""
+        return cls(
+            at_days_remaining=data["at_days_remaining"],
+            priority=data["priority"],
+        )
+
+
+@dataclass
+class RecurrenceConfig:
+    """Recurrence configuration for an item."""
+
+    type: str  # calendar, elapsed, frequency
+    # For calendar: cron-style pattern
+    calendar_pattern: str | None = None
+    # For elapsed: interval and unit
+    elapsed_interval: int | None = None
+    elapsed_unit: str | None = None  # days, weeks, months, years
+    # For frequency: count per period
+    frequency_count: int | None = None
+    frequency_period: int | None = None
+    frequency_unit: str | None = None  # days, weeks, months
+    # Thresholds for frequency goals
+    thresholds: list[RecurrenceThreshold] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for storage."""
+        return {
+            "type": self.type,
+            "calendar_pattern": self.calendar_pattern,
+            "elapsed_interval": self.elapsed_interval,
+            "elapsed_unit": self.elapsed_unit,
+            "frequency_count": self.frequency_count,
+            "frequency_period": self.frequency_period,
+            "frequency_unit": self.frequency_unit,
+            "thresholds": [t.to_dict() for t in self.thresholds],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RecurrenceConfig:
+        """Create from dictionary."""
+        return cls(
+            type=data["type"],
+            calendar_pattern=data.get("calendar_pattern"),
+            elapsed_interval=data.get("elapsed_interval"),
+            elapsed_unit=data.get("elapsed_unit"),
+            frequency_count=data.get("frequency_count"),
+            frequency_period=data.get("frequency_period"),
+            frequency_unit=data.get("frequency_unit"),
+            thresholds=[
+                RecurrenceThreshold.from_dict(t)
+                for t in data.get("thresholds", [])
+            ],
+        )
+
+
+@dataclass
+class BlockerConfig:
+    """Blocker configuration for an item."""
+
+    mode: str = "ALL"  # ANY or ALL
+    items: list[str] = field(default_factory=list)  # Item UIDs
+    sensors: list[str] = field(default_factory=list)  # Entity IDs
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for storage."""
+        return {
+            "mode": self.mode,
+            "items": self.items,
+            "sensors": self.sensors,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> BlockerConfig:
+        """Create from dictionary."""
+        return cls(
+            mode=data.get("mode", "ALL"),
+            items=data.get("items", []),
+            sensors=data.get("sensors", []),
+        )
+
+
+@dataclass
+class RequirementsConfig:
+    """Requirements configuration for an item."""
+
+    mode: str = "ANY"  # ANY or ALL
+    location: list[str] = field(default_factory=list)
+    people: list[str] = field(default_factory=list)
+    time_constraints: list[str] = field(default_factory=list)
+    context: list[str] = field(default_factory=list)
+    sensors: list[str] = field(default_factory=list)  # Entity IDs
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for storage."""
+        return {
+            "mode": self.mode,
+            "location": self.location,
+            "people": self.people,
+            "time_constraints": self.time_constraints,
+            "context": self.context,
+            "sensors": self.sensors,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RequirementsConfig:
+        """Create from dictionary."""
+        return cls(
+            mode=data.get("mode", "ANY"),
+            location=data.get("location", []),
+            people=data.get("people", []),
+            time_constraints=data.get("time_constraints", []),
+            context=data.get("context", []),
+            sensors=data.get("sensors", []),
+        )
+
+
+@dataclass
 class YahtlItem:
     """A yahatl todo item with extended schema."""
 
@@ -52,9 +184,19 @@ class YahtlItem:
     buffer_before: int = 0
     buffer_after: int = 0
 
+    # Recurrence
+    recurrence: RecurrenceConfig | None = None
+
+    # Blockers
+    blockers: BlockerConfig | None = None
+
+    # Requirements
+    requirements: RequirementsConfig | None = None
+
     # Tracking
     completion_history: list[CompletionRecord] = field(default_factory=list)
     current_streak: int = 0
+    last_completed: datetime | None = None  # For streak and elapsed tracking
     created_at: datetime = field(default_factory=datetime.now)
     created_by: str = ""
 
@@ -82,8 +224,12 @@ class YahtlItem:
             "time_estimate": self.time_estimate,
             "buffer_before": self.buffer_before,
             "buffer_after": self.buffer_after,
+            "recurrence": self.recurrence.to_dict() if self.recurrence else None,
+            "blockers": self.blockers.to_dict() if self.blockers else None,
+            "requirements": self.requirements.to_dict() if self.requirements else None,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
+            "last_completed": self.last_completed.isoformat() if self.last_completed else None,
             "created_at": self.created_at.isoformat(),
             "created_by": self.created_by,
         }
@@ -103,11 +249,15 @@ class YahtlItem:
             time_estimate=data.get("time_estimate"),
             buffer_before=data.get("buffer_before", 0),
             buffer_after=data.get("buffer_after", 0),
+            recurrence=RecurrenceConfig.from_dict(data["recurrence"]) if data.get("recurrence") else None,
+            blockers=BlockerConfig.from_dict(data["blockers"]) if data.get("blockers") else None,
+            requirements=RequirementsConfig.from_dict(data["requirements"]) if data.get("requirements") else None,
             completion_history=[
                 CompletionRecord.from_dict(r)
                 for r in data.get("completion_history", [])
             ],
             current_streak=data.get("current_streak", 0),
+            last_completed=datetime.fromisoformat(data["last_completed"]) if data.get("last_completed") else None,
             created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
             created_by=data.get("created_by", ""),
         )

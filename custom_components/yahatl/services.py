@@ -13,6 +13,7 @@ from .const import ALL_TRAITS, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+SERVICE_ADD_ITEM = "add_item"
 SERVICE_SET_TRAITS = "set_traits"
 SERVICE_ADD_TAGS = "add_tags"
 SERVICE_REMOVE_TAGS = "remove_tags"
@@ -20,8 +21,12 @@ SERVICE_FLAG_NEEDS_DETAIL = "flag_needs_detail"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
+ATTR_TITLE = "title"
+ATTR_DESCRIPTION = "description"
 ATTR_TRAITS = "traits"
 ATTR_TAGS = "tags"
+ATTR_DUE = "due"
+ATTR_TIME_ESTIMATE = "time_estimate"
 ATTR_NEEDS_DETAIL = "needs_detail"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
@@ -48,6 +53,19 @@ SERVICE_FLAG_NEEDS_DETAIL_SCHEMA = vol.Schema(
     }
 )
 
+SERVICE_ADD_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_TITLE): cv.string,
+        vol.Optional(ATTR_DESCRIPTION): cv.string,
+        vol.Optional(ATTR_TRAITS): vol.All(cv.ensure_list, [vol.In(ALL_TRAITS)]),
+        vol.Optional(ATTR_TAGS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_DUE): cv.datetime,
+        vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
+        vol.Optional(ATTR_NEEDS_DETAIL, default=False): cv.boolean,
+    }
+)
+
 
 def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | None:
     """Get entry data for an entity."""
@@ -63,6 +81,41 @@ def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | Non
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up yahatl services."""
+
+    async def handle_add_item(call: ServiceCall) -> None:
+        """Handle add_item service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        # Create new item
+        from .models import YahtlItem
+        item = YahtlItem.create(
+            title=call.data[ATTR_TITLE],
+        )
+
+        if ATTR_DESCRIPTION in call.data:
+            item.description = call.data[ATTR_DESCRIPTION]
+        if ATTR_TRAITS in call.data:
+            item.traits = call.data[ATTR_TRAITS]
+        if ATTR_TAGS in call.data:
+            item.tags = call.data[ATTR_TAGS]
+        if ATTR_DUE in call.data:
+            item.due = call.data[ATTR_DUE]
+        if ATTR_TIME_ESTIMATE in call.data:
+            item.time_estimate = call.data[ATTR_TIME_ESTIMATE]
+        if ATTR_NEEDS_DETAIL in call.data:
+            item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
+
+        list_data.add_item(item)
+        await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_traits(call: ServiceCall) -> None:
         """Handle set_traits service call."""
@@ -166,6 +219,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     hass.services.async_register(
+        DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
+    )
+    hass.services.async_register(
         DOMAIN, SERVICE_SET_TRAITS, handle_set_traits, schema=SERVICE_SET_TRAITS_SCHEMA
     )
     hass.services.async_register(
@@ -184,6 +240,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload yahatl services."""
+    hass.services.async_remove(DOMAIN, SERVICE_ADD_ITEM)
     hass.services.async_remove(DOMAIN, SERVICE_SET_TRAITS)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_TAGS)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_TAGS)

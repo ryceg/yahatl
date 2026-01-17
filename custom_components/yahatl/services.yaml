@@ -1,3 +1,71 @@
+add_item:
+  name: Add Item
+  description: Add a new item to a yahatl list with extended properties.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    title:
+      name: Title
+      description: The title of the item.
+      required: true
+      selector:
+        text:
+    description:
+      name: Description
+      description: Optional description for the item.
+      required: false
+      selector:
+        text:
+          multiline: true
+    traits:
+      name: Traits
+      description: Traits to set on the item.
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - actionable
+            - recurring
+            - habit
+            - chore
+            - reminder
+            - note
+    tags:
+      name: Tags
+      description: Tags to add to the item.
+      required: false
+      selector:
+        text:
+    due:
+      name: Due
+      description: Due date/time for the item.
+      required: false
+      selector:
+        datetime:
+    time_estimate:
+      name: Time Estimate
+      description: Estimated time to complete in minutes.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: minutes
+    needs_detail:
+      name: Needs Detail
+      description: Flag the item as needing more detail.
+      required: false
+      default: false
+      selector:
+        boolean:
+
 set_traits:
   name: Set Traits
   description: Set the traits (type flags) for a yahatl item.

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from homeassistant.components.todo import (
     TodoItem,
@@ -12,7 +12,7 @@ from homeassistant.components.todo import (
     TodoListEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -93,6 +93,29 @@ class YahtlTodoListEntity(TodoListEntity):
         self._data = data
         self._attr_unique_id = unique_id
         self._attr_name = data.name
+        self._unsub_update: Callable[[], None] | None = None
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        await super().async_added_to_hass()
+
+        @callback
+        def handle_update(event):
+            """Handle update event."""
+            if event.data.get("entity_id") == self.entity_id:
+                # Reload data from store
+                if self._store.data:
+                    self._data = self._store.data
+                self.async_write_ha_state()
+
+        self._unsub_update = self.hass.bus.async_listen(
+            f"{DOMAIN}_updated", handle_update
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Run when entity is removed from hass."""
+        if self._unsub_update:
+            self._unsub_update()
 
     @property
     def todo_items(self) -> list[TodoItem]:

@@ -4,12 +4,25 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 
 ## Features
 
+### Phase 1 - Core Integration
+
 - **Extended todo items** with traits (actionable, habit, chore, reminder, note)
 - **Custom tags** for organization
 - **Completion history tracking** - know who completed what and when
 - **Status tracking** - pending, in_progress, completed, missed
 - **Time estimates and buffers** for day planning
 - **Needs detail flag** for quick capture and later triage
+- **List sharing** - private or shared lists
+
+### Phase 2 - Recurrence & Blocking (NEW!)
+
+- **Calendar-based recurrence** - daily, weekly, monthly, yearly patterns
+- **Elapsed-based recurrence** - repeat X time after last completion
+- **Frequency goals** - complete N times per period with thresholds
+- **Task blockers** - block items until other tasks are completed
+- **Sensor blockers** - block items while sensors are active
+- **Requirements** - location, people, time, context, and sensor requirements
+- **Streak tracking** - maintain habit streaks with automatic calculation
 
 ## Installation
 
@@ -132,6 +145,78 @@ data:
   shared_with: []  # Empty means all users
 ```
 
+### yahatl.set_recurrence (Phase 2)
+
+Configure recurrence rules for an item.
+
+```yaml
+# Calendar-based: weekly
+service: yahatl.set_recurrence
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  recurrence_type: calendar
+  calendar_pattern: "weekly"
+
+# Elapsed-based: 3 months since last completion
+service: yahatl.set_recurrence
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  recurrence_type: elapsed
+  elapsed_interval: 3
+  elapsed_unit: months
+
+# Frequency goal: 3 times per 30 days
+service: yahatl.set_recurrence
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  recurrence_type: frequency
+  frequency_count: 3
+  frequency_period: 30
+  frequency_unit: days
+  thresholds:
+    - at_days_remaining: 10
+      priority: medium
+    - at_days_remaining: 3
+      priority: high
+```
+
+### yahatl.set_blockers (Phase 2)
+
+Configure blockers for an item.
+
+```yaml
+service: yahatl.set_blockers
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "clean_oven"
+  mode: ANY  # Block if ANY blocker is active
+  items:
+    - "defrost_oven"  # UID of blocking task
+  sensors:
+    - binary_sensor.too_hot_for_oven_cleaning
+```
+
+### yahatl.set_requirements (Phase 2)
+
+Configure requirements for an item.
+
+```yaml
+service: yahatl.set_requirements
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "mow_lawn"
+  mode: ALL  # All requirements must be met
+  location:
+    - home
+  time_constraints:
+    - weekend
+  sensors:
+    - binary_sensor.good_weather
+```
+
 ## Events
 
 ### yahatl_item_completed
@@ -151,11 +236,13 @@ event_data:
 
 See [docs/plans/2026-01-17-yahatl-design.md](docs/plans/2026-01-17-yahatl-design.md) for the full design document.
 
-### Phase 2: Recurrence & Blocking
-- Calendar-based recurrence
-- Elapsed-based recurrence
-- Frequency goals with thresholds
-- Task and sensor blockers
+### Phase 2: Recurrence & Blocking ✅ COMPLETED
+- ✅ Calendar-based recurrence
+- ✅ Elapsed-based recurrence
+- ✅ Frequency goals with thresholds
+- ✅ Task and sensor blockers
+- ✅ Requirements (location, people, time, context, sensors)
+- ✅ Streak tracking for habits
 
 ### Phase 3: Queue & Context
 - Priority queue algorithm

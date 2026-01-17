@@ -8,11 +8,19 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_STORAGE_KEY, DOMAIN
+from .services import async_setup_services, async_unload_services
 from .store import get_store_path, YahtlStore
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.TODO]
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the yahatl component."""
+    hass.data.setdefault(DOMAIN, {})
+    await async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

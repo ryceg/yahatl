@@ -1,0 +1,108 @@
+set_traits:
+  name: Set Traits
+  description: Set the traits (type flags) for a yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    traits:
+      name: Traits
+      description: List of traits to set on the item.
+      required: true
+      selector:
+        select:
+          multiple: true
+          options:
+            - actionable
+            - recurring
+            - habit
+            - chore
+            - reminder
+            - note
+
+add_tags:
+  name: Add Tags
+  description: Add tags to a yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    tags:
+      name: Tags
+      description: Tags to add to the item.
+      required: true
+      selector:
+        text:
+
+remove_tags:
+  name: Remove Tags
+  description: Remove tags from a yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    tags:
+      name: Tags
+      description: Tags to remove from the item.
+      required: true
+      selector:
+        text:
+
+flag_needs_detail:
+  name: Flag Needs Detail
+  description: Mark an item as needing more detail (for later fleshing out).
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to flag.
+      required: true
+      selector:
+        text:
+    needs_detail:
+      name: Needs Detail
+      description: Whether the item needs more detail.
+      required: false
+      default: true
+      selector:
+        boolean:

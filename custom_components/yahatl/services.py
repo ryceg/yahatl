@@ -56,7 +56,9 @@ ATTR_THRESHOLDS = "thresholds"
 # Blocker attributes
 ATTR_BLOCKER_MODE = "mode"
 ATTR_BLOCKER_ITEMS = "items"
+ATTR_BLOCKER_ITEM_MODE = "item_mode"
 ATTR_BLOCKER_SENSORS = "sensors"
+ATTR_BLOCKER_SENSOR_MODE = "sensor_mode"
 
 # Requirements attributes
 ATTR_REQ_MODE = "mode"
@@ -158,7 +160,9 @@ SERVICE_SET_BLOCKERS_SCHEMA = vol.Schema(
         vol.Required(ATTR_ITEM_ID): cv.string,
         vol.Optional(ATTR_BLOCKER_MODE, default="ALL"): vol.In(["ANY", "ALL"]),
         vol.Optional(ATTR_BLOCKER_ITEMS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_BLOCKER_ITEM_MODE, default="ANY"): vol.In(["ANY", "ALL"]),
         vol.Optional(ATTR_BLOCKER_SENSORS): vol.All(cv.ensure_list, [cv.entity_id]),
+        vol.Optional(ATTR_BLOCKER_SENSOR_MODE, default="ANY"): vol.In(["ANY", "ALL"]),
     }
 )
 
@@ -555,7 +559,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         item.blockers.mode = call.data.get(ATTR_BLOCKER_MODE, "ALL")
         item.blockers.items = call.data.get(ATTR_BLOCKER_ITEMS, [])
+        item.blockers.item_mode = call.data.get(ATTR_BLOCKER_ITEM_MODE, "ANY")
         item.blockers.sensors = call.data.get(ATTR_BLOCKER_SENSORS, [])
+        item.blockers.sensor_mode = call.data.get(ATTR_BLOCKER_SENSOR_MODE, "ANY")
 
         # If no blockers specified, remove the config
         if not item.blockers.items and not item.blockers.sensors:

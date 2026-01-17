@@ -73,7 +73,7 @@ async def get_prioritized_queue(
 
         scored_items.append({
             "item": item.to_dict(),
-            "list_id": yahatl_list.id,
+            "list_id": yahatl_list.list_id,
             "list_name": yahatl_list.name,
             "score": score,
         })

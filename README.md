@@ -321,7 +321,13 @@ See [docs/plans/2026-01-17-yahatl-design.md](docs/plans/2026-01-17-yahatl-design
 
 See [dashboards/README.md](dashboards/README.md) for dashboard documentation.
 
-### Phase 5: React Native Mobile App
-- Mobile app for Android
-- Offline support with read-only caching
-- Long-lived token authentication
+### Phase 5: React Native Mobile App ✅ COMPLETED
+- ✅ Expo-based React Native app for Android
+- ✅ **Planning Tab**: Priority queue with context filtering and Pomodoro integration
+- ✅ **Capture Tab**: Quick capture FAB, inbox management, and triage workflow
+- ✅ **Notes Tab**: Notes browser with search/tags and Flesh Out mode
+- ✅ Offline support with React Query caching
+- ✅ Long-lived token authentication with secure storage
+- ✅ Pomodoro timer with foreground service and notifications
+
+See [app/README.md](app/README.md) for mobile app documentation.

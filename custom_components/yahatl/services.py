@@ -21,6 +21,9 @@ SERVICE_ADD_TAGS = "add_tags"
 SERVICE_REMOVE_TAGS = "remove_tags"
 SERVICE_FLAG_NEEDS_DETAIL = "flag_needs_detail"
 SERVICE_SET_LIST_VISIBILITY = "set_list_visibility"
+SERVICE_SET_RECURRENCE = "set_recurrence"
+SERVICE_SET_BLOCKERS = "set_blockers"
+SERVICE_SET_REQUIREMENTS = "set_requirements"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
@@ -37,6 +40,29 @@ ATTR_NEEDS_DETAIL = "needs_detail"
 ATTR_USER_ID = "user_id"
 ATTR_VISIBILITY = "visibility"
 ATTR_SHARED_WITH = "shared_with"
+
+# Recurrence attributes
+ATTR_RECURRENCE_TYPE = "recurrence_type"
+ATTR_CALENDAR_PATTERN = "calendar_pattern"
+ATTR_ELAPSED_INTERVAL = "elapsed_interval"
+ATTR_ELAPSED_UNIT = "elapsed_unit"
+ATTR_FREQUENCY_COUNT = "frequency_count"
+ATTR_FREQUENCY_PERIOD = "frequency_period"
+ATTR_FREQUENCY_UNIT = "frequency_unit"
+ATTR_THRESHOLDS = "thresholds"
+
+# Blocker attributes
+ATTR_BLOCKER_MODE = "mode"
+ATTR_BLOCKER_ITEMS = "items"
+ATTR_BLOCKER_SENSORS = "sensors"
+
+# Requirements attributes
+ATTR_REQ_MODE = "mode"
+ATTR_LOCATION = "location"
+ATTR_PEOPLE = "people"
+ATTR_TIME_CONSTRAINTS = "time_constraints"
+ATTR_CONTEXT = "context"
+ATTR_REQ_SENSORS = "sensors"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -102,6 +128,44 @@ SERVICE_SET_LIST_VISIBILITY_SCHEMA = vol.Schema(
         vol.Required(ATTR_ENTITY_ID): cv.entity_id,
         vol.Required(ATTR_VISIBILITY): vol.In(["private", "shared"]),
         vol.Optional(ATTR_SHARED_WITH): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SERVICE_SET_RECURRENCE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Required(ATTR_RECURRENCE_TYPE): vol.In(["calendar", "elapsed", "frequency", "none"]),
+        vol.Optional(ATTR_CALENDAR_PATTERN): cv.string,
+        vol.Optional(ATTR_ELAPSED_INTERVAL): cv.positive_int,
+        vol.Optional(ATTR_ELAPSED_UNIT): vol.In(["days", "weeks", "months", "years"]),
+        vol.Optional(ATTR_FREQUENCY_COUNT): cv.positive_int,
+        vol.Optional(ATTR_FREQUENCY_PERIOD): cv.positive_int,
+        vol.Optional(ATTR_FREQUENCY_UNIT): vol.In(["days", "weeks", "months"]),
+        vol.Optional(ATTR_THRESHOLDS): vol.All(cv.ensure_list, [dict]),
+    }
+)
+
+SERVICE_SET_BLOCKERS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Optional(ATTR_BLOCKER_MODE, default="ALL"): vol.In(["ANY", "ALL"]),
+        vol.Optional(ATTR_BLOCKER_ITEMS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_BLOCKER_SENSORS): vol.All(cv.ensure_list, [cv.entity_id]),
+    }
+)
+
+SERVICE_SET_REQUIREMENTS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Optional(ATTR_REQ_MODE, default="ANY"): vol.In(["ANY", "ALL"]),
+        vol.Optional(ATTR_LOCATION): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_PEOPLE): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_TIME_CONSTRAINTS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_CONTEXT): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_REQ_SENSORS): vol.All(cv.ensure_list, [cv.entity_id]),
     }
 )
 
@@ -364,6 +428,133 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await store.async_save(list_data)
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
+    async def handle_set_recurrence(call: ServiceCall) -> None:
+        """Handle set_recurrence service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+        item_id = call.data[ATTR_ITEM_ID]
+        recurrence_type = call.data[ATTR_RECURRENCE_TYPE]
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        item = list_data.get_item(item_id)
+        if item is None:
+            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
+            return
+
+        from .models import RecurrenceConfig, RecurrenceThreshold
+
+        if recurrence_type == "none":
+            item.recurrence = None
+        else:
+            # Create recurrence config
+            recurrence = RecurrenceConfig(type=recurrence_type)
+
+            if recurrence_type == "calendar":
+                recurrence.calendar_pattern = call.data.get(ATTR_CALENDAR_PATTERN)
+            elif recurrence_type == "elapsed":
+                recurrence.elapsed_interval = call.data.get(ATTR_ELAPSED_INTERVAL)
+                recurrence.elapsed_unit = call.data.get(ATTR_ELAPSED_UNIT, "days")
+            elif recurrence_type == "frequency":
+                recurrence.frequency_count = call.data.get(ATTR_FREQUENCY_COUNT)
+                recurrence.frequency_period = call.data.get(ATTR_FREQUENCY_PERIOD)
+                recurrence.frequency_unit = call.data.get(ATTR_FREQUENCY_UNIT, "days")
+
+                # Handle thresholds
+                thresholds_data = call.data.get(ATTR_THRESHOLDS, [])
+                recurrence.thresholds = [
+                    RecurrenceThreshold.from_dict(t) for t in thresholds_data
+                ]
+
+            item.recurrence = recurrence
+
+        await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+
+    async def handle_set_blockers(call: ServiceCall) -> None:
+        """Handle set_blockers service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+        item_id = call.data[ATTR_ITEM_ID]
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        item = list_data.get_item(item_id)
+        if item is None:
+            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
+            return
+
+        from .models import BlockerConfig
+
+        # Create or update blocker config
+        if item.blockers is None:
+            item.blockers = BlockerConfig()
+
+        item.blockers.mode = call.data.get(ATTR_BLOCKER_MODE, "ALL")
+        item.blockers.items = call.data.get(ATTR_BLOCKER_ITEMS, [])
+        item.blockers.sensors = call.data.get(ATTR_BLOCKER_SENSORS, [])
+
+        # If no blockers specified, remove the config
+        if not item.blockers.items and not item.blockers.sensors:
+            item.blockers = None
+
+        await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+
+    async def handle_set_requirements(call: ServiceCall) -> None:
+        """Handle set_requirements service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+        item_id = call.data[ATTR_ITEM_ID]
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        item = list_data.get_item(item_id)
+        if item is None:
+            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
+            return
+
+        from .models import RequirementsConfig
+
+        # Create or update requirements config
+        if item.requirements is None:
+            item.requirements = RequirementsConfig()
+
+        item.requirements.mode = call.data.get(ATTR_REQ_MODE, "ANY")
+        item.requirements.location = call.data.get(ATTR_LOCATION, [])
+        item.requirements.people = call.data.get(ATTR_PEOPLE, [])
+        item.requirements.time_constraints = call.data.get(ATTR_TIME_CONSTRAINTS, [])
+        item.requirements.context = call.data.get(ATTR_CONTEXT, [])
+        item.requirements.sensors = call.data.get(ATTR_REQ_SENSORS, [])
+
+        # If no requirements specified, remove the config
+        if not any([
+            item.requirements.location,
+            item.requirements.people,
+            item.requirements.time_constraints,
+            item.requirements.context,
+            item.requirements.sensors,
+        ]):
+            item.requirements = None
+
+        await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
@@ -397,6 +588,24 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_set_list_visibility,
         schema=SERVICE_SET_LIST_VISIBILITY_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_RECURRENCE,
+        handle_set_recurrence,
+        schema=SERVICE_SET_RECURRENCE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_BLOCKERS,
+        handle_set_blockers,
+        schema=SERVICE_SET_BLOCKERS_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_REQUIREMENTS,
+        handle_set_requirements,
+        schema=SERVICE_SET_REQUIREMENTS_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -409,3 +618,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_TAGS)
     hass.services.async_remove(DOMAIN, SERVICE_FLAG_NEEDS_DETAIL)
     hass.services.async_remove(DOMAIN, SERVICE_SET_LIST_VISIBILITY)
+    hass.services.async_remove(DOMAIN, SERVICE_SET_RECURRENCE)
+    hass.services.async_remove(DOMAIN, SERVICE_SET_BLOCKERS)
+    hass.services.async_remove(DOMAIN, SERVICE_SET_REQUIREMENTS)

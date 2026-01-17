@@ -18,6 +18,11 @@ async def is_item_blocked(
 ) -> tuple[bool, list[str]]:
     """Check if an item is blocked.
 
+    The blocker logic uses three modes:
+    - item_mode: How items relate (ANY=any incomplete blocks, ALL=all must be incomplete)
+    - sensor_mode: How sensors relate (ANY=any on blocks, ALL=all must be on)
+    - mode: How to combine items and sensors (ANY=either blocks, ALL=both must block)
+
     Args:
         hass: Home Assistant instance
         item: Item to check
@@ -31,12 +36,16 @@ async def is_item_blocked(
 
     blockers = item.blockers
     mode = blockers.mode
+    item_mode = blockers.item_mode
+    sensor_mode = blockers.sensor_mode
     reasons = []
 
-    # Check item blockers
-    item_blocked = False
+    # Check item blockers according to item_mode
+    item_category_blocks = False
     if blockers.items and all_lists:
-        blocked_items = []
+        incomplete_items = []
+        complete_items = []
+
         for blocker_uid in blockers.items:
             # Find the blocking item across all lists
             blocker_item = None
@@ -45,46 +54,76 @@ async def is_item_blocked(
                 if blocker_item:
                     break
 
-            if blocker_item and blocker_item.status != "completed":
-                blocked_items.append(f"Item '{blocker_item.title}' not completed")
+            if blocker_item:
+                if blocker_item.status != "completed":
+                    incomplete_items.append(f"Item '{blocker_item.title}' not completed")
+                else:
+                    complete_items.append(blocker_item.title)
 
-        if blocked_items:
-            item_blocked = True
-            reasons.extend(blocked_items)
+        # Apply item_mode logic
+        if item_mode == "ANY":
+            # Blocked if ANY item is incomplete
+            if incomplete_items:
+                item_category_blocks = True
+                reasons.extend(incomplete_items)
+        else:  # item_mode == "ALL"
+            # Blocked if ALL items are incomplete
+            if incomplete_items and len(incomplete_items) == len(blockers.items):
+                item_category_blocks = True
+                reasons.extend(incomplete_items)
+            elif incomplete_items:
+                # Some but not all incomplete - not blocking in ALL mode
+                reasons.append(f"Not all items incomplete (complete: {', '.join(complete_items)})")
 
-    # Check sensor blockers
-    sensor_blocked = False
+    # Check sensor blockers according to sensor_mode
+    sensor_category_blocks = False
     if blockers.sensors:
-        blocked_sensors = []
+        sensors_on = []
+        sensors_off = []
+
         for sensor_id in blockers.sensors:
             state = hass.states.get(sensor_id)
             if state and state.state == "on":
-                blocked_sensors.append(f"Sensor {sensor_id} is on")
+                sensors_on.append(f"Sensor {sensor_id} is on")
+            else:
+                sensors_off.append(sensor_id)
 
-        if blocked_sensors:
-            sensor_blocked = True
-            reasons.extend(blocked_sensors)
+        # Apply sensor_mode logic
+        if sensor_mode == "ANY":
+            # Blocked if ANY sensor is on
+            if sensors_on:
+                sensor_category_blocks = True
+                reasons.extend(sensors_on)
+        else:  # sensor_mode == "ALL"
+            # Blocked if ALL sensors are on
+            if sensors_on and len(sensors_on) == len(blockers.sensors):
+                sensor_category_blocks = True
+                reasons.extend(sensors_on)
+            elif sensors_on:
+                # Some but not all on - not blocking in ALL mode
+                reasons.append(f"Not all sensors on (off: {', '.join(sensors_off)})")
 
-    # Apply mode logic
+    # Apply mode logic to combine item and sensor categories
+    has_item_blockers = bool(blockers.items)
+    has_sensor_blockers = bool(blockers.sensors)
+
     if mode == "ALL":
-        # Blocked only if ALL blockers are active
-        # For ALL mode: blocked if items blocked AND sensors blocked
-        # (or if only one type exists, that type must be blocking)
-        has_item_blockers = bool(blockers.items)
-        has_sensor_blockers = bool(blockers.sensors)
-
+        # Blocked only if ALL categories are blocking
         if has_item_blockers and has_sensor_blockers:
-            is_blocked = item_blocked and sensor_blocked
+            is_blocked = item_category_blocks and sensor_category_blocks
         elif has_item_blockers:
-            is_blocked = item_blocked
+            is_blocked = item_category_blocks
         elif has_sensor_blockers:
-            is_blocked = sensor_blocked
+            is_blocked = sensor_category_blocks
         else:
             is_blocked = False
-
     else:  # mode == "ANY"
-        # Blocked if ANY blocker is active
-        is_blocked = item_blocked or sensor_blocked
+        # Blocked if ANY category is blocking
+        is_blocked = item_category_blocks or sensor_category_blocks
+
+    # Clean up reasons if not blocked
+    if not is_blocked:
+        reasons = []
 
     return is_blocked, reasons
 

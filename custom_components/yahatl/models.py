@@ -103,18 +103,38 @@ class RecurrenceConfig:
 
 @dataclass
 class BlockerConfig:
-    """Blocker configuration for an item."""
+    """Blocker configuration for an item.
 
-    mode: str = "ALL"  # ANY or ALL
+    mode: How to combine items and sensors categories (ANY or ALL)
+    items: List of item UIDs that block this item
+    item_mode: How items relate to each other (ANY or ALL)
+    sensors: List of sensor entity IDs that block this item
+    sensor_mode: How sensors relate to each other (ANY or ALL)
+
+    Examples:
+        # Blocked if ANY item incomplete AND ANY sensor on
+        BlockerConfig(mode="ALL", items=["a", "b"], item_mode="ANY",
+                     sensors=["s1", "s2"], sensor_mode="ANY")
+
+        # Blocked if ALL items incomplete OR ALL sensors on
+        BlockerConfig(mode="ANY", items=["a", "b"], item_mode="ALL",
+                     sensors=["s1", "s2"], sensor_mode="ALL")
+    """
+
+    mode: str = "ALL"  # ANY or ALL - how to combine items and sensors
     items: list[str] = field(default_factory=list)  # Item UIDs
+    item_mode: str = "ANY"  # ANY or ALL - how items relate to each other
     sensors: list[str] = field(default_factory=list)  # Entity IDs
+    sensor_mode: str = "ANY"  # ANY or ALL - how sensors relate to each other
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
         return {
             "mode": self.mode,
             "items": self.items,
+            "item_mode": self.item_mode,
             "sensors": self.sensors,
+            "sensor_mode": self.sensor_mode,
         }
 
     @classmethod
@@ -123,7 +143,9 @@ class BlockerConfig:
         return cls(
             mode=data.get("mode", "ALL"),
             items=data.get("items", []),
+            item_mode=data.get("item_mode", "ANY"),
             sensors=data.get("sensors", []),
+            sensor_mode=data.get("sensor_mode", "ANY"),
         )
 
 

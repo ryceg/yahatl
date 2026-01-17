@@ -1,4 +1,5 @@
 {
-  "name": "yahatl",
-  "render_readme": true
+  "name": "YAHATL - Yet Another Home Assistant Todo List",
+  "render_readme": true,
+  "homeassistant": "2024.1.0"
 }

@@ -91,6 +91,82 @@ complete_item:
       selector:
         text:
 
+update_item:
+  name: Update Item
+  description: Update properties of an existing yahatl item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to update.
+      required: true
+      selector:
+        text:
+    title:
+      name: Title
+      description: New title for the item.
+      required: false
+      selector:
+        text:
+    description:
+      name: Description
+      description: New description for the item.
+      required: false
+      selector:
+        text:
+          multiline: true
+    status:
+      name: Status
+      description: New status for the item.
+      required: false
+      selector:
+        select:
+          options:
+            - pending
+            - in_progress
+            - completed
+            - missed
+    due:
+      name: Due
+      description: New due date/time.
+      required: false
+      selector:
+        datetime:
+    time_estimate:
+      name: Time Estimate
+      description: Estimated time to complete in minutes.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: minutes
+    buffer_before:
+      name: Buffer Before
+      description: Buffer time needed before task in minutes.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: minutes
+    buffer_after:
+      name: Buffer After
+      description: Buffer time needed after task in minutes.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: minutes
+
 set_traits:
   name: Set Traits
   description: Set the traits (type flags) for a yahatl item.

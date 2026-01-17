@@ -14,6 +14,7 @@ from .const import ALL_TRAITS, DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_ADD_ITEM = "add_item"
+SERVICE_UPDATE_ITEM = "update_item"
 SERVICE_COMPLETE_ITEM = "complete_item"
 SERVICE_SET_TRAITS = "set_traits"
 SERVICE_ADD_TAGS = "add_tags"
@@ -26,8 +27,11 @@ ATTR_TITLE = "title"
 ATTR_DESCRIPTION = "description"
 ATTR_TRAITS = "traits"
 ATTR_TAGS = "tags"
+ATTR_STATUS = "status"
 ATTR_DUE = "due"
 ATTR_TIME_ESTIMATE = "time_estimate"
+ATTR_BUFFER_BEFORE = "buffer_before"
+ATTR_BUFFER_AFTER = "buffer_after"
 ATTR_NEEDS_DETAIL = "needs_detail"
 ATTR_USER_ID = "user_id"
 
@@ -73,6 +77,20 @@ SERVICE_COMPLETE_ITEM_SCHEMA = vol.Schema(
         vol.Required(ATTR_ENTITY_ID): cv.entity_id,
         vol.Required(ATTR_ITEM_ID): cv.string,
         vol.Optional(ATTR_USER_ID): cv.string,
+    }
+)
+
+SERVICE_UPDATE_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Optional(ATTR_TITLE): cv.string,
+        vol.Optional(ATTR_DESCRIPTION): cv.string,
+        vol.Optional(ATTR_STATUS): vol.In(["pending", "in_progress", "completed", "missed"]),
+        vol.Optional(ATTR_DUE): cv.datetime,
+        vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
+        vol.Optional(ATTR_BUFFER_BEFORE): cv.positive_int,
+        vol.Optional(ATTR_BUFFER_AFTER): cv.positive_int,
     }
 )
 
@@ -175,6 +193,43 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "user_id": user_id,
             },
         )
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+
+    async def handle_update_item(call: ServiceCall) -> None:
+        """Handle update_item service call."""
+        entity_id = call.data[ATTR_ENTITY_ID]
+        item_id = call.data[ATTR_ITEM_ID]
+
+        entry_data = _get_entry_data(hass, entity_id)
+        if entry_data is None:
+            _LOGGER.error("Entity %s not found", entity_id)
+            return
+
+        list_data = entry_data["data"]
+        store = entry_data["store"]
+
+        item = list_data.get_item(item_id)
+        if item is None:
+            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
+            return
+
+        # Update fields if provided
+        if ATTR_TITLE in call.data:
+            item.title = call.data[ATTR_TITLE]
+        if ATTR_DESCRIPTION in call.data:
+            item.description = call.data[ATTR_DESCRIPTION]
+        if ATTR_STATUS in call.data:
+            item.status = call.data[ATTR_STATUS]
+        if ATTR_DUE in call.data:
+            item.due = call.data[ATTR_DUE]
+        if ATTR_TIME_ESTIMATE in call.data:
+            item.time_estimate = call.data[ATTR_TIME_ESTIMATE]
+        if ATTR_BUFFER_BEFORE in call.data:
+            item.buffer_before = call.data[ATTR_BUFFER_BEFORE]
+        if ATTR_BUFFER_AFTER in call.data:
+            item.buffer_after = call.data[ATTR_BUFFER_AFTER]
+
+        await store.async_save(list_data)
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_traits(call: ServiceCall) -> None:
@@ -288,6 +343,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=SERVICE_COMPLETE_ITEM_SCHEMA,
     )
     hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_ITEM, handle_update_item, schema=SERVICE_UPDATE_ITEM_SCHEMA
+    )
+    hass.services.async_register(
         DOMAIN, SERVICE_SET_TRAITS, handle_set_traits, schema=SERVICE_SET_TRAITS_SCHEMA
     )
     hass.services.async_register(
@@ -307,6 +365,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload yahatl services."""
     hass.services.async_remove(DOMAIN, SERVICE_ADD_ITEM)
+    hass.services.async_remove(DOMAIN, SERVICE_UPDATE_ITEM)
     hass.services.async_remove(DOMAIN, SERVICE_COMPLETE_ITEM)
     hass.services.async_remove(DOMAIN, SERVICE_SET_TRAITS)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_TAGS)

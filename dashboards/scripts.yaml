@@ -1,0 +1,437 @@
+# YAHATL Scripts
+# Useful scripts for common YAHATL operations
+# Add these to your scripts.yaml or configuration.yaml
+
+# ============================================================
+# QUICK ADD WITH DEFAULTS
+# ============================================================
+yahatl_quick_add:
+  alias: YAHATL - Quick Add
+  description: Quickly add an item with smart defaults
+  fields:
+    title:
+      description: Task title
+      example: "Buy groceries"
+      required: true
+      selector:
+        text:
+    list:
+      description: Which list to add to
+      example: "todo.yahatl_my_list"
+      required: false
+      default: "todo.yahatl_my_list"
+      selector:
+        entity:
+          domain: todo
+    priority:
+      description: Priority level
+      example: "medium"
+      required: false
+      selector:
+        select:
+          options:
+            - low
+            - medium
+            - high
+
+  sequence:
+    - service: yahatl.add_item
+      data:
+        entity_id: "{{ list }}"
+        title: "{{ title }}"
+        priority: "{{ priority | default('medium') }}"
+        traits: ["actionable"]
+        needs_detail: false
+
+# ============================================================
+# TRIAGE ITEM - FULL WORKFLOW
+# ============================================================
+yahatl_triage_item:
+  alias: YAHATL - Triage Item
+  description: Complete triage workflow for inbox items
+  fields:
+    entity_id:
+      description: YAHATL list entity
+      required: true
+      selector:
+        entity:
+          domain: todo
+    item_id:
+      description: Item UID to triage
+      required: true
+      selector:
+        text:
+    traits:
+      description: Item traits
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - actionable
+            - habit
+            - chore
+            - reminder
+            - note
+    tags:
+      description: Tags (comma-separated)
+      required: false
+      selector:
+        text:
+    due_date:
+      description: Due date
+      required: false
+      selector:
+        date:
+    time_estimate:
+      description: Time estimate (minutes)
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 480
+          unit_of_measurement: min
+
+  sequence:
+    # Set traits
+    - service: yahatl.set_traits
+      data:
+        entity_id: "{{ entity_id }}"
+        item_id: "{{ item_id }}"
+        traits: "{{ traits | default([]) }}"
+
+    # Update with other details
+    - service: yahatl.update_item
+      data:
+        entity_id: "{{ entity_id }}"
+        item_id: "{{ item_id }}"
+        due: "{{ due_date if due_date else none }}"
+        time_estimate: "{{ time_estimate if time_estimate else none }}"
+        needs_detail: false
+
+    # Add tags if provided
+    - condition: template
+      value_template: "{{ tags is defined and tags | length > 0 }}"
+
+    - service: yahatl.add_tags
+      data:
+        entity_id: "{{ entity_id }}"
+        item_id: "{{ item_id }}"
+        tags: "{{ tags.split(',') | map('trim') | list }}"
+
+# ============================================================
+# GENERATE QUEUE WITH CONTEXT
+# ============================================================
+yahatl_refresh_queue:
+  alias: YAHATL - Refresh Queue
+  description: Generate prioritized queue based on current context
+  fields:
+    entity_id:
+      description: YAHATL list entity
+      required: false
+      default: "todo.yahatl_my_list"
+      selector:
+        entity:
+          domain: todo
+    available_time:
+      description: Available time in minutes
+      required: false
+      selector:
+        number:
+          min: 5
+          max: 480
+          unit_of_measurement: min
+
+  sequence:
+    - service: yahatl.get_queue
+      data:
+        entity_id: "{{ entity_id }}"
+        available_time: "{{ available_time | default(states('input_number.yahatl_available_time') | int) }}"
+        current_context:
+          location: "{{ states('input_select.yahatl_location') }}"
+          contexts: ["{{ states('input_select.yahatl_context') }}"]
+          people: >
+            {% set ns = namespace(people=[]) %}
+            {% for state in states.person %}
+              {% if state.state == 'home' %}
+                {% set ns.people = ns.people + [state.attributes.friendly_name] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.people }}
+
+# ============================================================
+# UPDATE CONTEXT MANUALLY
+# ============================================================
+yahatl_update_context:
+  alias: YAHATL - Update Context
+  description: Manually update context and refresh queue
+  fields:
+    location:
+      description: Current location
+      required: false
+      selector:
+        select:
+          options:
+            - home
+            - work
+            - gym
+            - grocery_store
+            - commute
+            - away
+    context:
+      description: Current context
+      required: false
+      selector:
+        select:
+          options:
+            - focused_work
+            - calls_ok
+            - social
+            - errands
+            - exercise
+            - relaxation
+
+  sequence:
+    # Update location if provided
+    - condition: template
+      value_template: "{{ location is defined }}"
+
+    - service: input_select.select_option
+      data:
+        entity_id: input_select.yahatl_location
+        option: "{{ location }}"
+
+    # Update context if provided
+    - condition: template
+      value_template: "{{ context is defined }}"
+
+    - service: input_select.select_option
+      data:
+        entity_id: input_select.yahatl_context
+        option: "{{ context }}"
+
+    # Refresh queue
+    - service: script.yahatl_refresh_queue
+
+# ============================================================
+# SNOOZE ITEM
+# ============================================================
+yahatl_snooze_item:
+  alias: YAHATL - Snooze Item
+  description: Snooze an item by updating its due date
+  fields:
+    entity_id:
+      description: YAHATL list entity
+      required: true
+      selector:
+        entity:
+          domain: todo
+    item_id:
+      description: Item UID
+      required: true
+      selector:
+        text:
+    snooze_days:
+      description: Number of days to snooze
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+
+  sequence:
+    - service: yahatl.update_item
+      data:
+        entity_id: "{{ entity_id }}"
+        item_id: "{{ item_id }}"
+        due: "{{ (now() + timedelta(days=snooze_days | int)).isoformat() }}"
+
+# ============================================================
+# COMPLETE AND ARCHIVE
+# ============================================================
+yahatl_complete_and_archive:
+  alias: YAHATL - Complete and Archive
+  description: Mark item complete and optionally move to archive list
+  fields:
+    entity_id:
+      description: Source YAHATL list
+      required: true
+      selector:
+        entity:
+          domain: todo
+    item_id:
+      description: Item UID
+      required: true
+      selector:
+        text:
+    archive_list:
+      description: Archive list (optional)
+      required: false
+      selector:
+        entity:
+          domain: todo
+
+  sequence:
+    # Mark complete
+    - service: yahatl.complete_item
+      data:
+        entity_id: "{{ entity_id }}"
+        item_id: "{{ item_id }}"
+
+    # TODO: Move to archive list if specified
+    # This would require an additional service in the integration
+
+# ============================================================
+# START POMODORO
+# ============================================================
+yahatl_start_pomodoro:
+  alias: YAHATL - Start Pomodoro
+  description: Start a pomodoro timer for a task
+  fields:
+    task_title:
+      description: Task being worked on
+      required: true
+      selector:
+        text:
+    duration:
+      description: Duration in minutes
+      required: false
+      default: 25
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: min
+
+  sequence:
+    # Set task title
+    - service: input_text.set_value
+      data:
+        entity_id: input_text.yahatl_pomodoro_task
+        value: "{{ task_title }}"
+
+    # Set type to work
+    - service: input_select.select_option
+      data:
+        entity_id: input_select.yahatl_pomodoro_type
+        option: work
+
+    # Activate pomodoro
+    - service: input_boolean.turn_on
+      data:
+        entity_id: input_boolean.yahatl_pomodoro_active
+
+    # Start timer
+    - service: timer.start
+      data:
+        entity_id: timer.yahatl_pomodoro
+        duration: "{{ duration | int * 60 }}"
+
+# ============================================================
+# STOP POMODORO
+# ============================================================
+yahatl_stop_pomodoro:
+  alias: YAHATL - Stop Pomodoro
+  description: Stop the pomodoro timer
+  sequence:
+    - service: input_boolean.turn_off
+      data:
+        entity_id: input_boolean.yahatl_pomodoro_active
+
+    - service: timer.cancel
+      data:
+        entity_id: timer.yahatl_pomodoro
+
+# ============================================================
+# HABIT CHECK-IN
+# ============================================================
+yahatl_habit_checkin:
+  alias: YAHATL - Habit Check-in
+  description: Complete all due habits for today
+  fields:
+    entity_id:
+      description: YAHATL list entity
+      required: false
+      default: "todo.yahatl_my_list"
+      selector:
+        entity:
+          domain: todo
+
+  sequence:
+    # Get queue filtered to habits
+    - service: yahatl.get_queue
+      data:
+        entity_id: "{{ entity_id }}"
+      response_variable: queue_data
+
+    # This would need additional logic to filter and complete habits
+    # For now, just notify user
+    - service: persistent_notification.create
+      data:
+        title: Habit Check-in
+        message: |
+          Check your habits in the YAHATL dashboard!
+        notification_id: yahatl_habit_checkin
+
+# ============================================================
+# WEEKLY REVIEW
+# ============================================================
+yahatl_weekly_review:
+  alias: YAHATL - Weekly Review
+  description: Start weekly review workflow
+  fields:
+    entity_id:
+      description: YAHATL list entity
+      required: false
+      default: "todo.yahatl_my_list"
+      selector:
+        entity:
+          domain: todo
+
+  sequence:
+    # Generate comprehensive queue
+    - service: yahatl.get_queue
+      data:
+        entity_id: "{{ entity_id }}"
+        available_time: 480  # 8 hours
+      response_variable: queue_data
+
+    # Send review notification
+    - service: notify.mobile_app
+      data:
+        title: Weekly Review
+        message: |
+          📊 Weekly Stats:
+          - Queue items: {{ queue_data.queue | length }}
+          - Overdue: {{ states('sensor.yahatl_overdue_count') }}
+          - Inbox: {{ states('sensor.yahatl_inbox_count') }}
+
+          Time to review and plan!
+        data:
+          clickAction: /lovelace/yahatl-planning
+
+# ============================================================
+# CLEAR COMPLETED ITEMS
+# ============================================================
+yahatl_clear_completed:
+  alias: YAHATL - Clear Completed
+  description: Archive all completed non-recurring items
+  fields:
+    entity_id:
+      description: YAHATL list entity
+      required: true
+      selector:
+        entity:
+          domain: todo
+
+  sequence:
+    # This would need a service in the integration to bulk archive
+    - service: persistent_notification.create
+      data:
+        title: Clear Completed
+        message: |
+          Clearing completed items...
+          This feature requires additional integration support.
+        notification_id: yahatl_clear_completed

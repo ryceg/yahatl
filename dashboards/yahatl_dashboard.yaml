@@ -1,0 +1,424 @@
+# YAHATL Dashboard for Home Assistant
+# This is a comprehensive dashboard for managing tasks, habits, chores, and reminders
+#
+# Prerequisites:
+# - Install Mushroom Cards: https://github.com/piitaya/lovelace-mushroom
+# - Install card-mod: https://github.com/thomasloven/lovelace-card-mod
+# - Install auto-entities: https://github.com/thomasloven/lovelace-auto-entities
+#
+# Installation:
+# 1. Copy this YAML to your Home Assistant dashboards directory
+# 2. Create a new dashboard or add to existing one
+# 3. Update entity IDs to match your yahatl lists (search for "todo.yahatl_")
+#
+# Note: Replace 'my_list' with your actual list name throughout this file
+
+title: YAHATL
+icon: mdi:clipboard-check-outline
+views:
+  # ============================================================
+  # TAB 1: PLANNING
+  # Shows prioritized queue, current context, and pomodoro timer
+  # ============================================================
+  - title: Planning
+    icon: mdi:calendar-check
+    path: planning
+    badges: []
+    cards:
+      # Context Status Card - Shows current location, people, time
+      - type: custom:mushroom-template-card
+        primary: Current Context
+        secondary: |
+          {% set location = states('input_select.yahatl_location') | default('home') %}
+          {% set people_count = states | selectattr('domain', 'eq', 'person') | selectattr('state', 'eq', 'home') | list | count %}
+          {% set time_period = states('sensor.yahatl_time_period') | default('Unknown') %}
+          📍 {{ location | title }} | 👥 {{ people_count }} home | 🕐 {{ time_period | title }}
+        icon: mdi:map-marker-account
+        icon_color: blue
+        tap_action:
+          action: call-service
+          service: script.yahatl_update_context
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 16px;
+            }
+
+      # Quick Stats Card
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_queue_count') | default('0') }}"
+            secondary: In Queue
+            icon: mdi:format-list-checks
+            icon_color: green
+            tap_action:
+              action: navigate
+              navigation_path: "#queue"
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(76, 175, 80, 0.1);
+                }
+
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_overdue_count') | default('0') }}"
+            secondary: Overdue
+            icon: mdi:alert-circle
+            icon_color: red
+            tap_action:
+              action: none
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(244, 67, 54, 0.1);
+                }
+
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_streak_risk_count') | default('0') }}"
+            secondary: At Risk
+            icon: mdi:fire-alert
+            icon_color: orange
+            tap_action:
+              action: none
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(255, 152, 0, 0.1);
+                }
+
+      # Refresh Queue Button
+      - type: custom:mushroom-template-card
+        primary: Refresh Queue
+        secondary: Update based on current context
+        icon: mdi:refresh
+        icon_color: blue
+        tap_action:
+          action: call-service
+          service: yahatl.get_queue
+          service_data:
+            entity_id: todo.yahatl_my_list
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 16px;
+            }
+
+      # Priority Queue Section Header
+      - type: markdown
+        content: |
+          ## 🎯 Priority Queue
+          Tasks prioritized for your current context
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+              margin-top: 8px;
+            }
+
+      # Queue Items List
+      # This will be populated dynamically by the yahatl.get_queue service
+      # For now, we'll show the todo entity directly
+      - type: todo-list
+        entity: todo.yahatl_my_list
+        title: Current Tasks
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 16px;
+            }
+
+      # Pomodoro Timer Card (if timer is active)
+      - type: conditional
+        conditions:
+          - entity: sensor.yahatl_pomodoro_state
+            state: active
+        card:
+          type: custom:mushroom-template-card
+          primary: "{{ states('sensor.yahatl_pomodoro_task') }}"
+          secondary: |
+            {% set time_left = states('sensor.yahatl_pomodoro_time_left') | int %}
+            {% set minutes = (time_left // 60) %}
+            {% set seconds = (time_left % 60) %}
+            🍅 {{ '%02d:%02d' | format(minutes, seconds) }} remaining
+          icon: mdi:timer
+          icon_color: |
+            {% if states('sensor.yahatl_pomodoro_type') == 'work' %}
+            red
+            {% else %}
+            green
+            {% endif %}
+          tap_action:
+            action: call-service
+            service: yahatl.stop_pomodoro
+          card_mod:
+            style: |
+              ha-card {
+                --ha-card-background: rgba(255, 87, 34, 0.1);
+                animation: pulse 2s ease-in-out infinite;
+              }
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.8; }
+              }
+
+  # ============================================================
+  # TAB 2: CAPTURE
+  # Quick capture, inbox management, and triage
+  # ============================================================
+  - title: Capture
+    icon: mdi:inbox-arrow-down
+    path: capture
+    badges: []
+    cards:
+      # Quick Capture Card
+      - type: markdown
+        content: |
+          ## ⚡ Quick Capture
+          Quickly add items to your inbox
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+            }
+
+      # Input field for quick capture
+      - type: entities
+        entities:
+          - entity: input_text.yahatl_quick_capture
+            name: New Task
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 8px;
+            }
+
+      # Capture button
+      - type: custom:mushroom-template-card
+        primary: Add to Inbox
+        secondary: Press to capture
+        icon: mdi:plus-circle
+        icon_color: green
+        tap_action:
+          action: call-service
+          service: yahatl.add_item
+          service_data:
+            entity_id: todo.yahatl_my_list
+            title: "{{ states('input_text.yahatl_quick_capture') }}"
+            needs_detail: true
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 24px;
+            }
+
+      # Inbox Stats
+      - type: custom:mushroom-template-card
+        primary: "{{ states('sensor.yahatl_inbox_count') | default('0') }} items"
+        secondary: Awaiting triage
+        icon: mdi:inbox
+        icon_color: |
+          {% set count = states('sensor.yahatl_inbox_count') | int(0) %}
+          {% if count == 0 %}
+          green
+          {% elif count < 5 %}
+          orange
+          {% else %}
+          red
+          {% endif %}
+        badge_icon: |
+          {% set count = states('sensor.yahatl_inbox_count') | int(0) %}
+          {% if count > 0 %}
+          mdi:numeric-{{ [count, 9] | min }}-circle
+          {% endif %}
+        badge_color: red
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 16px;
+            }
+
+      # Inbox Items - Items flagged with needs_detail
+      - type: markdown
+        content: |
+          ## 📥 Inbox
+          Items needing organization
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+            }
+
+      # Inbox todo list
+      - type: todo-list
+        entity: todo.yahatl_my_list
+        title: Inbox Items
+        card_mod:
+          style: |
+            ha-card {
+              margin-bottom: 16px;
+            }
+
+      # Triage Actions
+      - type: markdown
+        content: |
+          ## 🔍 Triage Actions
+          Tap items above to:
+          - ✅ Set traits (actionable, habit, chore, reminder, note)
+          - 📅 Add due date
+          - 🏷️ Add tags
+          - 📍 Set location/people requirements
+          - ⏰ Add time estimate
+          - ↻ Configure recurrence
+        card_mod:
+          style: |
+            ha-card {
+              background: rgba(33, 150, 243, 0.05);
+              font-size: 0.9em;
+            }
+
+  # ============================================================
+  # TAB 3: NOTES
+  # Search, tag filtering, and notes management
+  # ============================================================
+  - title: Notes
+    icon: mdi:notebook
+    path: notes
+    badges: []
+    cards:
+      # Search Input
+      - type: markdown
+        content: |
+          ## 🔍 Search & Filter
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+            }
+
+      - type: entities
+        entities:
+          - entity: input_text.yahatl_search
+            name: Search notes
+            icon: mdi:magnify
+
+      # Common Tag Filters
+      - type: markdown
+        content: |
+          ### 🏷️ Quick Filters
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+              margin-top: 16px;
+            }
+
+      # Tag filter chips
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Work
+            icon: mdi:briefcase
+            icon_color: blue
+            tap_action:
+              action: call-service
+              service: input_text.set_value
+              service_data:
+                entity_id: input_text.yahatl_search
+                value: "#work"
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(33, 150, 243, 0.1);
+                }
+
+          - type: custom:mushroom-template-card
+            primary: Personal
+            icon: mdi:home-heart
+            icon_color: purple
+            tap_action:
+              action: call-service
+              service: input_text.set_value
+              service_data:
+                entity_id: input_text.yahatl_search
+                value: "#personal"
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(156, 39, 176, 0.1);
+                }
+
+          - type: custom:mushroom-template-card
+            primary: Ideas
+            icon: mdi:lightbulb
+            icon_color: yellow
+            tap_action:
+              action: call-service
+              service: input_text.set_value
+              service_data:
+                entity_id: input_text.yahatl_search
+                value: "#ideas"
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(255, 235, 59, 0.2);
+                }
+
+      # Notes Statistics
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_notes_count') | default('0') }}"
+            secondary: Total Notes
+            icon: mdi:note-multiple
+            icon_color: blue
+
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_needs_detail_count') | default('0') }}"
+            secondary: Need Detail
+            icon: mdi:alert-decagram
+            icon_color: orange
+
+      # Notes List
+      - type: markdown
+        content: |
+          ## 📝 All Notes
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+              margin-top: 16px;
+            }
+
+      # Notes todo list (filtered by 'note' trait)
+      - type: todo-list
+        entity: todo.yahatl_my_list
+        title: Notes
+
+      # Needs Detail Section
+      - type: markdown
+        content: |
+          ## ⚠️ Needs Detail
+          Items flagged for fleshing out
+        card_mod:
+          style: |
+            ha-card {
+              background: none;
+              box-shadow: none;
+              margin-top: 24px;
+            }
+
+      - type: conditional
+        conditions:
+          - entity: sensor.yahatl_needs_detail_count
+            state_not: "0"
+        card:
+          type: todo-list
+          entity: todo.yahatl_my_list
+          title: Items Needing Detail

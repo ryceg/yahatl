@@ -303,3 +303,181 @@ set_list_visibility:
       required: false
       selector:
         text:
+
+set_recurrence:
+  name: Set Recurrence
+  description: Configure recurrence rules for an item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    recurrence_type:
+      name: Recurrence Type
+      description: Type of recurrence (calendar, elapsed, frequency, or none to remove).
+      required: true
+      selector:
+        select:
+          options:
+            - calendar
+            - elapsed
+            - frequency
+            - none
+    calendar_pattern:
+      name: Calendar Pattern
+      description: Pattern for calendar-based recurrence (e.g., "daily", "weekly", "monthly").
+      required: false
+      selector:
+        text:
+    elapsed_interval:
+      name: Elapsed Interval
+      description: Interval for elapsed-based recurrence.
+      required: false
+      selector:
+        number:
+          min: 1
+    elapsed_unit:
+      name: Elapsed Unit
+      description: Unit for elapsed interval.
+      required: false
+      selector:
+        select:
+          options:
+            - days
+            - weeks
+            - months
+            - years
+    frequency_count:
+      name: Frequency Count
+      description: Number of completions required per period.
+      required: false
+      selector:
+        number:
+          min: 1
+    frequency_period:
+      name: Frequency Period
+      description: Period length for frequency goals.
+      required: false
+      selector:
+        number:
+          min: 1
+    frequency_unit:
+      name: Frequency Unit
+      description: Unit for frequency period.
+      required: false
+      selector:
+        select:
+          options:
+            - days
+            - weeks
+            - months
+
+set_blockers:
+  name: Set Blockers
+  description: Configure blockers for an item.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    mode:
+      name: Blocker Mode
+      description: Whether ANY or ALL blockers must be active to block the item.
+      required: false
+      default: ALL
+      selector:
+        select:
+          options:
+            - ANY
+            - ALL
+    items:
+      name: Blocking Items
+      description: List of item IDs that block this item.
+      required: false
+      selector:
+        text:
+    sensors:
+      name: Blocking Sensors
+      description: List of binary sensor entity IDs that block this item when "on".
+      required: false
+      selector:
+        text:
+
+set_requirements:
+  name: Set Requirements
+  description: Configure requirements for an item to appear in the queue.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    mode:
+      name: Requirements Mode
+      description: Whether ANY or ALL requirements must be met.
+      required: false
+      default: ANY
+      selector:
+        select:
+          options:
+            - ANY
+            - ALL
+    location:
+      name: Location
+      description: Required locations (e.g., home, office, out).
+      required: false
+      selector:
+        text:
+    people:
+      name: People
+      description: Required people to be present.
+      required: false
+      selector:
+        text:
+    time_constraints:
+      name: Time Constraints
+      description: Required time constraints (e.g., business_hours, weekend, evening).
+      required: false
+      selector:
+        text:
+    context:
+      name: Context
+      description: Required contexts (e.g., computer, phone, car).
+      required: false
+      selector:
+        text:
+    sensors:
+      name: Required Sensors
+      description: Sensors that must be "on" for this item to appear.
+      required: false
+      selector:
+        text:

@@ -242,19 +242,36 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Mark as completed with history
         from datetime import datetime
         from .models import CompletionRecord
-        from .const import COMPLETION_HISTORY_CAP, STATUS_COMPLETED
+        from .const import COMPLETION_HISTORY_CAP, STATUS_COMPLETED, STATUS_PENDING
+        from .recurrence import calculate_next_due, calculate_streak
+
+        now = datetime.now()
 
         item.status = STATUS_COMPLETED
+        item.last_completed = now
 
         record = CompletionRecord(
             user_id=user_id,
-            timestamp=datetime.now(),
+            timestamp=now,
         )
         item.completion_history.append(record)
 
         # Cap history
         if len(item.completion_history) > COMPLETION_HISTORY_CAP:
             item.completion_history = item.completion_history[-COMPLETION_HISTORY_CAP:]
+
+        # Update streak if habit
+        if "habit" in item.traits:
+            item.current_streak = calculate_streak(item)
+
+        # Handle recurrence
+        if item.recurrence:
+            next_due = calculate_next_due(item, now)
+            if next_due:
+                # Reset status and update due date for next occurrence
+                item.status = STATUS_PENDING
+                item.due = next_due
+            # For frequency goals, status stays completed but streak updates
 
         await store.async_save(list_data)
 

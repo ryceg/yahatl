@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -92,7 +92,7 @@ async def is_item_blocked(
 async def check_requirements_met(
     hass: HomeAssistant,
     item: YahtlItem,
-    current_context: dict[str, any] | None = None,
+    current_context: dict[str, Any] | None = None,
 ) -> tuple[bool, list[str]]:
     """Check if an item's requirements are met.
 

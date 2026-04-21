@@ -22,11 +22,22 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     await async_setup_services(hass)
     from .websocket_api import async_register_websocket_commands
     async_register_websocket_commands(hass)
-    hass.http.register_static_path(
-        "/yahatl/yahatl-queue-card.js",
-        hass.config.path("custom_components/yahatl/www/yahatl-queue-card.js"),
-        cache_headers=False,
-    )
+
+    # Register all frontend card resources
+    version = "0.1.0"
+    cards = [
+        "yahatl-item-card.js",
+        "yahatl-queue-card.js",
+        "yahatl-item-editor.js",
+    ]
+    for card in cards:
+        url = f"/yahatl/{card}"
+        hass.http.register_static_path(
+            url,
+            hass.config.path(f"custom_components/yahatl/www/{card}"),
+            cache_headers=False,
+        )
+
     return True
 
 

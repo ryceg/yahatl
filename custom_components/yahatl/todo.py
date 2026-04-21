@@ -35,7 +35,6 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up yahatl todo entities from a config entry."""
     storage_key = config_entry.data[CONF_STORAGE_KEY]
     list_name = config_entry.data[CONF_LIST_NAME]
 
@@ -88,7 +87,6 @@ class YahtlTodoListEntity(TodoListEntity):
         data: YahtlList,
         unique_id: str,
     ) -> None:
-        """Initialize the entity."""
         self._store = store
         self._data = data
         self._attr_unique_id = unique_id
@@ -96,12 +94,10 @@ class YahtlTodoListEntity(TodoListEntity):
         self._unsub_update: Callable[[], None] | None = None
 
     async def async_added_to_hass(self) -> None:
-        """Run when entity is added to hass."""
         await super().async_added_to_hass()
 
         @callback
         def handle_update(event):
-            """Handle update event."""
             if event.data.get("entity_id") == self.entity_id:
                 # Reload data from store
                 if self._store.data:
@@ -113,13 +109,11 @@ class YahtlTodoListEntity(TodoListEntity):
         )
 
     async def async_will_remove_from_hass(self) -> None:
-        """Run when entity is removed from hass."""
         if self._unsub_update:
             self._unsub_update()
 
     @property
     def todo_items(self) -> list[TodoItem]:
-        """Return the list of todo items."""
         items = []
         for yahtl_item in self._data.items:
             # Only show actionable items that are not completed
@@ -144,7 +138,6 @@ class YahtlTodoListEntity(TodoListEntity):
         return items
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
-        """Create a todo item."""
         yahtl_item = YahtlItem.create(
             title=item.summary or "Untitled",
         )
@@ -158,7 +151,6 @@ class YahtlTodoListEntity(TodoListEntity):
         await self._async_save()
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
-        """Update a todo item."""
         yahtl_item = self._data.get_item(item.uid)
         if yahtl_item is None:
             return
@@ -182,7 +174,6 @@ class YahtlTodoListEntity(TodoListEntity):
         await self._async_save()
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
-        """Delete todo items."""
         for uid in uids:
             self._data.remove_item(uid)
         await self._async_save()
@@ -190,7 +181,6 @@ class YahtlTodoListEntity(TodoListEntity):
     async def async_move_todo_item(
         self, uid: str, previous_uid: str | None = None
     ) -> None:
-        """Move a todo item."""
         # Find the item to move
         item_to_move = None
         item_index = None
@@ -238,6 +228,5 @@ class YahtlTodoListEntity(TodoListEntity):
             item.completion_history = item.completion_history[-COMPLETION_HISTORY_CAP:]
 
     async def _async_save(self) -> None:
-        """Save changes and notify HA."""
         await self._store.async_save(self._data)
         self.async_write_ha_state()

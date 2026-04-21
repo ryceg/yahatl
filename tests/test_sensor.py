@@ -130,25 +130,35 @@ class TestNextTaskSensor:
 
 class TestBlockedCountSensor:
     def test_counts_items_with_blockers(self):
+        # Create a blocker item that is NOT completed, so the blocked item is actually blocked
+        blocker = _actionable_item("Blocker task")
         blocked = _actionable_item("Blocked")
-        blocked.blockers = BlockerConfig(items=["some_id"])
+        blocked.blockers = BlockerConfig(items=[blocker.uid])
         unblocked = _actionable_item("Free")
-        data = _make_list(blocked, unblocked)
+        data = _make_list(blocker, blocked, unblocked)
         sensor = YahtlBlockedCountSensor.__new__(YahtlBlockedCountSensor)
+        sensor.hass = None
         sensor._data = data
         assert sensor.native_value == 1
 
     def test_counts_sensor_blockers(self):
+        from unittest.mock import MagicMock
+        hass = MagicMock()
+        state = MagicMock()
+        state.state = "on"
+        hass.states.get.return_value = state
         blocked = _actionable_item("Sensor blocked")
         blocked.blockers = BlockerConfig(sensors=["binary_sensor.test"])
         data = _make_list(blocked)
         sensor = YahtlBlockedCountSensor.__new__(YahtlBlockedCountSensor)
+        sensor.hass = hass
         sensor._data = data
         assert sensor.native_value == 1
 
     def test_zero_when_no_blockers(self):
         data = _make_list(_actionable_item("Free"))
         sensor = YahtlBlockedCountSensor.__new__(YahtlBlockedCountSensor)
+        sensor.hass = None
         sensor._data = data
         assert sensor.native_value == 0
 

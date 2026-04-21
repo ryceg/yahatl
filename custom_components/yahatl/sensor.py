@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .blockers import is_item_blocked
+from .blockers import BlockerResolver
 from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE, TRAIT_HABIT, TRAIT_NOTE
 from .models import YahtlList
 from .queue import get_prioritized_queue
@@ -149,12 +149,8 @@ class YahtlBlockedCountSensor(_YahtlBaseSensor):
 
     @property
     def native_value(self) -> int:
-        # Simplified sync check — counts items with blockers configured.
-        # is_item_blocked is async so can't be used in sync native_value.
-        return sum(
-            1 for i in self._actionable_items()
-            if i.blockers and (i.blockers.items or i.blockers.sensors)
-        )
+        resolver = BlockerResolver(self.hass, [self._data])
+        return sum(1 for i in self._actionable_items() if resolver.resolve(i))
 
 
 class YahtlQueueSensor(_YahtlBaseSensor):

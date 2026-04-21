@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from .blockers import is_item_blocked, check_requirements_met
+from .blockers import BlockerResolver, check_requirements_met
 from .recurrence import is_streak_at_risk, get_frequency_progress
 
 if TYPE_CHECKING:
@@ -56,12 +56,13 @@ async def get_prioritized_queue(
 
     # Filter and score candidates
     scored_items = []
+    resolver = BlockerResolver(hass, all_lists)
 
     for item, yahatl_list in candidates:
         # Check blockers
-        is_blocked, blocker_reasons = await is_item_blocked(hass, item, all_lists)
-        if is_blocked:
-            _LOGGER.debug("Item %s blocked: %s", item.uid, blocker_reasons)
+        result = resolver.resolve(item)
+        if result:
+            _LOGGER.debug("Item %s blocked: %s", item.uid, result.reasons)
             continue
 
         # Check requirements

@@ -72,12 +72,14 @@ class TestCollectTrackedEntities:
 
 
 class TestHandleStateChange:
-    def _make_manager(self, hass, store, all_lists_fn):
+    def _make_manager(self, hass, store, all_lists_fn, data_fn=None):
         manager = ReactivityManager.__new__(ReactivityManager)
         manager._hass = hass
         manager._store = store
         manager._last_triggered = {}
         manager._all_lists_fn = all_lists_fn
+        # data_fn returns this entry's list; defaults to first list from all_lists_fn
+        manager._data_fn = data_fn or (lambda: all_lists_fn()[0] if all_lists_fn() else None)
         return manager
 
     def test_boost_trigger_fires_signal(self, mock_hass_for_reactivity, mock_store, make_list):

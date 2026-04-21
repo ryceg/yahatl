@@ -33,10 +33,12 @@ class ReactivityManager:
         hass: HomeAssistant,
         store: Any,
         all_lists_fn: Callable[[], list[YahtlList]],
+        data_fn: Callable[[], YahtlList | None] | None = None,
     ) -> None:
         self._hass = hass
         self._store = store
         self._all_lists_fn = all_lists_fn
+        self._data_fn = data_fn
         self._tracked_entities: set[str] = set()
         self._unsub_state: Callable[[], None] | None = None
         self._unsub_signal: Callable[[], None] | None = None
@@ -123,53 +125,54 @@ class ReactivityManager:
     @callback
     def _handle_state_change(self, entity_id: str, new_state: Any) -> None:
         """Process a state change event for a tracked entity."""
-        all_lists = self._all_lists_fn()
+        # Use this entry's list for mutations, all lists for entity tracking
+        own_data = self._data_fn() if self._data_fn else None
+        items_to_check = own_data.items if own_data else []
+
         signal_needed = False
         persist_needed = False
 
-        for yl in all_lists:
-            for item in yl.items:
-                for trigger in item.condition_triggers:
-                    if trigger.entity_id != entity_id:
+        for item in items_to_check:
+            for trigger in item.condition_triggers:
+                if trigger.entity_id != entity_id:
+                    continue
+
+                # Get the value to compare
+                if trigger.attribute:
+                    actual = str(new_state.attributes.get(trigger.attribute, ""))
+                else:
+                    actual = new_state.state
+
+                if not evaluate_condition(actual, trigger.operator, trigger.value):
+                    continue
+
+                # Condition matched
+                if trigger.on_match == "set_due":
+                    # Check cooldown
+                    now = datetime.now()
+                    last = self._last_triggered.get(item.uid)
+                    if last and (now - last).total_seconds() < _COOLDOWN_SECONDS:
                         continue
 
-                    # Get the value to compare
-                    if trigger.attribute:
-                        actual = str(new_state.attributes.get(trigger.attribute, ""))
+                    # Set due = min(existing, now)
+                    if item.due:
+                        item.due = min(item.due, now)
                     else:
-                        actual = new_state.state
+                        item.due = now
 
-                    if not evaluate_condition(actual, trigger.operator, trigger.value):
-                        continue
+                    # Clear deferral
+                    item.deferred_until = None
 
-                    # Condition matched
-                    if trigger.on_match == "set_due":
-                        # Check cooldown
-                        now = datetime.now()
-                        last = self._last_triggered.get(item.uid)
-                        if last and (now - last).total_seconds() < _COOLDOWN_SECONDS:
-                            continue
+                    self._last_triggered[item.uid] = now
+                    persist_needed = True
 
-                        # Set due = min(existing, now)
-                        if item.due:
-                            item.due = min(item.due, now)
-                        else:
-                            item.due = now
-
-                        # Clear deferral
-                        item.deferred_until = None
-
-                        self._last_triggered[item.uid] = now
-                        persist_needed = True
-
-                    signal_needed = True
+                signal_needed = True
 
         if persist_needed:
             # Need to save — but we're in a @callback, so create a task
             async def _persist():
-                all_lists_for_save = self._all_lists_fn()
-                if all_lists_for_save:
-                    data = all_lists_for_save[0]  # Store saves the list data
+                data = self._data_fn() if self._data_fn else None
+                if data:
                     await self._store.async_save(data)
 
             self._hass.async_create_task(_persist(), eager_start=True)

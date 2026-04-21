@@ -26,6 +26,7 @@ SERVICE_SET_BLOCKERS = "set_blockers"
 SERVICE_SET_REQUIREMENTS = "set_requirements"
 SERVICE_GET_QUEUE = "get_queue"
 SERVICE_UPDATE_CONTEXT = "update_context"
+SERVICE_SET_CONDITION_TRIGGERS = "set_condition_triggers"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
@@ -69,6 +70,7 @@ ATTR_CONTEXT = "context"
 ATTR_REQ_SENSORS = "sensors"
 
 # Queue attributes
+ATTR_CONDITION_TRIGGERS = "condition_triggers"
 ATTR_AVAILABLE_TIME = "available_time"
 ATTR_CONTEXTS = "contexts"
 
@@ -193,6 +195,28 @@ SERVICE_UPDATE_CONTEXT_SCHEMA = vol.Schema(
         vol.Optional(ATTR_LOCATION): cv.string,
         vol.Optional(ATTR_PEOPLE): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_CONTEXTS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+SERVICE_SET_CONDITION_TRIGGERS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Required(ATTR_CONDITION_TRIGGERS): vol.All(
+            cv.ensure_list,
+            [
+                vol.Schema(
+                    {
+                        vol.Required("entity_id"): cv.entity_id,
+                        vol.Required("operator"): vol.In(
+                            ["eq", "neq", "gt", "lt", "gte", "lte", "bool"]
+                        ),
+                        vol.Required("value"): cv.string,
+                        vol.Optional("attribute"): cv.string,
+                    }
+                )
+            ],
+        ),
     }
 )
 
@@ -597,6 +621,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         _LOGGER.info("Context updated: %s", context_override.to_dict())
 
+    async def handle_set_condition_triggers(call: ServiceCall) -> None:
+        list_data, store, item = _resolve_item(hass, call)
+        if item is None:
+            return
+
+        from .models import ConditionTriggerConfig
+        triggers_data = call.data[ATTR_CONDITION_TRIGGERS]
+        item.condition_triggers = [
+            ConditionTriggerConfig.from_dict(t) for t in triggers_data
+        ]
+
+        await store.async_save(list_data)
+        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": call.data[ATTR_ENTITY_ID]})
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
@@ -660,6 +698,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_update_context,
         schema=SERVICE_UPDATE_CONTEXT_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_CONDITION_TRIGGERS,
+        handle_set_condition_triggers,
+        schema=SERVICE_SET_CONDITION_TRIGGERS_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -676,3 +720,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SET_REQUIREMENTS)
     hass.services.async_remove(DOMAIN, SERVICE_GET_QUEUE)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CONTEXT)
+    hass.services.async_remove(DOMAIN, SERVICE_SET_CONDITION_TRIGGERS)

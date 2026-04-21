@@ -182,6 +182,19 @@ async def _calculate_score(
             if matches > 1:
                 score += 10
 
+    # Condition trigger scoring — if any trigger condition is currently met, boost
+    if item.condition_triggers:
+        from .conditions import evaluate_condition
+        for trigger in item.condition_triggers:
+            state = hass.states.get(trigger.entity_id)
+            if state is not None:
+                actual = state.state
+                if trigger.attribute:
+                    actual = str(state.attributes.get(trigger.attribute, ""))
+                if evaluate_condition(actual, trigger.operator, trigger.value):
+                    score += 75  # Strong boost — condition is active right now
+                    break  # One active trigger is enough
+
     return score
 
 

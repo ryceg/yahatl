@@ -9,6 +9,7 @@ import pytest
 from custom_components.yahatl.models import (
     BlockerConfig,
     CompletionRecord,
+    ConditionTriggerConfig,
     RecurrenceConfig,
     RecurrenceThreshold,
     RequirementsConfig,
@@ -621,3 +622,71 @@ class TestQueueEdgeCases:
         queue = await get_prioritized_queue(mock_hass, [yahatl_list], context=None)
 
         assert len(queue) == 1
+
+
+class TestConditionTriggerScoring:
+    @pytest.mark.asyncio
+    async def test_active_condition_boosts_score(self, mock_hass):
+        """Test that an active condition trigger adds +75 to score."""
+        item = YahtlItem.create(title="Hang washing")
+        item.traits = ["actionable"]
+        item.condition_triggers = [
+            ConditionTriggerConfig(
+                entity_id="sensor.washing_machine",
+                operator="eq",
+                value="idle",
+            ),
+        ]
+
+        # Mock the entity state to match the trigger
+        mock_state = MagicMock()
+        mock_state.state = "idle"
+        mock_state.attributes = {}
+        mock_hass.states.get = MagicMock(return_value=mock_state)
+
+        score = await _calculate_score(mock_hass, item, {})
+        assert score >= 75
+
+    @pytest.mark.asyncio
+    async def test_inactive_condition_no_boost(self, mock_hass):
+        """Test that an inactive condition trigger doesn't boost score."""
+        item = YahtlItem.create(title="Hang washing")
+        item.traits = ["actionable"]
+        item.condition_triggers = [
+            ConditionTriggerConfig(
+                entity_id="sensor.washing_machine",
+                operator="eq",
+                value="idle",
+            ),
+        ]
+
+        # Mock the entity state to NOT match
+        mock_state = MagicMock()
+        mock_state.state = "running"
+        mock_state.attributes = {}
+        mock_hass.states.get = MagicMock(return_value=mock_state)
+
+        score = await _calculate_score(mock_hass, item, {})
+        assert score < 75
+
+    @pytest.mark.asyncio
+    async def test_condition_with_attribute(self, mock_hass):
+        """Test condition trigger checking an attribute."""
+        item = YahtlItem.create(title="Cool down house")
+        item.traits = ["actionable"]
+        item.condition_triggers = [
+            ConditionTriggerConfig(
+                entity_id="climate.living_room",
+                attribute="current_temperature",
+                operator="gte",
+                value="25",
+            ),
+        ]
+
+        mock_state = MagicMock()
+        mock_state.state = "cool"
+        mock_state.attributes = {"current_temperature": "27"}
+        mock_hass.states.get = MagicMock(return_value=mock_state)
+
+        score = await _calculate_score(mock_hass, item, {})
+        assert score >= 75

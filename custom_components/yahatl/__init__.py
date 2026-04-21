@@ -38,12 +38,16 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             cache_headers=False,
         )
         # Auto-register as Lovelace resource (storage mode only)
-        resource_url = f"{url}?v={VERSION}"
-        await hass.components.lovelace.async_create_resource(
-            resource_url, "module"
-        ) if hasattr(hass.components, "lovelace") and hasattr(
-            hass.components.lovelace, "async_create_resource"
-        ) else None
+        try:
+            resource_url = f"{url}?v={VERSION}"
+            resources = await hass.components.lovelace.resources.async_get_info()
+            existing_urls = {r["url"] for r in resources}
+            if resource_url not in existing_urls:
+                await hass.components.lovelace.resources.async_create_item(
+                    {"res_type": "module", "url": resource_url}
+                )
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Could not auto-register Lovelace resource %s", url)
 
     return True
 

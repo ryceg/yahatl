@@ -254,6 +254,7 @@ class ReactivePipeline:
 
     async def _run_cycle(self, reason: str = "") -> None:
         from .queue import QueueEngine
+        from .const import SIGNAL_YAHATL_SNAPSHOT
 
         # 1. Persist
         data = self._data_fn()
@@ -276,6 +277,9 @@ class ReactivePipeline:
             total_actionable=result.total_actionable,
             data_version=self._data_version,
         )
+
+        # Notify sensors
+        async_dispatcher_send(self._hass, SIGNAL_YAHATL_SNAPSHOT, self._entry_id)
 
     async def async_start(self) -> None:
         self._refresh_tracked_entities()

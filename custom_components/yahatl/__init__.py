@@ -8,7 +8,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_STORAGE_KEY, DOMAIN
-from .reactivity import ReactivityManager
+from .reactivity import ReactivePipeline
 from .services import async_setup_services, async_unload_services
 from .store import get_store_path, YahtlStore
 
@@ -72,17 +72,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             ed = hass.data[DOMAIN].get(entry.entry_id)
             return ed["data"] if ed and "data" in ed else None
 
-        manager = ReactivityManager(hass, entry_data["store"], all_lists_fn, data_fn)
-        entry_data["reactivity_manager"] = manager
-        await manager.async_start()
+        pipeline = ReactivePipeline(hass, entry.entry_id, entry_data["store"], data_fn, all_lists_fn)
+        entry_data["pipeline"] = pipeline
+        await pipeline.async_start()
 
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry_data = hass.data[DOMAIN].get(entry.entry_id)
-    if entry_data and "reactivity_manager" in entry_data:
-        await entry_data["reactivity_manager"].async_stop()
+    if entry_data and "pipeline" in entry_data:
+        await entry_data["pipeline"].async_stop()
 
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id, None)

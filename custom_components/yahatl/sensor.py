@@ -11,7 +11,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .blockers import BlockerResolver
-from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE, TRAIT_HABIT, TRAIT_NOTE
+from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_SNAPSHOT, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE, TRAIT_HABIT, TRAIT_NOTE
 from .models import YahtlList
 from .recurrence import is_streak_at_risk
 
@@ -28,13 +28,14 @@ async def async_setup_entry(
     storage_key = config_entry.data[CONF_STORAGE_KEY]
     data = entry_data["data"]
     store = entry_data["store"]
+    pipeline = entry_data.get("pipeline")
 
     async_add_entities([
-        YahtlOverdueSensor(hass, data, store, storage_key),
-        YahtlDueTodaySensor(hass, data, store, storage_key),
-        YahtlNextTaskSensor(hass, data, store, storage_key),
-        YahtlBlockedCountSensor(hass, data, store, storage_key),
-        YahtlQueueSensor(hass, data, store, storage_key),
+        YahtlOverdueSensor(hass, data, store, storage_key, pipeline),
+        YahtlDueTodaySensor(hass, data, store, storage_key, pipeline),
+        YahtlNextTaskSensor(hass, data, store, storage_key, pipeline),
+        YahtlBlockedCountSensor(hass, data, store, storage_key, pipeline),
+        YahtlQueueSensor(hass, data, store, storage_key, pipeline),
         YahtlInboxCountSensor(hass, data, store, storage_key),
         YahtlNotesCountSensor(hass, data, store, storage_key),
         YahtlStreakRiskSensor(hass, data, store, storage_key),
@@ -42,14 +43,16 @@ async def async_setup_entry(
 
 
 class _YahtlBaseSensor(SensorEntity):
-    """Base sensor that listens for yahatl_updated bus events and re-renders."""
+    """Base sensor that listens for yahatl update signals and re-renders."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
+    _pipeline = None
 
-    def __init__(self, hass: HomeAssistant, data: YahtlList, store, storage_key: str, suffix: str) -> None:
+    def __init__(self, hass: HomeAssistant, data: YahtlList, store, storage_key: str, suffix: str, pipeline=None) -> None:
         self._data = data
         self._store = store
+        self._pipeline = pipeline
         self._attr_unique_id = f"{storage_key}_{suffix}"
         self._unsub: Callable[[], None] | None = None
 
@@ -57,14 +60,13 @@ class _YahtlBaseSensor(SensorEntity):
         await super().async_added_to_hass()
 
         @callback
-        def _handle_update(entity_id):
+        def _handle_update(*args):
             if self._store.data:
                 self._data = self._store.data
             self.async_write_ha_state()
 
-        self._unsub = async_dispatcher_connect(
-            self.hass, SIGNAL_YAHATL_UPDATED, _handle_update
-        )
+        signal = SIGNAL_YAHATL_SNAPSHOT if self._pipeline else SIGNAL_YAHATL_UPDATED
+        self._unsub = async_dispatcher_connect(self.hass, signal, _handle_update)
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub:
@@ -80,12 +82,16 @@ class _YahtlBaseSensor(SensorEntity):
 class YahtlOverdueSensor(_YahtlBaseSensor):
     _attr_icon = "mdi:alert-circle"
 
-    def __init__(self, hass, data, store, storage_key):
-        super().__init__(hass, data, store, storage_key, "overdue")
+    def __init__(self, hass, data, store, storage_key, pipeline=None):
+        super().__init__(hass, data, store, storage_key, "overdue", pipeline)
         self._attr_name = f"{data.name} Overdue"
 
     @property
     def native_value(self) -> int:
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap:
+                return snap.overdue_count
         now = datetime.now()
         return sum(1 for i in self._actionable_items() if i.due and i.due < now)
 
@@ -93,12 +99,16 @@ class YahtlOverdueSensor(_YahtlBaseSensor):
 class YahtlDueTodaySensor(_YahtlBaseSensor):
     _attr_icon = "mdi:calendar-today"
 
-    def __init__(self, hass, data, store, storage_key):
-        super().__init__(hass, data, store, storage_key, "due_today")
+    def __init__(self, hass, data, store, storage_key, pipeline=None):
+        super().__init__(hass, data, store, storage_key, "due_today", pipeline)
         self._attr_name = f"{data.name} Due Today"
 
     @property
     def native_value(self) -> int:
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap:
+                return snap.due_today_count
         now = datetime.now()
         return sum(
             1 for i in self._actionable_items()
@@ -109,12 +119,16 @@ class YahtlDueTodaySensor(_YahtlBaseSensor):
 class YahtlNextTaskSensor(_YahtlBaseSensor):
     _attr_icon = "mdi:checkbox-marked-circle-outline"
 
-    def __init__(self, hass, data, store, storage_key):
-        super().__init__(hass, data, store, storage_key, "next_task")
+    def __init__(self, hass, data, store, storage_key, pipeline=None):
+        super().__init__(hass, data, store, storage_key, "next_task", pipeline)
         self._attr_name = f"{data.name} Next Task"
 
     @property
     def native_value(self) -> str | None:
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap:
+                return snap.next_task_title
         items = self._actionable_items()
         if not items:
             return None
@@ -135,6 +149,10 @@ class YahtlNextTaskSensor(_YahtlBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap:
+                return {"total_actionable": snap.total_actionable}
         items = self._actionable_items()
         return {"total_actionable": len(items)}
 
@@ -142,12 +160,16 @@ class YahtlNextTaskSensor(_YahtlBaseSensor):
 class YahtlBlockedCountSensor(_YahtlBaseSensor):
     _attr_icon = "mdi:block-helper"
 
-    def __init__(self, hass, data, store, storage_key):
-        super().__init__(hass, data, store, storage_key, "blocked")
+    def __init__(self, hass, data, store, storage_key, pipeline=None):
+        super().__init__(hass, data, store, storage_key, "blocked", pipeline)
         self._attr_name = f"{data.name} Blocked"
 
     @property
     def native_value(self) -> int:
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap:
+                return snap.blocked_count
         resolver = BlockerResolver(self.hass, [self._data])
         return sum(1 for i in self._actionable_items() if resolver.resolve(i))
 
@@ -161,33 +183,48 @@ class YahtlQueueSensor(_YahtlBaseSensor):
 
     _attr_icon = "mdi:format-list-numbered"
 
-    def __init__(self, hass, data, store, storage_key):
-        super().__init__(hass, data, store, storage_key, "queue")
+    def __init__(self, hass, data, store, storage_key, pipeline=None):
+        super().__init__(hass, data, store, storage_key, "queue", pipeline)
         self._attr_name = f"{data.name} Queue"
         self._queue_cache: list[dict] = []
 
     @property
     def native_value(self) -> str | None:
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap and snap.queue:
+                return snap.queue[0].get("title")
+            return None
         if self._queue_cache:
             return self._queue_cache[0].get("title")
         return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {
-            "queue": self._queue_cache,
-            "queue_length": len(self._queue_cache),
-        }
+        if self._pipeline:
+            snap = self._pipeline.get_snapshot()
+            if snap:
+                return {"queue": snap.queue, "queue_length": len(snap.queue)}
+        return {"queue": self._queue_cache, "queue_length": len(self._queue_cache)}
 
     async def async_added_to_hass(self) -> None:
-        @callback
-        def _handle_update(entity_id):
-            self.hass.async_create_task(self._refresh_queue(), eager_start=True)
+        if self._pipeline:
+            @callback
+            def _handle_snapshot(*args):
+                self.async_write_ha_state()
 
-        self._unsub = async_dispatcher_connect(
-            self.hass, SIGNAL_YAHATL_UPDATED, _handle_update
-        )
-        await self._refresh_queue()
+            self._unsub = async_dispatcher_connect(
+                self.hass, SIGNAL_YAHATL_SNAPSHOT, _handle_snapshot
+            )
+        else:
+            @callback
+            def _handle_update(entity_id):
+                self.hass.async_create_task(self._refresh_queue(), eager_start=True)
+
+            self._unsub = async_dispatcher_connect(
+                self.hass, SIGNAL_YAHATL_UPDATED, _handle_update
+            )
+            await self._refresh_queue()
 
     async def _refresh_queue(self) -> None:
         from .queue import QueueEngine

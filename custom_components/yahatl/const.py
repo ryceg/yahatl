@@ -43,3 +43,4 @@ DEFAULT_BUFFER_AFTER = 0
 
 # Dispatcher signal for intra-integration updates (faster than bus events)
 SIGNAL_YAHATL_UPDATED = f"{DOMAIN}_updated_signal"
+SIGNAL_YAHATL_SNAPSHOT = f"{DOMAIN}_snapshot_signal"

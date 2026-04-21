@@ -8,6 +8,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_STORAGE_KEY, DOMAIN
+from .reactivity import ReactivityManager
 from .services import async_setup_services, async_unload_services
 from .store import get_store_path, YahtlStore
 
@@ -33,10 +34,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store will be initialized by todo platform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Start ReactivityManager after platforms are set up
+    entry_data = hass.data[DOMAIN].get(entry.entry_id)
+    if entry_data and "store" in entry_data:
+        def all_lists_fn():
+            result = []
+            for ed in hass.data.get(DOMAIN, {}).values():
+                if isinstance(ed, dict) and "data" in ed:
+                    result.append(ed["data"])
+            return result
+
+        def data_fn():
+            ed = hass.data[DOMAIN].get(entry.entry_id)
+            return ed["data"] if ed and "data" in ed else None
+
+        manager = ReactivityManager(hass, entry_data["store"], all_lists_fn, data_fn)
+        entry_data["reactivity_manager"] = manager
+        await manager.async_start()
+
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    entry_data = hass.data[DOMAIN].get(entry.entry_id)
+    if entry_data and "reactivity_manager" in entry_data:
+        await entry_data["reactivity_manager"].async_stop()
+
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unload_ok

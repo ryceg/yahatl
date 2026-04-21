@@ -577,13 +577,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_get_queue(call: ServiceCall) -> None:
-        from .queue import get_prioritized_queue, get_current_context_from_hass
+        from .queue import QueueEngine
         from .models import ContextOverride
 
-        # Get context from call data or use HA state
         context = {}
 
-        # Check for stored context override
         context_store_key = "yahatl_context"
         if context_store_key in hass.data.get(DOMAIN, {}):
             stored_context = hass.data[DOMAIN][context_store_key]
@@ -594,7 +592,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     "contexts": stored_context.contexts,
                 }
 
-        # Override with call data if provided
         if ATTR_LOCATION in call.data:
             context["location"] = call.data[ATTR_LOCATION]
         if ATTR_PEOPLE in call.data:
@@ -602,37 +599,26 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if ATTR_CONTEXTS in call.data:
             context["contexts"] = call.data[ATTR_CONTEXTS]
 
-        # If no manual context, get from HA
-        if not context:
-            context = get_current_context_from_hass(hass)
-
-        # Add time constraint from current time
-        from .queue import _get_time_constraint
-        if "time_constraint" not in context:
-            context["time_constraint"] = _get_time_constraint()
-
-        # Get available time
         available_time = call.data.get(ATTR_AVAILABLE_TIME)
-
-        # Get all lists
         all_lists = _get_all_lists(hass)
 
-        # Generate queue
-        queue = await get_prioritized_queue(hass, all_lists, context, available_time)
+        engine = QueueEngine(hass)
+        result = await engine.generate(
+            all_lists,
+            context=context or None,
+            available_time=available_time,
+        )
 
-        # Fire event with queue data
         hass.bus.async_fire(
             f"{DOMAIN}_queue_updated",
             {
-                "queue": queue,
-                "context": context,
-                "count": len(queue),
+                "queue": result.items,
+                "context": result.context,
+                "count": len(result.items),
             }
         )
-
-        # Log for debugging
-        _LOGGER.info("Generated queue with %d items", len(queue))
-        return {"queue": queue}
+        _LOGGER.info("Generated queue with %d items", len(result.items))
+        return {"queue": result.items}
 
     async def handle_update_context(call: ServiceCall) -> None:
         from .models import ContextOverride

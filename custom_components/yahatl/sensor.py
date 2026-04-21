@@ -13,7 +13,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .blockers import BlockerResolver
 from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE, TRAIT_HABIT, TRAIT_NOTE
 from .models import YahtlList
-from .queue import get_prioritized_queue
 from .recurrence import is_streak_at_risk
 
 
@@ -191,11 +190,14 @@ class YahtlQueueSensor(_YahtlBaseSensor):
         await self._refresh_queue()
 
     async def _refresh_queue(self) -> None:
+        from .queue import QueueEngine
         all_lists = []
         for entry_data in self.hass.data.get(DOMAIN, {}).values():
             if isinstance(entry_data, dict) and "data" in entry_data:
                 all_lists.append(entry_data["data"])
-        self._queue_cache = await get_prioritized_queue(self.hass, all_lists)
+        engine = QueueEngine(self.hass)
+        result = await engine.generate(all_lists)
+        self._queue_cache = result.items
         self.async_write_ha_state()
 
 

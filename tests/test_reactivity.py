@@ -200,3 +200,72 @@ class TestHandleStateChange:
         with patch("custom_components.yahatl.reactivity.async_dispatcher_send") as mock_send:
             manager._handle_state_change("climate.living_room", new_state)
         mock_send.assert_called_once()
+
+
+class TestInitialEvaluation:
+    def test_fires_signal_when_condition_matches(self, mock_hass_for_reactivity, mock_store, make_list):
+        """Initial evaluation should fire signal for matching boost triggers."""
+        item = YahtlItem.create(title="Laundry")
+        item.condition_triggers = [
+            ConditionTriggerConfig(entity_id="sensor.washer", operator="eq", value="idle", on_match="boost"),
+        ]
+        yl = make_list([item])
+
+        # Mock state: washer is idle
+        mock_state = MagicMock()
+        mock_state.state = "idle"
+        mock_state.attributes = {}
+        mock_hass_for_reactivity.states.get = MagicMock(return_value=mock_state)
+
+        manager = ReactivityManager.__new__(ReactivityManager)
+        manager._hass = mock_hass_for_reactivity
+        manager._data_fn = lambda: yl
+
+        with patch("custom_components.yahatl.reactivity.async_dispatcher_send") as mock_send:
+            manager._initial_evaluation()
+        mock_send.assert_called_once()
+
+    def test_skips_set_due_on_startup(self, mock_hass_for_reactivity, mock_store, make_list):
+        """Initial evaluation should NOT set due date even for set_due triggers."""
+        item = YahtlItem.create(title="Laundry")
+        item.condition_triggers = [
+            ConditionTriggerConfig(entity_id="sensor.washer", operator="eq", value="idle", on_match="set_due"),
+        ]
+        yl = make_list([item])
+
+        mock_state = MagicMock()
+        mock_state.state = "idle"
+        mock_state.attributes = {}
+        mock_hass_for_reactivity.states.get = MagicMock(return_value=mock_state)
+
+        manager = ReactivityManager.__new__(ReactivityManager)
+        manager._hass = mock_hass_for_reactivity
+        manager._data_fn = lambda: yl
+
+        with patch("custom_components.yahatl.reactivity.async_dispatcher_send"):
+            manager._initial_evaluation()
+
+        # Signal fires (condition matches), but due date is NOT set
+        assert item.due is None
+
+    def test_no_signal_when_nothing_matches(self, mock_hass_for_reactivity, mock_store, make_list):
+        """Initial evaluation should not fire signal if no conditions match."""
+        item = YahtlItem.create(title="Laundry")
+        item.condition_triggers = [
+            ConditionTriggerConfig(entity_id="sensor.washer", operator="eq", value="idle", on_match="boost"),
+        ]
+        yl = make_list([item])
+
+        # Mock state: washer is running (doesn't match)
+        mock_state = MagicMock()
+        mock_state.state = "running"
+        mock_state.attributes = {}
+        mock_hass_for_reactivity.states.get = MagicMock(return_value=mock_state)
+
+        manager = ReactivityManager.__new__(ReactivityManager)
+        manager._hass = mock_hass_for_reactivity
+        manager._data_fn = lambda: yl
+
+        with patch("custom_components.yahatl.reactivity.async_dispatcher_send") as mock_send:
+            manager._initial_evaluation()
+        mock_send.assert_not_called()

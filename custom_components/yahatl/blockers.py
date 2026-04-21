@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-    from .models import YahtlItem, YahtlList
+
+from .models import BlockerConfig, YahtlItem, YahtlList
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,22 @@ class BlockResult:
 
     def __bool__(self) -> bool:
         return self.blocked
+
+
+class BlockerResolver:
+    """Single entry point for all blocker resolution."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant | None,
+        all_lists: list[YahtlList],
+    ) -> None:
+        self._hass = hass
+        self._all_lists = all_lists
+        self._uid_index: dict[str, YahtlItem] = {}
+        for yl in all_lists:
+            for item in yl.items:
+                self._uid_index[item.uid] = item
 
 
 _LOGGER = logging.getLogger(__name__)

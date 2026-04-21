@@ -2,12 +2,25 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from .models import YahtlItem, YahtlList
+
+
+@dataclass(frozen=True)
+class BlockResult:
+    """Immutable result of a blocker check."""
+
+    blocked: bool
+    reasons: list[str]
+
+    def __bool__(self) -> bool:
+        return self.blocked
+
 
 _LOGGER = logging.getLogger(__name__)
 

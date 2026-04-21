@@ -67,6 +67,64 @@ class BlockerResolver:
             all_incomplete = len(incomplete) == len(blockers.items)
             return all_incomplete, incomplete if all_incomplete else []
 
+    def resolve(self, item: YahtlItem) -> BlockResult:
+        """Full resolution: deferral + time windows + item deps + sensor states. Sync."""
+        if item.deferred_until and datetime.now() < item.deferred_until:
+            return BlockResult(
+                blocked=True,
+                reasons=[f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"],
+            )
+        time_blocked, time_reasons = is_time_blocked(item)
+        if time_blocked:
+            return BlockResult(blocked=True, reasons=time_reasons)
+        if not item.blockers:
+            return BlockResult(blocked=False, reasons=[])
+
+        blockers = item.blockers
+        reasons: list[str] = []
+
+        item_category_blocks = False
+        if blockers.items:
+            item_category_blocks, item_reasons = self._check_item_blockers(blockers)
+            reasons.extend(item_reasons)
+
+        sensor_category_blocks = False
+        if blockers.sensors and self._hass is not None:
+            sensor_category_blocks, sensor_reasons = self._check_sensor_blockers(blockers)
+            reasons.extend(sensor_reasons)
+
+        has_items = bool(blockers.items)
+        has_sensors = bool(blockers.sensors) and self._hass is not None
+
+        if blockers.mode == "ALL":
+            if has_items and has_sensors:
+                is_blocked = item_category_blocks and sensor_category_blocks
+            elif has_items:
+                is_blocked = item_category_blocks
+            elif has_sensors:
+                is_blocked = sensor_category_blocks
+            else:
+                is_blocked = False
+        else:  # ANY
+            is_blocked = item_category_blocks or sensor_category_blocks
+
+        if not is_blocked:
+            reasons = []
+        return BlockResult(blocked=is_blocked, reasons=reasons)
+
+    def _check_sensor_blockers(self, blockers: BlockerConfig) -> tuple[bool, list[str]]:
+        """Check sensor state blockers via hass.states.get()."""
+        sensors_on: list[str] = []
+        for sensor_id in blockers.sensors:
+            state = self._hass.states.get(sensor_id)
+            if state and state.state == "on":
+                sensors_on.append(f"Sensor {sensor_id} is on")
+        if blockers.sensor_mode == "ANY":
+            return bool(sensors_on), sensors_on
+        else:  # ALL
+            all_on = len(sensors_on) == len(blockers.sensors)
+            return all_on, sensors_on if all_on else []
+
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -120,3 +120,76 @@ class TestResolveSyncItemDeps:
         resolver = BlockerResolver(None, [yl])
         result = resolver.resolve_sync(item)
         assert result.blocked is False
+
+
+class TestResolveFullSensors:
+    def test_sensor_on_blocks(self, mock_hass, mock_sensor_state):
+        mock_hass.states.get = MagicMock(
+            return_value=mock_sensor_state("binary_sensor.rain", "on")
+        )
+        item = YahtlItem.create(title="Outdoor")
+        item.blockers = BlockerConfig(mode="ANY", sensors=["binary_sensor.rain"], sensor_mode="ANY")
+        resolver = BlockerResolver(mock_hass, [])
+        result = resolver.resolve(item)
+        assert result.blocked is True
+
+    def test_sensor_off_does_not_block(self, mock_hass, mock_sensor_state):
+        mock_hass.states.get = MagicMock(
+            return_value=mock_sensor_state("binary_sensor.rain", "off")
+        )
+        item = YahtlItem.create(title="Outdoor")
+        item.blockers = BlockerConfig(mode="ANY", sensors=["binary_sensor.rain"], sensor_mode="ANY")
+        resolver = BlockerResolver(mock_hass, [])
+        result = resolver.resolve(item)
+        assert result.blocked is False
+
+    def test_no_hass_skips_sensors(self):
+        item = YahtlItem.create(title="Outdoor")
+        item.blockers = BlockerConfig(mode="ANY", sensors=["binary_sensor.rain"], sensor_mode="ANY")
+        resolver = BlockerResolver(None, [])
+        result = resolver.resolve(item)
+        assert result.blocked is False
+
+
+class TestResolveModeCombinations:
+    def test_all_mode_both_block(self, mock_hass, mock_sensor_state):
+        blocker_item = YahtlItem.create(title="Dep")
+        blocker_item.status = "pending"
+        mock_hass.states.get = MagicMock(return_value=mock_sensor_state("binary_sensor.x", "on"))
+        item = YahtlItem.create(title="Target")
+        item.blockers = BlockerConfig(
+            mode="ALL", items=[blocker_item.uid], item_mode="ANY",
+            sensors=["binary_sensor.x"], sensor_mode="ANY",
+        )
+        yl = YahtlList(list_id="l", name="L", items=[blocker_item, item])
+        resolver = BlockerResolver(mock_hass, [yl])
+        result = resolver.resolve(item)
+        assert result.blocked is True
+
+    def test_all_mode_only_items_block(self, mock_hass, mock_sensor_state):
+        blocker_item = YahtlItem.create(title="Dep")
+        blocker_item.status = "pending"
+        mock_hass.states.get = MagicMock(return_value=mock_sensor_state("binary_sensor.x", "off"))
+        item = YahtlItem.create(title="Target")
+        item.blockers = BlockerConfig(
+            mode="ALL", items=[blocker_item.uid], item_mode="ANY",
+            sensors=["binary_sensor.x"], sensor_mode="ANY",
+        )
+        yl = YahtlList(list_id="l", name="L", items=[blocker_item, item])
+        resolver = BlockerResolver(mock_hass, [yl])
+        result = resolver.resolve(item)
+        assert result.blocked is False
+
+    def test_any_mode_items_alone_block(self, mock_hass, mock_sensor_state):
+        blocker_item = YahtlItem.create(title="Dep")
+        blocker_item.status = "pending"
+        mock_hass.states.get = MagicMock(return_value=mock_sensor_state("binary_sensor.x", "off"))
+        item = YahtlItem.create(title="Target")
+        item.blockers = BlockerConfig(
+            mode="ANY", items=[blocker_item.uid], item_mode="ANY",
+            sensors=["binary_sensor.x"], sensor_mode="ANY",
+        )
+        yl = YahtlList(list_id="l", name="L", items=[blocker_item, item])
+        resolver = BlockerResolver(mock_hass, [yl])
+        result = resolver.resolve(item)
+        assert result.blocked is True

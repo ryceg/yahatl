@@ -117,9 +117,13 @@ views:
               margin-top: 8px;
             }
 
-      # Queue Items List
-      # This will be populated dynamically by the yahatl.get_queue service
-      # For now, we'll show the todo entity directly
+      # Prioritized Queue Card
+      - type: custom:yahatl-queue-card
+        entity: sensor.my_list_queue
+        title: "What should I do next?"
+        max_items: 5
+
+      # Full Todo List
       - type: todo-list
         entity: todo.yahatl_my_list
         title: Current Tasks

@@ -38,6 +38,35 @@ class BlockerResolver:
             for item in yl.items:
                 self._uid_index[item.uid] = item
 
+    def resolve_sync(self, item: YahtlItem) -> BlockResult:
+        """Sync-safe subset: deferral + time windows + item dependencies only."""
+        if item.deferred_until and datetime.now() < item.deferred_until:
+            return BlockResult(
+                blocked=True,
+                reasons=[f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"],
+            )
+        time_blocked, time_reasons = is_time_blocked(item)
+        if time_blocked:
+            return BlockResult(blocked=True, reasons=time_reasons)
+        if item.blockers and item.blockers.items:
+            item_blocked, item_reasons = self._check_item_blockers(item.blockers)
+            if item_blocked:
+                return BlockResult(blocked=True, reasons=item_reasons)
+        return BlockResult(blocked=False, reasons=[])
+
+    def _check_item_blockers(self, blockers: BlockerConfig) -> tuple[bool, list[str]]:
+        """Check item dependency blockers using UID index."""
+        incomplete = []
+        for uid in blockers.items:
+            dep = self._uid_index.get(uid)
+            if dep and dep.status != "completed":
+                incomplete.append(f"Item '{dep.title}' not completed")
+        if blockers.item_mode == "ANY":
+            return bool(incomplete), incomplete
+        else:  # ALL
+            all_incomplete = len(incomplete) == len(blockers.items)
+            return all_incomplete, incomplete if all_incomplete else []
+
 
 _LOGGER = logging.getLogger(__name__)
 

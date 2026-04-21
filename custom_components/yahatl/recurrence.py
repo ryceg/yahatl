@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def _unit_to_days(count: int, unit: str) -> int:
+    multipliers = {"days": 1, "weeks": 7, "months": 30, "years": 365}
+    return count * multipliers.get(unit, 1)
+
+
 def calculate_next_due(item: YahtlItem, completion_time: datetime | None = None) -> datetime | None:
     """Calculate the next due date based on recurrence configuration.
 
@@ -45,7 +50,6 @@ def calculate_next_due(item: YahtlItem, completion_time: datetime | None = None)
 
 
 def _calculate_calendar_next(recurrence: RecurrenceConfig, from_time: datetime) -> datetime | None:
-    """Calculate next occurrence for calendar-based recurrence."""
     if not recurrence.calendar_pattern:
         return None
 
@@ -69,21 +73,10 @@ def _calculate_calendar_next(recurrence: RecurrenceConfig, from_time: datetime) 
 
 
 def _calculate_elapsed_next(recurrence: RecurrenceConfig, from_time: datetime) -> datetime:
-    """Calculate next occurrence for elapsed-based recurrence."""
     interval = recurrence.elapsed_interval or 1
     unit = recurrence.elapsed_unit or "days"
 
-    if unit == "days":
-        return from_time + timedelta(days=interval)
-    elif unit == "weeks":
-        return from_time + timedelta(weeks=interval)
-    elif unit == "months":
-        # Approximate: 30 days per month
-        return from_time + timedelta(days=interval * 30)
-    elif unit == "years":
-        return from_time + timedelta(days=interval * 365)
-
-    return from_time + timedelta(days=interval)
+    return from_time + timedelta(days=_unit_to_days(interval, unit))
 
 
 def calculate_streak(item: YahtlItem) -> int:
@@ -126,7 +119,6 @@ def calculate_streak(item: YahtlItem) -> int:
 
 
 def _calculate_calendar_streak(recurrence: RecurrenceConfig, history: list, now: datetime) -> int:
-    """Calculate streak for calendar-based recurrence."""
     if not recurrence.calendar_pattern:
         return 0
 
@@ -160,24 +152,13 @@ def _calculate_calendar_streak(recurrence: RecurrenceConfig, history: list, now:
 
 
 def _calculate_elapsed_streak(recurrence: RecurrenceConfig, history: list) -> int:
-    """Calculate streak for elapsed-based recurrence."""
     if len(history) < 2:
         return len(history)
 
     interval = recurrence.elapsed_interval or 1
     unit = recurrence.elapsed_unit or "days"
 
-    # Convert to days for comparison
-    if unit == "days":
-        interval_days = interval
-    elif unit == "weeks":
-        interval_days = interval * 7
-    elif unit == "months":
-        interval_days = interval * 30
-    elif unit == "years":
-        interval_days = interval * 365
-    else:
-        interval_days = interval
+    interval_days = _unit_to_days(interval, unit)
 
     streak = 1  # Start with most recent completion
 
@@ -200,20 +181,11 @@ def _calculate_elapsed_streak(recurrence: RecurrenceConfig, history: list) -> in
 
 
 def _calculate_frequency_streak(recurrence: RecurrenceConfig, history: list, now: datetime) -> int:
-    """Calculate streak for frequency-based goals."""
     target_count = recurrence.frequency_count or 1
     period = recurrence.frequency_period or 30
     unit = recurrence.frequency_unit or "days"
 
-    # Convert period to days
-    if unit == "days":
-        period_days = period
-    elif unit == "weeks":
-        period_days = period * 7
-    elif unit == "months":
-        period_days = period * 30
-    else:
-        period_days = period
+    period_days = _unit_to_days(period, unit)
 
     streak = 0
     period_end = now
@@ -277,16 +249,7 @@ def is_streak_at_risk(item: YahtlItem) -> bool:
         interval = recurrence.elapsed_interval or 1
         unit = recurrence.elapsed_unit or "days"
 
-        if unit == "days":
-            threshold_days = interval
-        elif unit == "weeks":
-            threshold_days = interval * 7
-        elif unit == "months":
-            threshold_days = interval * 30
-        elif unit == "years":
-            threshold_days = interval * 365
-        else:
-            threshold_days = interval
+        threshold_days = _unit_to_days(interval, unit)
 
         days_since = (now - item.last_completed).days
         # At risk if we're within 1 day of the deadline
@@ -309,15 +272,7 @@ def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
     period = recurrence.frequency_period or 30
     unit = recurrence.frequency_unit or "days"
 
-    # Convert period to days
-    if unit == "days":
-        period_days = period
-    elif unit == "weeks":
-        period_days = period * 7
-    elif unit == "months":
-        period_days = period * 30
-    else:
-        period_days = period
+    period_days = _unit_to_days(period, unit)
 
     now = datetime.now()
     period_start = now - timedelta(days=period_days)

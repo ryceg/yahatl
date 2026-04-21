@@ -12,11 +12,20 @@ from custom_components.yahatl.models import (
     YahtlItem,
 )
 from custom_components.yahatl.recurrence import (
+    _unit_to_days,
     calculate_next_due,
     calculate_streak,
     get_frequency_progress,
     is_streak_at_risk,
 )
+
+
+def test_unit_to_days():
+    assert _unit_to_days(1, "days") == 1
+    assert _unit_to_days(2, "weeks") == 14
+    assert _unit_to_days(3, "months") == 90
+    assert _unit_to_days(1, "years") == 365
+    assert _unit_to_days(5, "unknown_unit") == 5
 
 
 class TestCalculateNextDue:

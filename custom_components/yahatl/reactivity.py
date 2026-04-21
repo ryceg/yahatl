@@ -33,7 +33,7 @@ class ReactivityManager:
         hass: HomeAssistant,
         store: Any,
         all_lists_fn: Callable[[], list[YahtlList]],
-        data_fn: Callable[[], YahtlList | None] | None = None,
+        data_fn: Callable[[], YahtlList | None],
     ) -> None:
         self._hass = hass
         self._store = store
@@ -125,14 +125,15 @@ class ReactivityManager:
     @callback
     def _handle_state_change(self, entity_id: str, new_state: Any) -> None:
         """Process a state change event for a tracked entity."""
-        # Use this entry's list for mutations, all lists for entity tracking
-        own_data = self._data_fn() if self._data_fn else None
-        items_to_check = own_data.items if own_data else []
+        # Use this entry's list for mutations
+        own_data = self._data_fn()
+        if not own_data:
+            return
 
         signal_needed = False
         persist_needed = False
 
-        for item in items_to_check:
+        for item in own_data.items:
             for trigger in item.condition_triggers:
                 if trigger.entity_id != entity_id:
                     continue
@@ -171,7 +172,7 @@ class ReactivityManager:
         if persist_needed:
             # Need to save — but we're in a @callback, so create a task
             async def _persist():
-                data = self._data_fn() if self._data_fn else None
+                data = self._data_fn()
                 if data:
                     await self._store.async_save(data)
 
@@ -183,25 +184,24 @@ class ReactivityManager:
     @callback
     def _initial_evaluation(self) -> None:
         """Evaluate all triggers against current state on startup. Skip set_due."""
-        all_lists = self._all_lists_fn()
+        own_data = self._data_fn()
+        if not own_data:
+            return
         signal_needed = False
 
-        for yl in all_lists:
-            for item in yl.items:
-                for trigger in item.condition_triggers:
-                    state = self._hass.states.get(trigger.entity_id)
-                    if state is None:
-                        continue
+        for item in own_data.items:
+            for trigger in item.condition_triggers:
+                state = self._hass.states.get(trigger.entity_id)
+                if state is None:
+                    continue
 
-                    if trigger.attribute:
-                        actual = str(state.attributes.get(trigger.attribute, ""))
-                    else:
-                        actual = state.state
+                if trigger.attribute:
+                    actual = str(state.attributes.get(trigger.attribute, ""))
+                else:
+                    actual = state.state
 
-                    if evaluate_condition(actual, trigger.operator, trigger.value):
-                        signal_needed = True
-                        break
-                if signal_needed:
+                if evaluate_condition(actual, trigger.operator, trigger.value):
+                    signal_needed = True
                     break
             if signal_needed:
                 break

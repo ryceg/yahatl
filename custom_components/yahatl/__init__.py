@@ -20,11 +20,31 @@ PLATFORMS: list[Platform] = [Platform.TODO, Platform.SENSOR]
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     await async_setup_services(hass)
-    hass.http.register_static_path(
-        "/yahatl/yahatl-queue-card.js",
-        hass.config.path("custom_components/yahatl/www/yahatl-queue-card.js"),
-        cache_headers=False,
-    )
+    from .websocket_api import async_register_websocket_commands
+    async_register_websocket_commands(hass)
+
+    # Register all frontend card resources and auto-register as Lovelace resources
+    from .const import VERSION
+    cards = [
+        "yahatl-item-card.js",
+        "yahatl-queue-card.js",
+        "yahatl-item-editor.js",
+    ]
+    for card in cards:
+        url = f"/yahatl/{card}"
+        hass.http.register_static_path(
+            url,
+            hass.config.path(f"custom_components/yahatl/www/{card}"),
+            cache_headers=False,
+        )
+        # Auto-register as Lovelace resource (storage mode only)
+        resource_url = f"{url}?v={VERSION}"
+        await hass.components.lovelace.async_create_resource(
+            resource_url, "module"
+        ) if hasattr(hass.components, "lovelace") and hasattr(
+            hass.components.lovelace, "async_create_resource"
+        ) else None
+
     return True
 
 

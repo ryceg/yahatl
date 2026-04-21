@@ -3,12 +3,15 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from custom_components.yahatl.models import BlockerConfig, YahtlItem, YahtlList
+from custom_components.yahatl.models import BlockerConfig, RecurrenceConfig, YahtlItem, YahtlList
 from custom_components.yahatl.sensor import (
     YahtlBlockedCountSensor,
     YahtlDueTodaySensor,
+    YahtlInboxCountSensor,
     YahtlNextTaskSensor,
+    YahtlNotesCountSensor,
     YahtlOverdueSensor,
+    YahtlStreakRiskSensor,
 )
 
 
@@ -146,5 +149,74 @@ class TestBlockedCountSensor:
     def test_zero_when_no_blockers(self):
         data = _make_list(_actionable_item("Free"))
         sensor = YahtlBlockedCountSensor.__new__(YahtlBlockedCountSensor)
+        sensor._data = data
+        assert sensor.native_value == 0
+
+
+class TestInboxCountSensor:
+    def test_counts_needs_detail_items(self):
+        items = [
+            _actionable_item("Needs detail", needs_detail=True),
+            _actionable_item("Needs detail 2", needs_detail=True),
+            _actionable_item("Fleshed out", needs_detail=False),
+        ]
+        data = _make_list(*items)
+        sensor = YahtlInboxCountSensor.__new__(YahtlInboxCountSensor)
+        sensor._data = data
+        assert sensor.native_value == 2
+
+    def test_zero_when_no_inbox_items(self):
+        data = _make_list(_actionable_item("Normal"))
+        sensor = YahtlInboxCountSensor.__new__(YahtlInboxCountSensor)
+        sensor._data = data
+        assert sensor.native_value == 0
+
+    def test_excludes_completed_items(self):
+        item = _actionable_item("Done", needs_detail=True, status="completed")
+        data = _make_list(item)
+        sensor = YahtlInboxCountSensor.__new__(YahtlInboxCountSensor)
+        sensor._data = data
+        assert sensor.native_value == 0
+
+
+class TestNotesCountSensor:
+    def test_counts_note_trait_items(self):
+        note1 = YahtlItem.create(title="Note 1")
+        note1.traits = ["note"]
+        note2 = YahtlItem.create(title="Note 2")
+        note2.traits = ["note"]
+        task = _actionable_item("Task")
+        data = _make_list(note1, note2, task)
+        sensor = YahtlNotesCountSensor.__new__(YahtlNotesCountSensor)
+        sensor._data = data
+        assert sensor.native_value == 2
+
+    def test_zero_when_no_notes(self):
+        data = _make_list(_actionable_item("Task"))
+        sensor = YahtlNotesCountSensor.__new__(YahtlNotesCountSensor)
+        sensor._data = data
+        assert sensor.native_value == 0
+
+
+class TestStreakRiskSensor:
+    def test_counts_at_risk_habits(self):
+        habit = YahtlItem.create(title="Daily Run")
+        habit.traits = ["actionable", "habit"]
+        habit.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        habit.last_completed = datetime.now() - timedelta(days=1, hours=1)
+
+        safe_habit = YahtlItem.create(title="Safe Habit")
+        safe_habit.traits = ["actionable", "habit"]
+        safe_habit.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        safe_habit.last_completed = datetime.now() - timedelta(hours=6)
+
+        data = _make_list(habit, safe_habit)
+        sensor = YahtlStreakRiskSensor.__new__(YahtlStreakRiskSensor)
+        sensor._data = data
+        assert sensor.native_value == 1
+
+    def test_zero_when_no_habits(self):
+        data = _make_list(_actionable_item("Task"))
+        sensor = YahtlStreakRiskSensor.__new__(YahtlStreakRiskSensor)
         sensor._data = data
         assert sensor.native_value == 0

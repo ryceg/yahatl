@@ -337,6 +337,7 @@ class YahatLItemCard extends HTMLElement {
       html += `
         <div class="actions">
           <button class="action-button secondary" data-action="edit">Edit</button>
+          <button class="action-button secondary" data-action="defer">Defer</button>
           <button class="action-button secondary" data-action="snooze">Snooze</button>
           <button class="action-button" data-action="complete">Complete</button>
         </div>
@@ -400,6 +401,17 @@ class YahatLItemCard extends HTMLElement {
         this.showEditDialog();
         break;
 
+      case 'defer':
+        // Defer for 1 day
+        const deferDate = new Date();
+        deferDate.setDate(deferDate.getDate() + 1);
+        this._hass.callService('yahatl', 'defer_item', {
+          entity_id: entity,
+          item_id: item.uid,
+          deferred_until: deferDate.toISOString(),
+        });
+        break;
+
       case 'snooze':
         // Snooze for 1 day
         const newDue = new Date();
@@ -424,9 +436,15 @@ class YahatLItemCard extends HTMLElement {
   }
 
   showEditDialog() {
-    // This would open a custom dialog for editing
-    // For now, show more info
-    this.showMoreInfo();
+    this.dispatchEvent(new CustomEvent('yahatl-open-editor', {
+      detail: {
+        entityId: this.config.entity,
+        itemId: (this.config.item || {}).uid,
+        hass: this._hass,
+      },
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   getRecurrenceLabel(recurrence) {

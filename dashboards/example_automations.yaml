@@ -1,0 +1,143 @@
+# YAHATL Example Automations
+# Copy and adapt these for your own setup.
+# Replace "my_list" with your actual list name.
+
+# ============================================================
+# MORNING BRIEFING - SHOW QUEUE FOR THE DAY
+# ============================================================
+- id: yahatl_morning_briefing
+  alias: YAHATL - Morning Briefing
+  description: Send a notification with today's queue
+  trigger:
+    - platform: time
+      at: "08:00:00"
+  condition:
+    - condition: time
+      weekday: [mon, tue, wed, thu, fri]
+  action:
+    - service: yahatl.get_queue
+      data:
+        entity_id: todo.yahatl_my_list
+      response_variable: queue_data
+    - service: notify.mobile_app
+      data:
+        title: "Good morning! Here's your queue"
+        message: |
+          You have {{ queue_data.queue | length }} tasks in your queue:
+          {% for item in queue_data.queue[:5] %}
+          - {{ item.item.title }}
+          {% endfor %}
+          {% if queue_data.queue | length > 5 %}
+          ... and {{ queue_data.queue | length - 5 }} more
+          {% endif %}
+        data:
+          clickAction: /lovelace/yahatl
+
+# ============================================================
+# OVERDUE REMINDER
+# ============================================================
+- id: yahatl_overdue_reminder
+  alias: YAHATL - Overdue Reminder
+  description: Remind about overdue items
+  trigger:
+    - platform: time_pattern
+      hours: "/3"
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.yahatl_my_list_overdue
+      above: 0
+  action:
+    - service: persistent_notification.create
+      data:
+        title: Overdue Tasks
+        message: |
+          You have {{ states('sensor.yahatl_my_list_overdue') }} overdue tasks.
+          Check your YAHATL dashboard!
+        notification_id: yahatl_overdue
+
+# ============================================================
+# INBOX REMINDER - TRIAGE NEEDED
+# ============================================================
+- id: yahatl_inbox_reminder
+  alias: YAHATL - Inbox Reminder
+  description: Remind to triage inbox items
+  trigger:
+    - platform: time
+      at: "20:00:00"
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.yahatl_my_list_inbox_count
+      above: 5
+  action:
+    - service: notify.mobile_app
+      data:
+        title: YAHATL Inbox
+        message: |
+          You have {{ states('sensor.yahatl_my_list_inbox_count') }} items needing triage.
+          Time to do some planning!
+        data:
+          clickAction: /lovelace/yahatl
+
+# ============================================================
+# HABIT STREAK AT RISK
+# ============================================================
+- id: yahatl_streak_at_risk
+  alias: YAHATL - Habit Streak At Risk
+  description: Alert when habit streaks are at risk
+  trigger:
+    - platform: time
+      at: "18:00:00"
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.yahatl_my_list_streak_risk
+      above: 0
+  action:
+    - service: notify.mobile_app
+      data:
+        title: Habit Streak Alert!
+        message: |
+          {{ states('sensor.yahatl_my_list_streak_risk') }} of your habits are at risk of breaking their streak!
+        data:
+          clickAction: /lovelace/yahatl
+          tag: yahatl_streak_risk
+          importance: high
+
+# ============================================================
+# COMPLETION CELEBRATION
+# ============================================================
+- id: yahatl_completion_celebration
+  alias: YAHATL - Completion Celebration
+  description: Celebrate completing items
+  trigger:
+    - platform: event
+      event_type: yahatl_item_completed
+  action:
+    - service: light.turn_on
+      data:
+        entity_id: light.living_room
+        flash: short
+  mode: queued
+
+# ============================================================
+# WEEKLY REVIEW REMINDER
+# ============================================================
+- id: yahatl_weekly_review
+  alias: YAHATL - Weekly Review Reminder
+  description: Remind to do weekly review
+  trigger:
+    - platform: time
+      at: "10:00:00"
+  condition:
+    - condition: time
+      weekday: [sun]
+  action:
+    - service: notify.mobile_app
+      data:
+        title: Weekly Review
+        message: |
+          Time for your weekly YAHATL review!
+          - Review completed items
+          - Update recurring tasks
+          - Plan for the week ahead
+        data:
+          clickAction: /lovelace/yahatl

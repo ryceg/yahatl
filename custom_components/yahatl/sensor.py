@@ -11,7 +11,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .blockers import is_item_blocked
-from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE
+from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE, TRAIT_HABIT, TRAIT_NOTE
 from .models import YahtlList
 from .queue import get_prioritized_queue
 from .recurrence import is_streak_at_risk
@@ -36,6 +36,9 @@ async def async_setup_entry(
         YahtlNextTaskSensor(hass, data, store, storage_key),
         YahtlBlockedCountSensor(hass, data, store, storage_key),
         YahtlQueueSensor(hass, data, store, storage_key),
+        YahtlInboxCountSensor(hass, data, store, storage_key),
+        YahtlNotesCountSensor(hass, data, store, storage_key),
+        YahtlStreakRiskSensor(hass, data, store, storage_key),
     ])
 
 
@@ -198,3 +201,51 @@ class YahtlQueueSensor(_YahtlBaseSensor):
                 all_lists.append(entry_data["data"])
         self._queue_cache = await get_prioritized_queue(self.hass, all_lists)
         self.async_write_ha_state()
+
+
+class YahtlInboxCountSensor(_YahtlBaseSensor):
+    """Count of items flagged as needing more detail."""
+
+    _attr_icon = "mdi:inbox"
+
+    def __init__(self, hass, data, store, storage_key):
+        super().__init__(hass, data, store, storage_key, "inbox_count")
+        self._attr_name = f"{data.name} Inbox"
+
+    @property
+    def native_value(self) -> int:
+        return sum(
+            1 for i in self._actionable_items()
+            if i.needs_detail
+        )
+
+
+class YahtlNotesCountSensor(_YahtlBaseSensor):
+    """Count of items with the note trait."""
+
+    _attr_icon = "mdi:note-multiple"
+
+    def __init__(self, hass, data, store, storage_key):
+        super().__init__(hass, data, store, storage_key, "notes_count")
+        self._attr_name = f"{data.name} Notes"
+
+    @property
+    def native_value(self) -> int:
+        return sum(1 for i in self._data.items if TRAIT_NOTE in i.traits)
+
+
+class YahtlStreakRiskSensor(_YahtlBaseSensor):
+    """Count of habits with streaks at risk of breaking."""
+
+    _attr_icon = "mdi:fire-alert"
+
+    def __init__(self, hass, data, store, storage_key):
+        super().__init__(hass, data, store, storage_key, "streak_risk")
+        self._attr_name = f"{data.name} Streak Risk"
+
+    @property
+    def native_value(self) -> int:
+        return sum(
+            1 for i in self._data.items
+            if TRAIT_HABIT in i.traits and is_streak_at_risk(i)
+        )

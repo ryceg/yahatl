@@ -2,60 +2,6 @@
 
 A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 
-## Features
-
-### Phase 1 - Core Integration
-
-- **Extended todo items** with traits (actionable, habit, chore, reminder, note)
-- **Custom tags** for organization
-- **Completion history tracking** - know who completed what and when
-- **Status tracking** - pending, in_progress, completed, missed
-- **Time estimates and buffers** for day planning
-- **Needs detail flag** for quick capture and later triage
-- **List sharing** - private or shared lists
-
-### Phase 2 - Recurrence & Blocking
-
-- **Calendar-based recurrence** - daily, weekly, monthly, yearly patterns
-- **Elapsed-based recurrence** - repeat X time after last completion
-- **Frequency goals** - complete N times per period with thresholds
-- **Task blockers** - block items until other tasks are completed
-- **Sensor blockers** - block items while sensors are active
-- **Requirements** - location, people, time, context, and sensor requirements
-- **Streak tracking** - maintain habit streaks with automatic calculation
-
-### Phase 3 - Queue & Context
-
-- **Priority queue algorithm** - dynamic task prioritization based on context
-- **Scoring system** - weights for overdue, due dates, streaks, frequency goals, and explicit priority
-- **Context-aware filtering** - tasks appear based on location, people, time, and available contexts
-- **Manual context override** - set current location, people present, and available contexts
-- **Automatic context detection** - infers context from Home Assistant state
-- **Time-based filtering** - filter tasks by available time
-
-### Phase 4 - Dashboard
-
-- **Lovelace dashboard** - Beautiful UI with Mushroom cards
-- **Planning tab** - Priority queue, context status, quick stats, pomodoro timer
-- **Capture tab** - Quick capture input, inbox management, triage workflow
-- **Notes tab** - Search, tag filtering, notes list
-- **Custom card** - Rich item display with traits, tags, streaks, blockers
-- **Template sensors** - Real-time statistics (queue count, overdue, habits at risk)
-- **Automations** - Auto-refresh queue, notifications, location-based updates
-- **Scripts** - Common operations (quick add, triage, snooze, pomodoro)
-
-See [dashboards/SETUP_GUIDE.md](dashboards/SETUP_GUIDE.md) for installation and configuration.
-
-### Phase 5 - Real-Time Updates & Advanced Blocking (NEW!)
-
-- **Dispatcher-based signaling** - Instant intra-integration updates using HA's dispatcher (faster than bus events)
-- **Sensor entities** - Overdue count, due today, next task, blocked count, and queue sensors update in real time
-- **Time blockers** - Suppress tasks during time windows (e.g., no chores 10pm-6am) or allow only during windows (e.g., morning routine 6-9am). Supports overnight windows and day-of-week filtering
-- **Item deferral** - Snooze tasks until a future date with `defer_item` service. Deferred items are hidden from the queue
-- **Condition triggers** - React to HA entity state changes (e.g., washing machine finishes → "hang out washing" surfaces). Supports `boost` (score increase) and `set_due` (auto-set due date) modes
-- **Active state listening** - `ReactivityManager` subscribes to HA entity state changes in real time using `async_track_state_change_event` for instant queue updates
-- **Periodic time blocker refresh** - 60-second timer ensures time-based blocking boundaries are respected
-
 ## Installation
 
 ### HACS (Recommended)
@@ -174,10 +120,10 @@ service: yahatl.set_list_visibility
 data:
   entity_id: todo.yahatl_my_list
   visibility: shared
-  shared_with: []  # Empty means all users
+  shared_with: [] # Empty means all users
 ```
 
-### yahatl.set_recurrence (Phase 2)
+### yahatl.set_recurrence
 
 Configure recurrence rules for an item.
 
@@ -215,7 +161,7 @@ data:
       priority: high
 ```
 
-### yahatl.set_blockers (Phase 2)
+### yahatl.set_blockers
 
 Configure blockers for an item.
 
@@ -224,14 +170,14 @@ service: yahatl.set_blockers
 data:
   entity_id: todo.yahatl_my_list
   item_id: "clean_oven"
-  mode: ANY  # Block if ANY blocker is active
+  mode: ANY # Block if ANY blocker is active
   items:
-    - "defrost_oven"  # UID of blocking task
+    - "defrost_oven" # UID of blocking task
   sensors:
     - binary_sensor.too_hot_for_oven_cleaning
 ```
 
-### yahatl.set_requirements (Phase 2)
+### yahatl.set_requirements
 
 Configure requirements for an item.
 
@@ -240,7 +186,7 @@ service: yahatl.set_requirements
 data:
   entity_id: todo.yahatl_my_list
   item_id: "mow_lawn"
-  mode: ALL  # All requirements must be met
+  mode: ALL # All requirements must be met
   location:
     - home
   time_constraints:
@@ -249,7 +195,7 @@ data:
     - binary_sensor.good_weather
 ```
 
-### yahatl.get_queue (Phase 3)
+### yahatl.get_queue
 
 Generate a prioritized task queue based on current context.
 
@@ -271,7 +217,7 @@ data:
 # Queue is returned via yahatl_queue_updated event
 ```
 
-### yahatl.update_context (Phase 3)
+### yahatl.update_context
 
 Manually update the current context for queue generation.
 
@@ -286,7 +232,7 @@ data:
     - "phone"
 ```
 
-### yahatl.set_time_blockers (Phase 5)
+### yahatl.set_time_blockers
 
 Configure time-based blocking for an item.
 
@@ -313,7 +259,7 @@ data:
       days: [0, 1, 2, 3, 4]  # Mon-Fri
 ```
 
-### yahatl.defer_item (Phase 5)
+### yahatl.defer_item
 
 Defer an item until a future date. Omit `deferred_until` to clear the deferral.
 
@@ -332,7 +278,7 @@ data:
   item_id: "abc-123"
 ```
 
-### yahatl.set_condition_triggers (Phase 5)
+### yahatl.set_condition_triggers
 
 Set condition triggers that react to HA entity state changes.
 
@@ -375,4 +321,3 @@ event_data:
   item_title: "Clean the gutters"
   user_id: "john"
 ```
-

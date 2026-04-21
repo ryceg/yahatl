@@ -216,6 +216,7 @@ class YahtlTodoListEntity(TodoListEntity):
     async def _complete_item(self, item: YahtlItem, user_id: str = "") -> None:
         """Mark an item as completed and record history."""
         item.status = STATUS_COMPLETED
+        item.deferred_until = None
 
         # Add completion record
         record = CompletionRecord(

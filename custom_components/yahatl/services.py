@@ -29,6 +29,7 @@ SERVICE_GET_QUEUE = "get_queue"
 SERVICE_UPDATE_CONTEXT = "update_context"
 SERVICE_SET_CONDITION_TRIGGERS = "set_condition_triggers"
 SERVICE_SET_TIME_BLOCKERS = "set_time_blockers"
+SERVICE_DEFER_ITEM = "defer_item"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
@@ -76,6 +77,7 @@ ATTR_CONDITION_TRIGGERS = "condition_triggers"
 ATTR_AVAILABLE_TIME = "available_time"
 ATTR_CONTEXTS = "contexts"
 ATTR_TIME_BLOCKERS = "time_blockers"
+ATTR_DEFERRED_UNTIL = "deferred_until"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -248,6 +250,15 @@ SERVICE_SET_TIME_BLOCKERS_SCHEMA = vol.Schema(
 )
 
 
+SERVICE_DEFER_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Optional(ATTR_DEFERRED_UNTIL): cv.datetime,
+    }
+)
+
+
 def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | None:
     # Entity ID format: todo.yahatl_{storage_key}
     for entry_id, data in hass.data.get(DOMAIN, {}).items():
@@ -339,6 +350,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         now = datetime.now()
 
         item.status = STATUS_COMPLETED
+        item.deferred_until = None
         item.last_completed = now
 
         record = CompletionRecord(
@@ -675,6 +687,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await store.async_save(list_data)
         async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
 
+    async def handle_defer_item(call: ServiceCall) -> None:
+        list_data, store, item = _resolve_item(hass, call)
+        if item is None:
+            return
+
+        item.deferred_until = call.data.get(ATTR_DEFERRED_UNTIL)
+
+        await store.async_save(list_data)
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
@@ -750,6 +772,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_set_time_blockers,
         schema=SERVICE_SET_TIME_BLOCKERS_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DEFER_ITEM,
+        handle_defer_item,
+        schema=SERVICE_DEFER_ITEM_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -768,3 +796,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CONTEXT)
     hass.services.async_remove(DOMAIN, SERVICE_SET_CONDITION_TRIGGERS)
     hass.services.async_remove(DOMAIN, SERVICE_SET_TIME_BLOCKERS)
+    hass.services.async_remove(DOMAIN, SERVICE_DEFER_ITEM)

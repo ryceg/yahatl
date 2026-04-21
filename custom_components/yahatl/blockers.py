@@ -38,6 +38,10 @@ async def is_item_blocked(
     Returns:
         Tuple of (is_blocked, list of reasons)
     """
+    # Check deferral — checked first, before all other blockers
+    if item.deferred_until and datetime.now() < item.deferred_until:
+        return True, [f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"]
+
     # Check time blockers first (independent of item/sensor blockers)
     time_blocked, time_reasons = is_time_blocked(item)
     if time_blocked:

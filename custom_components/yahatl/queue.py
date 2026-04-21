@@ -48,6 +48,10 @@ async def get_prioritized_queue(
             if available_time and item.time_estimate and item.time_estimate > available_time:
                 continue
 
+            # Skip deferred items
+            if item.deferred_until and datetime.now() < item.deferred_until:
+                continue
+
             candidates.append((item, yahatl_list))
 
     # Filter and score candidates

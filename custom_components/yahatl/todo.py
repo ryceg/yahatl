@@ -230,3 +230,7 @@ class YahtlTodoListEntity(TodoListEntity):
     async def _async_save(self) -> None:
         await self._store.async_save(self._data)
         self.async_write_ha_state()
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_updated",
+            {"entity_id": self.entity_id},
+        )

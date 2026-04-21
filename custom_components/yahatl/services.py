@@ -28,6 +28,7 @@ SERVICE_SET_REQUIREMENTS = "set_requirements"
 SERVICE_GET_QUEUE = "get_queue"
 SERVICE_UPDATE_CONTEXT = "update_context"
 SERVICE_SET_CONDITION_TRIGGERS = "set_condition_triggers"
+SERVICE_SET_TIME_BLOCKERS = "set_time_blockers"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
@@ -74,6 +75,7 @@ ATTR_REQ_SENSORS = "sensors"
 ATTR_CONDITION_TRIGGERS = "condition_triggers"
 ATTR_AVAILABLE_TIME = "available_time"
 ATTR_CONTEXTS = "contexts"
+ATTR_TIME_BLOCKERS = "time_blockers"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -214,6 +216,30 @@ SERVICE_SET_CONDITION_TRIGGERS_SCHEMA = vol.Schema(
                         ),
                         vol.Required("value"): cv.string,
                         vol.Optional("attribute"): cv.string,
+                    }
+                )
+            ],
+        ),
+    }
+)
+
+SERVICE_SET_TIME_BLOCKERS_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Required(ATTR_TIME_BLOCKERS): vol.All(
+            cv.ensure_list,
+            [
+                vol.Schema(
+                    {
+                        vol.Required("start_time"): cv.string,
+                        vol.Required("end_time"): cv.string,
+                        vol.Optional("mode", default="suppress"): vol.In(
+                            ["suppress", "allow"]
+                        ),
+                        vol.Optional("days"): vol.All(
+                            cv.ensure_list, [vol.In([0, 1, 2, 3, 4, 5, 6])]
+                        ),
                     }
                 )
             ],
@@ -636,6 +662,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await store.async_save(list_data)
         async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
 
+    async def handle_set_time_blockers(call: ServiceCall) -> None:
+        list_data, store, item = _resolve_item(hass, call)
+        if item is None:
+            return
+
+        from .models import TimeBlockerConfig
+        item.time_blockers = [
+            TimeBlockerConfig.from_dict(tb) for tb in call.data[ATTR_TIME_BLOCKERS]
+        ]
+
+        await store.async_save(list_data)
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
     )
@@ -705,6 +744,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_set_condition_triggers,
         schema=SERVICE_SET_CONDITION_TRIGGERS_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_TIME_BLOCKERS,
+        handle_set_time_blockers,
+        schema=SERVICE_SET_TIME_BLOCKERS_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -722,3 +767,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_GET_QUEUE)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_CONTEXT)
     hass.services.async_remove(DOMAIN, SERVICE_SET_CONDITION_TRIGGERS)
+    hass.services.async_remove(DOMAIN, SERVICE_SET_TIME_BLOCKERS)

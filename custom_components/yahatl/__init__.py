@@ -20,6 +20,8 @@ PLATFORMS: list[Platform] = [Platform.TODO, Platform.SENSOR]
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     await async_setup_services(hass)
+    from .websocket_api import async_register_websocket_commands
+    async_register_websocket_commands(hass)
     hass.http.register_static_path(
         "/yahatl/yahatl-queue-card.js",
         hass.config.path("custom_components/yahatl/www/yahatl-queue-card.js"),

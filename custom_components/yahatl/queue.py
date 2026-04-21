@@ -32,17 +32,6 @@ class QueueResult:
     generated_at: datetime
 
 
-async def get_prioritized_queue(
-    hass: HomeAssistant,
-    all_lists: list[YahtlList],
-    current_context: dict[str, Any] | None = None,
-    available_time: int | None = None,
-) -> list[dict[str, Any]]:
-    """.. deprecated:: Use QueueEngine.generate() instead."""
-    engine = QueueEngine(hass)
-    result = await engine.generate(all_lists, context=current_context, available_time=available_time)
-    return result.items
-
 
 async def _calculate_score(
     hass: HomeAssistant,

@@ -135,19 +135,6 @@ def _now_time() -> tuple[time, int]:
     return now.time(), now.weekday()
 
 
-async def is_item_blocked(
-    hass: HomeAssistant,
-    item: YahtlItem,
-    all_lists: list[YahtlList] | None = None,
-) -> tuple[bool, list[str]]:
-    """Check if an item is blocked.
-
-    .. deprecated:: Use BlockerResolver.resolve() instead.
-    """
-    resolver = BlockerResolver(hass, all_lists or [])
-    result = resolver.resolve(item)
-    return result.blocked, result.reasons
-
 
 def is_time_blocked(item: YahtlItem) -> tuple[bool, list[str]]:
     """Check if an item is blocked by time-based rules.

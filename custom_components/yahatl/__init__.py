@@ -58,7 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Store will be initialized by todo platform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Start ReactivityManager after platforms are set up
+    # Start ReactivePipeline after platforms are set up
     entry_data = hass.data[DOMAIN].get(entry.entry_id)
     if entry_data and "store" in entry_data:
         def all_lists_fn():

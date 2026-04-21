@@ -12,10 +12,10 @@ from custom_components.yahatl.models import (
     YahtlList,
 )
 from custom_components.yahatl.queue import (
+    QueueEngine,
     _calculate_score,
     _get_time_constraint,
     get_current_context_from_hass,
-    get_prioritized_queue,
 )
 
 
@@ -153,7 +153,8 @@ class TestQueueEdgeCases:
             item = YahtlItem.create(title=f"Task {i}")
             yahatl_list.add_item(item)
 
-        queue = await get_prioritized_queue(mock_hass, [yahatl_list])
+        result = await QueueEngine(mock_hass).generate([yahatl_list])
+        queue = result.items
 
         assert len(queue) == 1000
 
@@ -171,7 +172,8 @@ class TestQueueEdgeCases:
         yahatl_list.add_item(newer)
         yahatl_list.add_item(older)
 
-        queue = await get_prioritized_queue(mock_hass, [yahatl_list])
+        result = await QueueEngine(mock_hass).generate([yahatl_list])
+        queue = result.items
 
         # Older should come first when scores are equal
         assert queue[0]["item"]["title"] == "Older Task"
@@ -190,9 +192,8 @@ class TestQueueEdgeCases:
         yahatl_list.add_item(no_estimate)
         yahatl_list.add_item(with_estimate)
 
-        queue = await get_prioritized_queue(
-            mock_hass, [yahatl_list], available_time=60
-        )
+        result = await QueueEngine(mock_hass).generate([yahatl_list], available_time=60)
+        queue = result.items
 
         # Both should be included (None doesn't exceed limit)
         assert len(queue) == 2
@@ -204,7 +205,8 @@ class TestQueueEdgeCases:
         item = YahtlItem.create(title="Task")
         yahatl_list.add_item(item)
 
-        queue = await get_prioritized_queue(mock_hass, [yahatl_list], context={})
+        result = await QueueEngine(mock_hass).generate([yahatl_list], context={})
+        queue = result.items
 
         assert len(queue) == 1
 
@@ -215,7 +217,8 @@ class TestQueueEdgeCases:
         item = YahtlItem.create(title="Task")
         yahatl_list.add_item(item)
 
-        queue = await get_prioritized_queue(mock_hass, [yahatl_list], context=None)
+        result = await QueueEngine(mock_hass).generate([yahatl_list], context=None)
+        queue = result.items
 
         assert len(queue) == 1
 

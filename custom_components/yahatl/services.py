@@ -135,6 +135,7 @@ SERVICE_UPDATE_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
         vol.Optional(ATTR_BUFFER_BEFORE): cv.positive_int,
         vol.Optional(ATTR_BUFFER_AFTER): cv.positive_int,
+        vol.Optional(ATTR_DEFERRED_UNTIL): vol.Any(cv.datetime, None),
     }
 )
 
@@ -412,6 +413,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.buffer_before = call.data[ATTR_BUFFER_BEFORE]
         if ATTR_BUFFER_AFTER in call.data:
             item.buffer_after = call.data[ATTR_BUFFER_AFTER]
+        if ATTR_DEFERRED_UNTIL in call.data:
+            item.deferred_until = call.data[ATTR_DEFERRED_UNTIL]
 
         await store.async_save(list_data)
         async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)

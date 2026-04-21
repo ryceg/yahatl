@@ -166,6 +166,12 @@ update_item:
           min: 0
           max: 120
           unit_of_measurement: minutes
+    deferred_until:
+      name: Deferred Until
+      description: Defer the item until this date/time. Set to null to clear deferral.
+      required: false
+      selector:
+        datetime:
 
 set_traits:
   name: Set Traits

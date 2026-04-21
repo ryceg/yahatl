@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -9,6 +10,12 @@ if TYPE_CHECKING:
     from .models import YahtlItem, YahtlList
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _now_time() -> tuple[time, int]:
+    """Return (current_time, weekday). Extracted for test patching."""
+    now = datetime.now()
+    return now.time(), now.weekday()
 
 
 async def is_item_blocked(
@@ -31,6 +38,11 @@ async def is_item_blocked(
     Returns:
         Tuple of (is_blocked, list of reasons)
     """
+    # Check time blockers first (independent of item/sensor blockers)
+    time_blocked, time_reasons = is_time_blocked(item)
+    if time_blocked:
+        return True, time_reasons
+
     if not item.blockers:
         return False, []
 
@@ -126,6 +138,47 @@ async def is_item_blocked(
         reasons = []
 
     return is_blocked, reasons
+
+
+def is_time_blocked(item: YahtlItem) -> tuple[bool, list[str]]:
+    """Check if an item is blocked by time-based rules.
+
+    Each TimeBlockerConfig defines a time window and a mode:
+    - suppress: blocked when current time IS inside the window
+    - allow: blocked when current time IS NOT inside the window
+
+    Overnight windows are supported (e.g. 22:00-06:00).
+    If days is set, the blocker only applies on those weekdays (0=Mon, 6=Sun).
+
+    Returns:
+        Tuple of (is_blocked, list of reasons)
+    """
+    if not item.time_blockers:
+        return False, []
+
+    now_t, weekday = _now_time()
+
+    for tb in item.time_blockers:
+        # Skip if day doesn't match
+        if tb.days is not None and weekday not in tb.days:
+            continue
+
+        start = time.fromisoformat(tb.start_time)
+        end = time.fromisoformat(tb.end_time)
+
+        # Determine if current time is inside the window
+        if start <= end:
+            in_window = start <= now_t < end
+        else:
+            # Overnight wrap: 22:00-06:00 means >= 22:00 OR < 06:00
+            in_window = now_t >= start or now_t < end
+
+        if tb.mode == "suppress" and in_window:
+            return True, [f"suppressed during {tb.start_time}-{tb.end_time}"]
+        if tb.mode == "allow" and not in_window:
+            return True, [f"only allowed during {tb.start_time}-{tb.end_time}"]
+
+    return False, []
 
 
 async def check_requirements_met(

@@ -23,8 +23,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     from .websocket_api import async_register_websocket_commands
     async_register_websocket_commands(hass)
 
-    # Register all frontend card resources
-    version = "0.1.0"
+    # Register all frontend card resources and auto-register as Lovelace resources
+    from .const import VERSION
     cards = [
         "yahatl-item-card.js",
         "yahatl-queue-card.js",
@@ -37,6 +37,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             hass.config.path(f"custom_components/yahatl/www/{card}"),
             cache_headers=False,
         )
+        # Auto-register as Lovelace resource (storage mode only)
+        resource_url = f"{url}?v={VERSION}"
+        await hass.components.lovelace.async_create_resource(
+            resource_url, "module"
+        ) if hasattr(hass.components, "lovelace") and hasattr(
+            hass.components.lovelace, "async_create_resource"
+        ) else None
 
     return True
 

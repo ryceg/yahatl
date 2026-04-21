@@ -290,7 +290,7 @@ class YahatLItemEditor extends HTMLElement {
           ${this._allItems.map(i => `
             <label class="checkbox-label">
               <input type="checkbox" class="blocker-item-cb" value="${this._esc(i.uid)}" ${selectedItems.includes(i.uid) ? 'checked' : ''}>
-              ${this._esc(i.title)} <span class="status-hint">(${i.status})</span>
+              ${this._esc(i.title)} <span class="status-hint">(${this._esc(i.status)})</span>
             </label>
           `).join('') || '<p class="muted">No other items in this list.</p>'}
         </div>

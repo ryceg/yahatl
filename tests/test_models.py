@@ -13,6 +13,7 @@ from custom_components.yahatl.models import (
     RecurrenceConfig,
     RecurrenceThreshold,
     RequirementsConfig,
+    TimeBlockerConfig,
     YahtlItem,
     YahtlList,
 )
@@ -701,3 +702,34 @@ class TestConditionTriggerConfig:
         d = item.to_dict()
         restored = YahtlItem.from_dict(d)
         assert restored.condition_triggers == []
+
+
+class TestTimeBlockerConfig:
+    def test_time_blocker_roundtrip(self):
+        tb = TimeBlockerConfig(
+            start_time="22:00",
+            end_time="06:00",
+            mode="suppress",
+            days=[0, 1, 2, 3, 4],
+        )
+        d = tb.to_dict()
+        assert d["start_time"] == "22:00"
+        assert d["end_time"] == "06:00"
+        assert d["mode"] == "suppress"
+        assert d["days"] == [0, 1, 2, 3, 4]
+
+        restored = TimeBlockerConfig.from_dict(d)
+        assert restored.start_time == "22:00"
+        assert restored.end_time == "06:00"
+        assert restored.mode == "suppress"
+        assert restored.days == [0, 1, 2, 3, 4]
+
+    def test_time_blocker_defaults(self):
+        tb = TimeBlockerConfig(start_time="06:00", end_time="09:00")
+        assert tb.mode == "suppress"
+        assert tb.days is None
+
+        d = tb.to_dict()
+        restored = TimeBlockerConfig.from_dict(d)
+        assert restored.mode == "suppress"
+        assert restored.days is None

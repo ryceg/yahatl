@@ -133,6 +133,39 @@ class ConditionTriggerConfig:
 
 
 @dataclass
+class TimeBlockerConfig:
+    """Block an item during or outside a time window.
+
+    mode="suppress": blocked when current time IS inside the window.
+    mode="allow": blocked when current time IS NOT inside the window.
+    Overnight windows supported: start_time="22:00", end_time="06:00" wraps past midnight.
+    days: ISO weekday (0=Mon, 6=Sun). None means all days.
+    """
+
+    start_time: str  # "HH:MM" 24h format
+    end_time: str    # "HH:MM" 24h format
+    mode: str = "suppress"  # "suppress" | "allow"
+    days: list[int] | None = None  # None = all days
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "mode": self.mode,
+            "days": self.days,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TimeBlockerConfig:
+        return cls(
+            start_time=data["start_time"],
+            end_time=data["end_time"],
+            mode=data.get("mode", "suppress"),
+            days=data.get("days"),
+        )
+
+
+@dataclass
 class BlockerConfig:
     """Blocker configuration for an item.
 
@@ -249,6 +282,12 @@ class YahtlItem:
     # Condition triggers
     condition_triggers: list[ConditionTriggerConfig] = field(default_factory=list)
 
+    # Time blockers
+    time_blockers: list[TimeBlockerConfig] = field(default_factory=list)
+
+    # Deferral
+    deferred_until: datetime | None = None
+
     # Priority
     priority: str | None = None  # low, medium, high
 
@@ -287,6 +326,8 @@ class YahtlItem:
             "blockers": self.blockers.to_dict() if self.blockers else None,
             "requirements": self.requirements.to_dict() if self.requirements else None,
             "condition_triggers": [t.to_dict() for t in self.condition_triggers],
+            "time_blockers": [tb.to_dict() for tb in self.time_blockers],
+            "deferred_until": self.deferred_until.isoformat() if self.deferred_until else None,
             "priority": self.priority,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
@@ -317,6 +358,11 @@ class YahtlItem:
                 ConditionTriggerConfig.from_dict(t)
                 for t in data.get("condition_triggers", [])
             ],
+            time_blockers=[
+                TimeBlockerConfig.from_dict(tb)
+                for tb in data.get("time_blockers", [])
+            ],
+            deferred_until=datetime.fromisoformat(data["deferred_until"]) if data.get("deferred_until") else None,
             priority=data.get("priority"),
             completion_history=[
                 CompletionRecord.from_dict(r)

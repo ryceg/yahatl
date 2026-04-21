@@ -261,36 +261,46 @@ SERVICE_DEFER_ITEM_SCHEMA = vol.Schema(
 )
 
 
-def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | None:
+def _get_entry_data(hass: HomeAssistant, entity_id: str) -> tuple[str | None, dict[str, Any] | None]:
     # Entity ID format: todo.yahatl_{storage_key}
     for entry_id, data in hass.data.get(DOMAIN, {}).items():
         if isinstance(data, dict) and "data" in data:
             list_data = data["data"]
             expected_entity = f"todo.{list_data.list_id}"
             if entity_id == expected_entity:
-                return data
-    return None
+                return entry_id, data
+    return None, None
 
 
 def _resolve_list(hass: HomeAssistant, call: ServiceCall):
     entity_id = call.data[ATTR_ENTITY_ID]
-    entry_data = _get_entry_data(hass, entity_id)
+    entry_id, entry_data = _get_entry_data(hass, entity_id)
     if entry_data is None:
         _LOGGER.error("Entity %s not found", entity_id)
-        return None, None
-    return entry_data["data"], entry_data["store"]
+        return None, None, None
+    return entry_data["data"], entry_data["store"], entry_id
 
 
 def _resolve_item(hass: HomeAssistant, call: ServiceCall):
-    list_data, store = _resolve_list(hass, call)
+    list_data, store, entry_id = _resolve_list(hass, call)
     if list_data is None:
-        return None, None, None
+        return None, None, None, None
     item_id = call.data[ATTR_ITEM_ID]
     item = list_data.get_item(item_id)
     if item is None:
         _LOGGER.error("Item %s not found in %s", item_id, call.data[ATTR_ENTITY_ID])
-        return None, None, None
-    return list_data, store, item
+        return None, None, None, None
+    return list_data, store, item, entry_id
+
+
+async def _save_and_refresh(hass, entry_id, store, list_data, reason=""):
+    """Persist data and trigger pipeline refresh."""
+    pipeline = hass.data[DOMAIN].get(entry_id, {}).get("pipeline")
+    if pipeline:
+        await pipeline.async_request_refresh(reason)
+    else:
+        await store.async_save(list_data)
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, "")
 
 
 def _get_all_lists(hass: HomeAssistant) -> list:
@@ -308,8 +318,7 @@ def _get_all_lists(hass: HomeAssistant) -> list:
 async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_add_item(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store = _resolve_list(hass, call)
+        list_data, store, entry_id = _resolve_list(hass, call)
         if list_data is None:
             return
 
@@ -333,12 +342,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
 
         list_data.add_item(item)
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:add_item")
 
     async def handle_complete_item(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
         user_id = call.data.get(ATTR_USER_ID, "")
@@ -378,23 +386,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 item.due = next_due
             # For frequency goals, status stays completed but streak updates
 
-        await store.async_save(list_data)
-
         # Fire completion event
         hass.bus.async_fire(
             f"{DOMAIN}_item_completed",
             {
                 "entity_id": entity_id,
-                "item_id": item_id,
+                "item_id": item.uid,
                 "item_title": item.title,
                 "user_id": user_id,
             },
         )
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:complete_item")
 
     async def handle_update_item(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
@@ -416,24 +421,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if ATTR_DEFERRED_UNTIL in call.data:
             item.deferred_until = call.data[ATTR_DEFERRED_UNTIL]
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:update_item")
 
     async def handle_set_traits(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
         item.traits = call.data[ATTR_TRAITS]
-        await store.async_save(list_data)
-
-        # Notify entity to update state
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_traits")
 
     async def handle_add_tags(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
         tags = call.data[ATTR_TAGS]
@@ -443,12 +442,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if tag not in item.tags:
                 item.tags.append(tag)
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:add_tags")
 
     async def handle_remove_tags(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
         tags = call.data[ATTR_TAGS]
@@ -456,23 +453,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Remove tags
         item.tags = [t for t in item.tags if t not in tags]
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:remove_tags")
 
     async def handle_flag_needs_detail(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
         item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:flag_needs_detail")
 
     async def handle_set_list_visibility(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store = _resolve_list(hass, call)
+        list_data, store, entry_id = _resolve_list(hass, call)
         if list_data is None:
             return
 
@@ -480,12 +473,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         shared_with = call.data.get(ATTR_SHARED_WITH, [])
         list_data.shared_with = shared_with
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_list_visibility")
 
     async def handle_set_recurrence(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
         recurrence_type = call.data[ATTR_RECURRENCE_TYPE]
@@ -516,12 +507,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             item.recurrence = recurrence
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_recurrence")
 
     async def handle_set_blockers(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
@@ -541,12 +530,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if not item.blockers.items and not item.blockers.sensors:
             item.blockers = None
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_blockers")
 
     async def handle_set_requirements(call: ServiceCall) -> None:
-        entity_id = call.data[ATTR_ENTITY_ID]
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
@@ -573,8 +560,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         ]):
             item.requirements = None
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_requirements")
 
     async def handle_get_queue(call: ServiceCall) -> None:
         from .queue import QueueEngine
@@ -651,7 +637,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         _LOGGER.info("Context updated: %s", context_override.to_dict())
 
     async def handle_set_condition_triggers(call: ServiceCall) -> None:
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
@@ -661,11 +647,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             ConditionTriggerConfig.from_dict(t) for t in triggers_data
         ]
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_condition_triggers")
 
     async def handle_set_time_blockers(call: ServiceCall) -> None:
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
@@ -674,18 +659,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             TimeBlockerConfig.from_dict(tb) for tb in call.data[ATTR_TIME_BLOCKERS]
         ]
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:set_time_blockers")
 
     async def handle_defer_item(call: ServiceCall) -> None:
-        list_data, store, item = _resolve_item(hass, call)
+        list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
 
         item.deferred_until = call.data.get(ATTR_DEFERRED_UNTIL)
 
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
+        await _save_and_refresh(hass, entry_id, store, list_data, "service:defer_item")
 
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA

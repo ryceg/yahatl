@@ -8,8 +8,9 @@ import voluptuous as vol
 
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .const import ALL_TRAITS, DOMAIN
+from .const import ALL_TRAITS, DOMAIN, SIGNAL_YAHATL_UPDATED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -294,7 +295,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         list_data.add_item(item)
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_complete_item(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -349,7 +350,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "user_id": user_id,
             },
         )
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_update_item(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -374,7 +375,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.buffer_after = call.data[ATTR_BUFFER_AFTER]
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_set_traits(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -386,7 +387,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         await store.async_save(list_data)
 
         # Notify entity to update state
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_add_tags(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -401,7 +402,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 item.tags.append(tag)
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_remove_tags(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -414,7 +415,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item.tags = [t for t in item.tags if t not in tags]
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_flag_needs_detail(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -425,7 +426,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_set_list_visibility(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -438,7 +439,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         list_data.shared_with = shared_with
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_set_recurrence(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -474,7 +475,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.recurrence = recurrence
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_set_blockers(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -499,7 +500,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.blockers = None
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_set_requirements(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
@@ -531,7 +532,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.requirements = None
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
 
     async def handle_get_queue(call: ServiceCall) -> None:
         from .queue import get_prioritized_queue, get_current_context_from_hass
@@ -633,7 +634,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         ]
 
         await store.async_save(list_data)
-        hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": call.data[ATTR_ENTITY_ID]})
+        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, call.data[ATTR_ENTITY_ID])
 
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA

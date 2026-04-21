@@ -7,10 +7,11 @@ from typing import Any, Callable
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .blockers import is_item_blocked
-from .const import CONF_STORAGE_KEY, DOMAIN, STATUS_COMPLETED, TRAIT_ACTIONABLE
+from .const import CONF_STORAGE_KEY, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED, TRAIT_ACTIONABLE
 from .models import YahtlList
 from .queue import get_prioritized_queue
 from .recurrence import is_streak_at_risk
@@ -54,12 +55,14 @@ class _YahtlBaseSensor(SensorEntity):
         await super().async_added_to_hass()
 
         @callback
-        def _handle_update(event):
+        def _handle_update(entity_id):
             if self._store.data:
                 self._data = self._store.data
             self.async_write_ha_state()
 
-        self._unsub = self.hass.bus.async_listen(f"{DOMAIN}_updated", _handle_update)
+        self._unsub = async_dispatcher_connect(
+            self.hass, SIGNAL_YAHATL_UPDATED, _handle_update
+        )
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub:
@@ -180,10 +183,12 @@ class YahtlQueueSensor(_YahtlBaseSensor):
 
     async def async_added_to_hass(self) -> None:
         @callback
-        def _handle_update(event):
-            self.hass.async_create_task(self._refresh_queue())
+        def _handle_update(entity_id):
+            self.hass.async_create_task(self._refresh_queue(), eager_start=True)
 
-        self._unsub = self.hass.bus.async_listen(f"{DOMAIN}_updated", _handle_update)
+        self._unsub = async_dispatcher_connect(
+            self.hass, SIGNAL_YAHATL_UPDATED, _handle_update
+        )
         await self._refresh_queue()
 
     async def _refresh_queue(self) -> None:

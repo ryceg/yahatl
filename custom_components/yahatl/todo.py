@@ -13,6 +13,7 @@ from homeassistant.components.todo import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -20,6 +21,7 @@ from .const import (
     CONF_LIST_NAME,
     CONF_STORAGE_KEY,
     DOMAIN,
+    SIGNAL_YAHATL_UPDATED,
     STATUS_COMPLETED,
     STATUS_PENDING,
     TRAIT_ACTIONABLE,
@@ -97,15 +99,14 @@ class YahtlTodoListEntity(TodoListEntity):
         await super().async_added_to_hass()
 
         @callback
-        def handle_update(event):
-            if event.data.get("entity_id") == self.entity_id:
-                # Reload data from store
+        def handle_update(entity_id):
+            if entity_id == self.entity_id:
                 if self._store.data:
                     self._data = self._store.data
                 self.async_write_ha_state()
 
-        self._unsub_update = self.hass.bus.async_listen(
-            f"{DOMAIN}_updated", handle_update
+        self._unsub_update = async_dispatcher_connect(
+            self.hass, SIGNAL_YAHATL_UPDATED, handle_update
         )
 
     async def async_will_remove_from_hass(self) -> None:
@@ -230,7 +231,6 @@ class YahtlTodoListEntity(TodoListEntity):
     async def _async_save(self) -> None:
         await self._store.async_save(self._data)
         self.async_write_ha_state()
-        self.hass.bus.async_fire(
-            f"{DOMAIN}_updated",
-            {"entity_id": self.entity_id},
+        async_dispatcher_send(
+            self.hass, SIGNAL_YAHATL_UPDATED, self.entity_id
         )

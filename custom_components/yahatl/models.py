@@ -102,6 +102,37 @@ class RecurrenceConfig:
 
 
 @dataclass
+class ConditionTriggerConfig:
+    """Trigger that activates when an HA entity matches a condition.
+
+    Supported operators: eq, neq, gt, lt, gte, lte, bool.
+    When attribute is set, compares state.attributes[attribute] instead of state.state.
+    """
+
+    entity_id: str
+    operator: str  # eq, neq, gt, lt, gte, lte, bool
+    value: str
+    attribute: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "entity_id": self.entity_id,
+            "operator": self.operator,
+            "value": self.value,
+            "attribute": self.attribute,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ConditionTriggerConfig:
+        return cls(
+            entity_id=data["entity_id"],
+            operator=data["operator"],
+            value=data["value"],
+            attribute=data.get("attribute"),
+        )
+
+
+@dataclass
 class BlockerConfig:
     """Blocker configuration for an item.
 
@@ -215,6 +246,9 @@ class YahtlItem:
     # Requirements
     requirements: RequirementsConfig | None = None
 
+    # Condition triggers
+    condition_triggers: list[ConditionTriggerConfig] = field(default_factory=list)
+
     # Priority
     priority: str | None = None  # low, medium, high
 
@@ -252,6 +286,7 @@ class YahtlItem:
             "recurrence": self.recurrence.to_dict() if self.recurrence else None,
             "blockers": self.blockers.to_dict() if self.blockers else None,
             "requirements": self.requirements.to_dict() if self.requirements else None,
+            "condition_triggers": [t.to_dict() for t in self.condition_triggers],
             "priority": self.priority,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
@@ -278,6 +313,10 @@ class YahtlItem:
             recurrence=RecurrenceConfig.from_dict(data["recurrence"]) if data.get("recurrence") else None,
             blockers=BlockerConfig.from_dict(data["blockers"]) if data.get("blockers") else None,
             requirements=RequirementsConfig.from_dict(data["requirements"]) if data.get("requirements") else None,
+            condition_triggers=[
+                ConditionTriggerConfig.from_dict(t)
+                for t in data.get("condition_triggers", [])
+            ],
             priority=data.get("priority"),
             completion_history=[
                 CompletionRecord.from_dict(r)

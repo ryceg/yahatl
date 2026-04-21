@@ -8,6 +8,7 @@ import pytest
 from custom_components.yahatl.models import (
     BlockerConfig,
     CompletionRecord,
+    ConditionTriggerConfig,
     ContextOverride,
     RecurrenceConfig,
     RecurrenceThreshold,
@@ -646,3 +647,57 @@ class TestEdgeCases:
         assert restored.title == item.title
         assert restored.description == item.description
         assert restored.tags == item.tags
+
+
+class TestConditionTriggerConfig:
+    def test_roundtrip(self):
+        trigger = ConditionTriggerConfig(
+            entity_id="sensor.washing_machine",
+            operator="eq",
+            value="idle",
+        )
+        d = trigger.to_dict()
+        assert d["entity_id"] == "sensor.washing_machine"
+        assert d["operator"] == "eq"
+        assert d["value"] == "idle"
+        assert d["attribute"] is None
+
+        restored = ConditionTriggerConfig.from_dict(d)
+        assert restored.entity_id == "sensor.washing_machine"
+        assert restored.operator == "eq"
+        assert restored.value == "idle"
+
+    def test_with_attribute(self):
+        trigger = ConditionTriggerConfig(
+            entity_id="climate.living_room",
+            attribute="current_temperature",
+            operator="gte",
+            value="25",
+        )
+        d = trigger.to_dict()
+        assert d["attribute"] == "current_temperature"
+        restored = ConditionTriggerConfig.from_dict(d)
+        assert restored.attribute == "current_temperature"
+
+    def test_item_condition_triggers_roundtrip(self):
+        item = YahtlItem.create(title="Hang washing")
+        item.condition_triggers = [
+            ConditionTriggerConfig(
+                entity_id="sensor.washing_machine",
+                operator="eq",
+                value="idle",
+            ),
+        ]
+        d = item.to_dict()
+        assert len(d["condition_triggers"]) == 1
+        assert d["condition_triggers"][0]["entity_id"] == "sensor.washing_machine"
+
+        restored = YahtlItem.from_dict(d)
+        assert len(restored.condition_triggers) == 1
+        assert restored.condition_triggers[0].entity_id == "sensor.washing_machine"
+
+    def test_item_defaults_empty_triggers(self):
+        item = YahtlItem.create(title="No triggers")
+        d = item.to_dict()
+        restored = YahtlItem.from_dict(d)
+        assert restored.condition_triggers == []

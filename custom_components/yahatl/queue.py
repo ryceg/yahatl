@@ -38,78 +38,10 @@ async def get_prioritized_queue(
     current_context: dict[str, Any] | None = None,
     available_time: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Generate prioritized task queue based on current context.
-
-    Args:
-        hass: Home Assistant instance
-        all_lists: All yahatl lists to consider
-        current_context: Current context (location, people, time, etc.)
-        available_time: Available time in minutes (filters by time estimate)
-
-    Returns:
-        List of items with scores, sorted by priority
-    """
-    current_context = current_context or {}
-    candidates = []
-
-    # Collect all actionable, non-completed items
-    for yahatl_list in all_lists:
-        for item in yahatl_list.items:
-            # Skip if not actionable or already done
-            if "actionable" not in item.traits:
-                continue
-            if item.status in ["completed", "missed"]:
-                continue
-
-            # Skip if time estimate exceeds available time
-            if available_time and item.time_estimate and item.time_estimate > available_time:
-                continue
-
-            # Skip deferred items
-            if item.deferred_until and datetime.now() < item.deferred_until:
-                continue
-
-            candidates.append((item, yahatl_list))
-
-    # Filter and score candidates
-    scored_items = []
-    resolver = BlockerResolver(hass, all_lists)
-
-    for item, yahatl_list in candidates:
-        # Check blockers
-        result = resolver.resolve(item)
-        if result:
-            _LOGGER.debug("Item %s blocked: %s", item.uid, result.reasons)
-            continue
-
-        # Check requirements
-        requirements_met, requirement_reasons = await check_requirements_met(
-            hass, item, current_context
-        )
-        if not requirements_met:
-            _LOGGER.debug("Item %s requirements not met: %s", item.uid, requirement_reasons)
-            continue
-
-        # Calculate score
-        score = await _calculate_score(hass, item, current_context)
-
-        scored_items.append({
-            "item": item.to_dict(),
-            "list_id": yahatl_list.list_id,
-            "list_name": yahatl_list.name,
-            "score": score,
-        })
-
-    # Sort by score (desc), then due date (asc), then created_at (asc)
-    scored_items.sort(
-        key=lambda x: (
-            -x["score"],  # Higher score first
-            x["item"].get("due") or "9999-12-31",  # Sooner due first, no due last
-            x["item"].get("created_at") or "9999-12-31",  # Older first
-        )
-    )
-
-    return scored_items
+    """.. deprecated:: Use QueueEngine.generate() instead."""
+    engine = QueueEngine(hass)
+    result = await engine.generate(all_lists, context=current_context, available_time=available_time)
+    return result.items
 
 
 async def _calculate_score(

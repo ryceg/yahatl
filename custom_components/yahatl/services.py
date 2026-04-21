@@ -198,7 +198,6 @@ SERVICE_UPDATE_CONTEXT_SCHEMA = vol.Schema(
 
 
 def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | None:
-    """Get entry data for an entity."""
     # Entity ID format: todo.yahatl_{storage_key}
     for entry_id, data in hass.data.get(DOMAIN, {}).items():
         if isinstance(data, dict) and "data" in data:
@@ -209,8 +208,28 @@ def _get_entry_data(hass: HomeAssistant, entity_id: str) -> dict[str, Any] | Non
     return None
 
 
+def _resolve_list(hass: HomeAssistant, call: ServiceCall):
+    entity_id = call.data[ATTR_ENTITY_ID]
+    entry_data = _get_entry_data(hass, entity_id)
+    if entry_data is None:
+        _LOGGER.error("Entity %s not found", entity_id)
+        return None, None
+    return entry_data["data"], entry_data["store"]
+
+
+def _resolve_item(hass: HomeAssistant, call: ServiceCall):
+    list_data, store = _resolve_list(hass, call)
+    if list_data is None:
+        return None, None, None
+    item_id = call.data[ATTR_ITEM_ID]
+    item = list_data.get_item(item_id)
+    if item is None:
+        _LOGGER.error("Item %s not found in %s", item_id, call.data[ATTR_ENTITY_ID])
+        return None, None, None
+    return list_data, store, item
+
+
 def _get_all_lists(hass: HomeAssistant) -> list:
-    """Get all yahatl lists."""
     from .models import YahtlList
 
     lists = []
@@ -223,19 +242,12 @@ def _get_all_lists(hass: HomeAssistant) -> list:
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
-    """Set up yahatl services."""
 
     async def handle_add_item(call: ServiceCall) -> None:
-        """Handle add_item service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
+        list_data, store = _resolve_list(hass, call)
+        if list_data is None:
             return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
 
         # Create new item
         from .models import YahtlItem
@@ -261,23 +273,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_complete_item(call: ServiceCall) -> None:
-        """Handle complete_item service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-        user_id = call.data.get(ATTR_USER_ID, "")
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
+        user_id = call.data.get(ATTR_USER_ID, "")
 
         # Mark as completed with history
         from datetime import datetime
@@ -328,21 +328,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_update_item(call: ServiceCall) -> None:
-        """Handle update_item service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
 
         # Update fields if provided
@@ -365,48 +353,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_traits(call: ServiceCall) -> None:
-        """Handle set_traits service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-        traits = call.data[ATTR_TRAITS]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
 
-        item.traits = traits
+        item.traits = call.data[ATTR_TRAITS]
         await store.async_save(list_data)
 
         # Notify entity to update state
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_add_tags(call: ServiceCall) -> None:
-        """Handle add_tags service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-        tags = call.data[ATTR_TAGS]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
+        tags = call.data[ATTR_TAGS]
 
         # Add tags (no duplicates)
         for tag in tags:
@@ -417,23 +380,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_remove_tags(call: ServiceCall) -> None:
-        """Handle remove_tags service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-        tags = call.data[ATTR_TAGS]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
+        tags = call.data[ATTR_TAGS]
 
         # Remove tags
         item.tags = [t for t in item.tags if t not in tags]
@@ -442,67 +393,35 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_flag_needs_detail(call: ServiceCall) -> None:
-        """Handle flag_needs_detail service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-        needs_detail = call.data[ATTR_NEEDS_DETAIL]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
 
-        item.needs_detail = needs_detail
+        item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
 
         await store.async_save(list_data)
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_list_visibility(call: ServiceCall) -> None:
-        """Handle set_list_visibility service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        visibility = call.data[ATTR_VISIBILITY]
-        shared_with = call.data.get(ATTR_SHARED_WITH, [])
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
+        list_data, store = _resolve_list(hass, call)
+        if list_data is None:
             return
 
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        list_data.visibility = visibility
+        list_data.visibility = call.data[ATTR_VISIBILITY]
+        shared_with = call.data.get(ATTR_SHARED_WITH, [])
         list_data.shared_with = shared_with
 
         await store.async_save(list_data)
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_recurrence(call: ServiceCall) -> None:
-        """Handle set_recurrence service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-        recurrence_type = call.data[ATTR_RECURRENCE_TYPE]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
+        recurrence_type = call.data[ATTR_RECURRENCE_TYPE]
 
         from .models import RecurrenceConfig, RecurrenceThreshold
 
@@ -534,21 +453,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_blockers(call: ServiceCall) -> None:
-        """Handle set_blockers service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
 
         from .models import BlockerConfig
@@ -571,21 +478,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_set_requirements(call: ServiceCall) -> None:
-        """Handle set_requirements service call."""
         entity_id = call.data[ATTR_ENTITY_ID]
-        item_id = call.data[ATTR_ITEM_ID]
-
-        entry_data = _get_entry_data(hass, entity_id)
-        if entry_data is None:
-            _LOGGER.error("Entity %s not found", entity_id)
-            return
-
-        list_data = entry_data["data"]
-        store = entry_data["store"]
-
-        item = list_data.get_item(item_id)
+        list_data, store, item = _resolve_item(hass, call)
         if item is None:
-            _LOGGER.error("Item %s not found in %s", item_id, entity_id)
             return
 
         from .models import RequirementsConfig
@@ -615,7 +510,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         hass.bus.async_fire(f"{DOMAIN}_updated", {"entity_id": entity_id})
 
     async def handle_get_queue(call: ServiceCall) -> None:
-        """Handle get_queue service call."""
         from .queue import get_prioritized_queue, get_current_context_from_hass
         from .models import ContextOverride
 
@@ -674,7 +568,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         return {"queue": queue}
 
     async def handle_update_context(call: ServiceCall) -> None:
-        """Handle update_context service call."""
         from .models import ContextOverride
         from datetime import datetime
 
@@ -770,7 +663,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
-    """Unload yahatl services."""
     hass.services.async_remove(DOMAIN, SERVICE_ADD_ITEM)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_ITEM)
     hass.services.async_remove(DOMAIN, SERVICE_COMPLETE_ITEM)

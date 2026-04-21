@@ -33,7 +33,7 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 - **Automatic context detection** - infers context from Home Assistant state
 - **Time-based filtering** - filter tasks by available time
 
-### Phase 4 - Dashboard (NEW!)
+### Phase 4 - Dashboard
 
 - **Lovelace dashboard** - Beautiful UI with Mushroom cards
 - **Planning tab** - Priority queue, context status, quick stats, pomodoro timer
@@ -45,6 +45,16 @@ A comprehensive task/habit/chore/reminder/notes system for Home Assistant.
 - **Scripts** - Common operations (quick add, triage, snooze, pomodoro)
 
 See [dashboards/SETUP_GUIDE.md](dashboards/SETUP_GUIDE.md) for installation and configuration.
+
+### Phase 5 - Real-Time Updates & Advanced Blocking (NEW!)
+
+- **Dispatcher-based signaling** - Instant intra-integration updates using HA's dispatcher (faster than bus events)
+- **Sensor entities** - Overdue count, due today, next task, blocked count, and queue sensors update in real time
+- **Time blockers** - Suppress tasks during time windows (e.g., no chores 10pm-6am) or allow only during windows (e.g., morning routine 6-9am). Supports overnight windows and day-of-week filtering
+- **Item deferral** - Snooze tasks until a future date with `defer_item` service. Deferred items are hidden from the queue
+- **Condition triggers** - React to HA entity state changes (e.g., washing machine finishes → "hang out washing" surfaces). Supports `boost` (score increase) and `set_due` (auto-set due date) modes
+- **Active state listening** - `ReactivityManager` subscribes to HA entity state changes in real time using `async_track_state_change_event` for instant queue updates
+- **Periodic time blocker refresh** - 60-second timer ensures time-based blocking boundaries are respected
 
 ## Installation
 
@@ -276,6 +286,81 @@ data:
     - "phone"
 ```
 
+### yahatl.set_time_blockers (Phase 5)
+
+Configure time-based blocking for an item.
+
+```yaml
+# Suppress chores between 10pm and 6am
+service: yahatl.set_time_blockers
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  time_blockers:
+    - start_time: "22:00"
+      end_time: "06:00"
+      mode: suppress
+
+# Only allow morning routine 6am-9am on weekdays
+service: yahatl.set_time_blockers
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  time_blockers:
+    - start_time: "06:00"
+      end_time: "09:00"
+      mode: allow
+      days: [0, 1, 2, 3, 4]  # Mon-Fri
+```
+
+### yahatl.defer_item (Phase 5)
+
+Defer an item until a future date. Omit `deferred_until` to clear the deferral.
+
+```yaml
+# Defer until next week
+service: yahatl.defer_item
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  deferred_until: "2026-04-28T00:00:00"
+
+# Clear deferral
+service: yahatl.defer_item
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+```
+
+### yahatl.set_condition_triggers (Phase 5)
+
+Set condition triggers that react to HA entity state changes.
+
+```yaml
+# When washing machine finishes, surface the task (score boost only)
+service: yahatl.set_condition_triggers
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  condition_triggers:
+    - entity_id: sensor.washing_machine
+      operator: eq
+      value: "idle"
+      on_match: boost
+
+# When temperature exceeds 25°C, set due date automatically
+service: yahatl.set_condition_triggers
+data:
+  entity_id: todo.yahatl_my_list
+  item_id: "abc-123"
+  condition_triggers:
+    - entity_id: climate.living_room
+      attribute: current_temperature
+      operator: gte
+      value: "25"
+      on_match: set_due
+```
+
 ## Events
 
 ### yahatl_item_completed
@@ -291,43 +376,3 @@ event_data:
   user_id: "john"
 ```
 
-## Roadmap
-
-See [docs/plans/2026-01-17-yahatl-design.md](docs/plans/2026-01-17-yahatl-design.md) for the full design document.
-
-### Phase 2: Recurrence & Blocking ✅ COMPLETED
-- ✅ Calendar-based recurrence
-- ✅ Elapsed-based recurrence
-- ✅ Frequency goals with thresholds
-- ✅ Task and sensor blockers
-- ✅ Requirements (location, people, time, context, sensors)
-- ✅ Streak tracking for habits
-
-### Phase 3: Queue & Context ✅ COMPLETED
-- ✅ Priority queue algorithm
-- ✅ Context-aware task surfacing
-- ✅ Automatic and manual context management
-- ✅ Scoring system with configurable weights
-- ✅ get_queue and update_context services
-
-### Phase 4: Dashboard ✅ COMPLETED
-- ✅ Home Assistant Lovelace dashboard with Mushroom cards
-- ✅ Three-tab interface (Planning, Capture, Notes)
-- ✅ Custom Lovelace card for rich item display
-- ✅ Template sensors for statistics
-- ✅ Helper entities for context and input
-- ✅ Example automations for common workflows
-- ✅ Comprehensive setup guide
-
-See [dashboards/README.md](dashboards/README.md) for dashboard documentation.
-
-### Phase 5: React Native Mobile App ✅ COMPLETED
-- ✅ Expo-based React Native app for Android
-- ✅ **Planning Tab**: Priority queue with context filtering and Pomodoro integration
-- ✅ **Capture Tab**: Quick capture FAB, inbox management, and triage workflow
-- ✅ **Notes Tab**: Notes browser with search/tags and Flesh Out mode
-- ✅ Offline support with React Query caching
-- ✅ Long-lived token authentication with secure storage
-- ✅ Pomodoro timer with foreground service and notifications
-
-See [app/README.md](app/README.md) for mobile app documentation.

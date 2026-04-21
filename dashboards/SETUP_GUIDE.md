@@ -77,6 +77,20 @@ If using packages, create `packages/yahatl.yaml`:
 
 **Restart Home Assistant** after adding helpers.
 
+## Built-in Sensor Entities
+
+The yahatl integration automatically creates these sensor entities for each list (no configuration needed):
+
+| Entity | Description |
+|--------|-------------|
+| `sensor.<list>_overdue` | Count of overdue actionable items |
+| `sensor.<list>_due_today` | Count of items due today |
+| `sensor.<list>_next_task` | Title of the highest-priority task |
+| `sensor.<list>_blocked` | Count of items with blockers configured |
+| `sensor.<list>_queue` | Full prioritized queue (attributes: `queue`, `queue_length`) |
+
+These sensors update in real time via HA's dispatcher system — no polling needed. You can use them directly in dashboard cards and automations.
+
 ## Step 2: Add Template Sensors
 
 Add the template sensors to your `configuration.yaml`:

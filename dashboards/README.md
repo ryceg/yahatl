@@ -106,9 +106,23 @@ Example automations provided:
 - Weekly review reminders
 - Context suggestions based on time
 
+## Built-in Sensor Entities
+
+The integration automatically creates these sensor entities per list (no template config needed):
+
+| Entity | Description |
+|--------|-------------|
+| `sensor.<list>_overdue` | Count of overdue actionable items |
+| `sensor.<list>_due_today` | Count of items due today |
+| `sensor.<list>_next_task` | Title of the highest-priority task |
+| `sensor.<list>_blocked` | Count of items with blockers |
+| `sensor.<list>_queue` | Full prioritized queue with attributes |
+
+These update instantly via the dispatcher system when any item changes.
+
 ## Template Sensors
 
-Provided sensors for dashboard stats:
+Additional template sensors provided in `sensors.yaml` for dashboard stats:
 
 - `sensor.yahatl_time_period` - Current time period
 - `sensor.yahatl_queue_count` - Items in queue

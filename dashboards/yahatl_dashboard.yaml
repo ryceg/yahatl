@@ -44,11 +44,11 @@ views:
               margin-bottom: 16px;
             }
 
-      # Quick Stats Card
+      # Quick Stats Card — uses built-in sensor entities (replace my_list with your storage key)
       - type: horizontal-stack
         cards:
           - type: custom:mushroom-template-card
-            primary: "{{ states('sensor.yahatl_queue_count') | default('0') }}"
+            primary: "{{ state_attr('sensor.my_list_queue', 'queue_length') | default('0') }}"
             secondary: In Queue
             icon: mdi:format-list-checks
             icon_color: green
@@ -62,7 +62,7 @@ views:
                 }
 
           - type: custom:mushroom-template-card
-            primary: "{{ states('sensor.yahatl_overdue_count') | default('0') }}"
+            primary: "{{ states('sensor.my_list_overdue') | default('0') }}"
             secondary: Overdue
             icon: mdi:alert-circle
             icon_color: red
@@ -75,9 +75,9 @@ views:
                 }
 
           - type: custom:mushroom-template-card
-            primary: "{{ states('sensor.yahatl_streak_risk_count') | default('0') }}"
-            secondary: At Risk
-            icon: mdi:fire-alert
+            primary: "{{ states('sensor.my_list_due_today') | default('0') }}"
+            secondary: Due Today
+            icon: mdi:calendar-today
             icon_color: orange
             tap_action:
               action: none
@@ -85,6 +85,19 @@ views:
               style: |
                 ha-card {
                   --ha-card-background: rgba(255, 152, 0, 0.1);
+                }
+
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.my_list_blocked') | default('0') }}"
+            secondary: Blocked
+            icon: mdi:block-helper
+            icon_color: grey
+            tap_action:
+              action: none
+            card_mod:
+              style: |
+                ha-card {
+                  --ha-card-background: rgba(158, 158, 158, 0.1);
                 }
 
       # Refresh Queue Button
@@ -116,6 +129,13 @@ views:
               box-shadow: none;
               margin-top: 8px;
             }
+
+      # Next Task Sensor Card
+      - type: custom:mushroom-template-card
+        primary: "{{ states('sensor.my_list_next_task') | default('Nothing to do!') }}"
+        secondary: "{{ state_attr('sensor.my_list_next_task', 'total_actionable') | default(0) }} actionable items"
+        icon: mdi:checkbox-marked-circle-outline
+        icon_color: green
 
       # Prioritized Queue Card
       - type: custom:yahatl-queue-card

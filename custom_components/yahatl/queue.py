@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +14,20 @@ if TYPE_CHECKING:
     from .models import YahtlItem, YahtlList
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class QueueResult:
+    """Immutable result of queue generation."""
+
+    items: list[dict[str, Any]]
+    context: dict[str, Any]
+    overdue_count: int
+    due_today_count: int
+    blocked_count: int
+    next_task_title: str | None
+    total_actionable: int
+    generated_at: datetime
 
 
 async def get_prioritized_queue(

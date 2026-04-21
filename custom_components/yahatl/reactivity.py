@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Callable
 
@@ -16,6 +17,19 @@ from .models import YahtlList
 _LOGGER = logging.getLogger(__name__)
 
 _COOLDOWN_SECONDS = 60
+
+
+@dataclass(frozen=True)
+class PipelineSnapshot:
+    """Immutable snapshot of pipeline state. Sensors read from this."""
+
+    queue: list[dict[str, Any]]
+    overdue_count: int
+    due_today_count: int
+    blocked_count: int
+    next_task_title: str | None
+    total_actionable: int
+    data_version: int
 
 
 class ReactivityManager:

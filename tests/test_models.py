@@ -703,6 +703,28 @@ class TestConditionTriggerConfig:
         restored = YahtlItem.from_dict(d)
         assert restored.condition_triggers == []
 
+    def test_condition_trigger_on_match_default(self):
+        trigger = ConditionTriggerConfig(
+            entity_id="sensor.washing_machine",
+            operator="eq",
+            value="idle",
+        )
+        assert trigger.on_match == "boost"
+        d = trigger.to_dict()
+        assert d["on_match"] == "boost"
+
+    def test_condition_trigger_on_match_set_due(self):
+        trigger = ConditionTriggerConfig(
+            entity_id="sensor.washing_machine",
+            operator="eq",
+            value="idle",
+            on_match="set_due",
+        )
+        d = trigger.to_dict()
+        assert d["on_match"] == "set_due"
+        restored = ConditionTriggerConfig.from_dict(d)
+        assert restored.on_match == "set_due"
+
 
 class TestTimeBlockerConfig:
     def test_time_blocker_roundtrip(self):

@@ -218,6 +218,7 @@ SERVICE_SET_CONDITION_TRIGGERS_SCHEMA = vol.Schema(
                         ),
                         vol.Required("value"): cv.string,
                         vol.Optional("attribute"): cv.string,
+                        vol.Optional("on_match", default="boost"): vol.In(["boost", "set_due"]),
                     }
                 )
             ],

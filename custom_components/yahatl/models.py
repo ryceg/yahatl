@@ -113,6 +113,7 @@ class ConditionTriggerConfig:
     operator: str  # eq, neq, gt, lt, gte, lte, bool
     value: str
     attribute: str | None = None
+    on_match: str = "boost"  # "boost" | "set_due"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -120,6 +121,7 @@ class ConditionTriggerConfig:
             "operator": self.operator,
             "value": self.value,
             "attribute": self.attribute,
+            "on_match": self.on_match,
         }
 
     @classmethod
@@ -129,6 +131,7 @@ class ConditionTriggerConfig:
             operator=data["operator"],
             value=data["value"],
             attribute=data.get("attribute"),
+            on_match=data.get("on_match", "boost"),
         )
 
 

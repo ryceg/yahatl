@@ -9,9 +9,11 @@ from typing import TYPE_CHECKING, Any
 from .blockers import BlockerResolver, check_requirements_met
 from .recurrence import is_streak_at_risk, get_frequency_progress
 
+from .models import YahtlList
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-    from .models import YahtlItem, YahtlList
+    from .models import YahtlItem
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -271,3 +273,85 @@ def _get_time_constraint() -> str:
         return "evening"
     else:
         return "night"
+
+
+class QueueEngine:
+    """Single entry point for queue generation."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
+
+    async def generate(
+        self,
+        all_lists: list[YahtlList],
+        *,
+        context: dict[str, Any] | None = None,
+        available_time: int | None = None,
+    ) -> QueueResult:
+        """Generate prioritized queue with aggregates in a single pass."""
+        if context is None:
+            context = get_current_context_from_hass(self._hass)
+        if "time_constraint" not in context:
+            context["time_constraint"] = _get_time_constraint()
+
+        resolver = BlockerResolver(self._hass, all_lists)
+        now = datetime.now()
+        candidates: list[dict[str, Any]] = []
+        blocked_count = 0
+        overdue_count = 0
+        due_today_count = 0
+
+        for yahatl_list in all_lists:
+            for item in yahatl_list.items:
+                if "actionable" not in item.traits:
+                    continue
+                if item.status in ["completed", "missed"]:
+                    continue
+                if available_time and item.time_estimate and item.time_estimate > available_time:
+                    continue
+                if item.deferred_until and now < item.deferred_until:
+                    continue
+
+                if item.due:
+                    if item.due < now:
+                        overdue_count += 1
+                    elif item.due.date() == now.date():
+                        due_today_count += 1
+
+                result = resolver.resolve(item)
+                if result:
+                    blocked_count += 1
+                    continue
+
+                requirements_met, _ = await check_requirements_met(
+                    self._hass, item, context
+                )
+                if not requirements_met:
+                    continue
+
+                score = await _calculate_score(self._hass, item, context)
+                candidates.append({
+                    "item": item.to_dict(),
+                    "list_id": yahatl_list.list_id,
+                    "list_name": yahatl_list.name,
+                    "score": score,
+                })
+
+        candidates.sort(
+            key=lambda x: (
+                -x["score"],
+                x["item"].get("due") or "9999-12-31",
+                x["item"].get("created_at") or "9999-12-31",
+            )
+        )
+
+        return QueueResult(
+            items=candidates,
+            context=context,
+            overdue_count=overdue_count,
+            due_today_count=due_today_count,
+            blocked_count=blocked_count,
+            next_task_title=candidates[0]["item"]["title"] if candidates else None,
+            total_actionable=len(candidates),
+            generated_at=now,
+        )

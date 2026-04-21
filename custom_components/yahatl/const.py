@@ -1,7 +1,7 @@
 """Constants for yahatl integration."""
 
 DOMAIN = "yahatl"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 # Config keys
 CONF_LIST_NAME = "list_name"

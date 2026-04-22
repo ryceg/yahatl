@@ -47,6 +47,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         try:
             resource_url = f"{url}?v={VERSION}"
             resources = await hass.components.lovelace.resources.async_get_info()
+            # Remove stale versions of this card before adding the current one
+            for r in resources:
+                if r["url"].split("?")[0] == url and r["url"] != resource_url:
+                    await hass.components.lovelace.resources.async_delete_item(r["id"])
             existing_urls = {r["url"] for r in resources}
             if resource_url not in existing_urls:
                 await hass.components.lovelace.resources.async_create_item(

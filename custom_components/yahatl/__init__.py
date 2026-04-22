@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -30,13 +31,18 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         "yahatl-queue-card.js",
         "yahatl-item-editor.js",
     ]
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                f"/yahatl/{card}",
+                hass.config.path(f"custom_components/yahatl/www/{card}"),
+                False,
+            )
+            for card in cards
+        ]
+    )
     for card in cards:
         url = f"/yahatl/{card}"
-        hass.http.register_static_path(
-            url,
-            hass.config.path(f"custom_components/yahatl/www/{card}"),
-            cache_headers=False,
-        )
         # Auto-register as Lovelace resource (storage mode only)
         try:
             resource_url = f"{url}?v={VERSION}"

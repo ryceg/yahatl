@@ -145,7 +145,8 @@ async def websocket_item_save(hass, connection, msg):
 
 def async_register_websocket_commands(hass: HomeAssistant) -> None:
     """Register WebSocket commands with HA."""
-    hass.components.websocket_api.async_register_command(
+    websocket_api.async_register_command(
+        hass,
         "yahatl/item_details",
         websocket_item_details,
         vol.Schema({
@@ -154,7 +155,8 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Required("item_id"): str,
         }),
     )
-    hass.components.websocket_api.async_register_command(
+    websocket_api.async_register_command(
+        hass,
         "yahatl/items_list",
         websocket_items_list,
         vol.Schema({
@@ -162,7 +164,8 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Required("entity_id"): str,
         }),
     )
-    hass.components.websocket_api.async_register_command(
+    websocket_api.async_register_command(
+        hass,
         "yahatl/item_save",
         websocket_item_save,
         vol.Schema({

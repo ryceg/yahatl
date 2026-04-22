@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_STORAGE_KEY, DOMAIN
+from .const import CONF_LIST_NAME, CONF_STORAGE_KEY, DOMAIN
 from .reactivity import ReactivePipeline
 from .services import async_setup_services, async_unload_services
 from .store import get_store_path, YahtlStore
@@ -61,7 +61,24 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
-    # Store will be initialized by todo platform
+    # Initialize storage before forwarding to platforms so both todo and sensor
+    # can access it (platforms are forwarded concurrently).
+    storage_key = entry.data[CONF_STORAGE_KEY]
+    list_name = entry.data[CONF_LIST_NAME]
+    store_path = get_store_path(hass, storage_key)
+    store = YahtlStore(hass, store_path)
+
+    data = await store.async_load()
+    if data is None:
+        from .models import YahtlList
+        data = YahtlList(list_id=storage_key, name=list_name)
+        await store.async_save(data)
+
+    hass.data[DOMAIN][entry.entry_id] = {
+        "store": store,
+        "data": data,
+    }
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Start ReactivePipeline after platforms are set up

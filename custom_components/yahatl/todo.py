@@ -18,7 +18,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     COMPLETION_HISTORY_CAP,
-    CONF_LIST_NAME,
     CONF_STORAGE_KEY,
     DOMAIN,
     SIGNAL_YAHATL_UPDATED,
@@ -27,7 +26,7 @@ from .const import (
     TRAIT_ACTIONABLE,
 )
 from .models import CompletionRecord, YahtlItem, YahtlList
-from .store import YahtlStore, get_store_path
+from .store import YahtlStore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,26 +37,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     storage_key = config_entry.data[CONF_STORAGE_KEY]
-    list_name = config_entry.data[CONF_LIST_NAME]
 
-    # Initialize storage
-    store_path = get_store_path(hass, storage_key)
-    store = YahtlStore(hass, store_path)
-
-    # Load existing data or create new list
-    data = await store.async_load()
-    if data is None:
-        data = YahtlList(
-            list_id=storage_key,
-            name=list_name,
-        )
-        await store.async_save(data)
-
-    # Store reference for services
-    hass.data[DOMAIN][config_entry.entry_id] = {
-        "store": store,
-        "data": data,
-    }
+    entry_data = hass.data[DOMAIN][config_entry.entry_id]
+    store = entry_data["store"]
+    data = entry_data["data"]
 
     entity = YahtlTodoListEntity(
         store=store,

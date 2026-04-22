@@ -1,7 +1,10 @@
 """Constants for yahatl integration."""
 
+import json
+from pathlib import Path
+
 DOMAIN = "yahatl"
-VERSION = "0.3.1"
+VERSION = json.loads((Path(__file__).parent / "manifest.json").read_text())["version"]
 
 # Config keys
 CONF_LIST_NAME = "list_name"

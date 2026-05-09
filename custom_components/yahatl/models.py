@@ -58,8 +58,10 @@ class RecurrenceConfig:
     """Recurrence configuration for an item."""
 
     type: str  # calendar, elapsed, frequency
-    # For calendar: cron-style pattern
-    calendar_pattern: str | None = None
+    # For calendar: structured schedule
+    calendar_preset: str | None = None  # daily, weekdays, weekends
+    calendar_days: list[int] | None = None  # ISO weekdays 0=Mon..6=Sun
+    calendar_days_of_month: list[int] | None = None  # 1-31
     # For elapsed: interval and unit
     elapsed_interval: int | None = None
     elapsed_unit: str | None = None  # days, weeks, months, years
@@ -74,7 +76,9 @@ class RecurrenceConfig:
         """Convert to dictionary for storage."""
         return {
             "type": self.type,
-            "calendar_pattern": self.calendar_pattern,
+            "calendar_preset": self.calendar_preset,
+            "calendar_days": self.calendar_days,
+            "calendar_days_of_month": self.calendar_days_of_month,
             "elapsed_interval": self.elapsed_interval,
             "elapsed_unit": self.elapsed_unit,
             "frequency_count": self.frequency_count,
@@ -88,7 +92,9 @@ class RecurrenceConfig:
         """Create from dictionary."""
         return cls(
             type=data["type"],
-            calendar_pattern=data.get("calendar_pattern"),
+            calendar_preset=data.get("calendar_preset"),
+            calendar_days=data.get("calendar_days"),
+            calendar_days_of_month=data.get("calendar_days_of_month"),
             elapsed_interval=data.get("elapsed_interval"),
             elapsed_unit=data.get("elapsed_unit"),
             frequency_count=data.get("frequency_count"),
@@ -294,6 +300,9 @@ class YahtlItem:
     # Priority
     priority: str | None = None  # low, medium, high
 
+    # Assignment
+    assigned_to: list[str] = field(default_factory=list)  # HA user IDs
+
     # Tracking
     completion_history: list[CompletionRecord] = field(default_factory=list)
     current_streak: int = 0
@@ -332,6 +341,7 @@ class YahtlItem:
             "time_blockers": [tb.to_dict() for tb in self.time_blockers],
             "deferred_until": self.deferred_until.isoformat() if self.deferred_until else None,
             "priority": self.priority,
+            "assigned_to": self.assigned_to,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
             "last_completed": self.last_completed.isoformat() if self.last_completed else None,
@@ -367,6 +377,7 @@ class YahtlItem:
             ],
             deferred_until=datetime.fromisoformat(data["deferred_until"]) if data.get("deferred_until") else None,
             priority=data.get("priority"),
+            assigned_to=data.get("assigned_to", []),
             completion_history=[
                 CompletionRecord.from_dict(r)
                 for r in data.get("completion_history", [])

@@ -1,33 +1,98 @@
-# YAHATL Example Dashboard
-# Replace "my_list" with your actual list name.
-# No extra dependencies required — just the yahatl integration.
+# YAHATL Dashboard
+# Requires: Mushroom cards (HACS)
+# Replace entity names if your list is not called "yahatl".
 
 title: YAHATL
 views:
-  - title: Tasks
-    path: yahatl
+  - title: Planning
+    path: planning
+    icon: mdi:calendar-check
     cards:
+      - type: custom:mushroom-template-card
+        primary: Current Context
+        secondary: >-
+          {% set people = states | selectattr('domain', 'eq', 'person') |
+          selectattr('state', 'eq', 'home') | map(attribute='name') | list %}
+          {% set hour = now().hour %}
+          {% if hour < 6 %}{% set period = 'Night' %}
+          {% elif hour < 9 %}{% set period = 'Morning' %}
+          {% elif hour < 17 %}{% set period = 'Daytime' %}
+          {% elif hour < 21 %}{% set period = 'Evening' %}
+          {% else %}{% set period = 'Night' %}{% endif %}
+          {% if people %}Home{% else %}Away{% endif %} |
+          {{ people | join(', ') if people else 'Nobody home' }} | {{ period }}
+        icon: mdi:map-marker-account
+        icon_color: blue
+
       - type: horizontal-stack
         cards:
-          - type: entity
-            entity: sensor.yahatl_my_list_overdue
-            name: Overdue
-          - type: entity
-            entity: sensor.yahatl_my_list_due_today
-            name: Due Today
-          - type: entity
-            entity: sensor.yahatl_my_list_inbox_count
-            name: Inbox
-          - type: entity
-            entity: sensor.yahatl_my_list_streak_risk
-            name: Streaks
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_overdue') }}"
+            secondary: Overdue
+            icon: mdi:alert-circle
+            icon_color: >-
+              {% if states('sensor.yahatl_overdue') | int(0) > 0 %}red{% else %}green{% endif %}
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_due_today') }}"
+            secondary: Due Today
+            icon: mdi:calendar-today
+            icon_color: >-
+              {% if states('sensor.yahatl_due_today') | int(0) > 0 %}orange{% else %}green{% endif %}
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_blocked') }}"
+            secondary: Blocked
+            icon: mdi:block-helper
+            icon_color: grey
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_streak_risk') }}"
+            secondary: At Risk
+            icon: mdi:fire-alert
+            icon_color: >-
+              {% if states('sensor.yahatl_streak_risk') | int(0) > 0 %}orange{% else %}green{% endif %}
 
       - type: custom:yahatl-queue-card
-        entity: sensor.yahatl_my_list_queue
-        todo_entity: todo.yahatl_my_list
+        entity: sensor.yahatl_queue
+        todo_entity: todo.yahatl
         title: Up Next
         max_items: 8
 
       - type: todo-list
-        entity: todo.yahatl_my_list
+        entity: todo.yahatl
+        title: All Items
+
+  - title: Capture
+    path: capture
+    icon: mdi:inbox-arrow-down
+    cards:
+      - type: custom:mushroom-template-card
+        primary: "{{ states('sensor.yahatl_inbox') }} items need detail"
+        secondary: Awaiting triage
+        icon: mdi:inbox
+        icon_color: >-
+          {% set count = states('sensor.yahatl_inbox') | int(0) %}
+          {% if count == 0 %}green{% elif count < 5 %}orange{% else %}red{% endif %}
+
+      - type: todo-list
+        entity: todo.yahatl
+        title: All Items
+
+  - title: Notes
+    path: notes
+    icon: mdi:notebook
+    cards:
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_notes') }}"
+            secondary: Total Notes
+            icon: mdi:note-multiple
+            icon_color: teal
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.yahatl_inbox') }}"
+            secondary: Need Detail
+            icon: mdi:alert-decagram
+            icon_color: orange
+
+      - type: todo-list
+        entity: todo.yahatl
         title: All Items

@@ -47,9 +47,14 @@ ATTR_USER_ID = "user_id"
 ATTR_VISIBILITY = "visibility"
 ATTR_SHARED_WITH = "shared_with"
 
+# Assignment
+ATTR_ASSIGNED_TO = "assigned_to"
+
 # Recurrence attributes
 ATTR_RECURRENCE_TYPE = "recurrence_type"
-ATTR_CALENDAR_PATTERN = "calendar_pattern"
+ATTR_CALENDAR_PRESET = "calendar_preset"
+ATTR_CALENDAR_DAYS = "calendar_days"
+ATTR_CALENDAR_DAYS_OF_MONTH = "calendar_days_of_month"
 ATTR_ELAPSED_INTERVAL = "elapsed_interval"
 ATTR_ELAPSED_UNIT = "elapsed_unit"
 ATTR_FREQUENCY_COUNT = "frequency_count"
@@ -113,6 +118,7 @@ SERVICE_ADD_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DUE): cv.datetime,
         vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
         vol.Optional(ATTR_NEEDS_DETAIL, default=False): cv.boolean,
+        vol.Optional(ATTR_ASSIGNED_TO): vol.All(cv.ensure_list, [cv.string]),
     }
 )
 
@@ -152,7 +158,9 @@ SERVICE_SET_RECURRENCE_SCHEMA = vol.Schema(
         vol.Required(ATTR_ENTITY_ID): cv.entity_id,
         vol.Required(ATTR_ITEM_ID): cv.string,
         vol.Required(ATTR_RECURRENCE_TYPE): vol.In(["calendar", "elapsed", "frequency", "none"]),
-        vol.Optional(ATTR_CALENDAR_PATTERN): cv.string,
+        vol.Optional(ATTR_CALENDAR_PRESET): vol.In(["daily", "weekdays", "weekends"]),
+        vol.Optional(ATTR_CALENDAR_DAYS): vol.All(cv.ensure_list, [vol.In([0, 1, 2, 3, 4, 5, 6])]),
+        vol.Optional(ATTR_CALENDAR_DAYS_OF_MONTH): vol.All(cv.ensure_list, [vol.Range(min=1, max=31)]),
         vol.Optional(ATTR_ELAPSED_INTERVAL): cv.positive_int,
         vol.Optional(ATTR_ELAPSED_UNIT): vol.In(["days", "weeks", "months", "years"]),
         vol.Optional(ATTR_FREQUENCY_COUNT): cv.positive_int,
@@ -340,6 +348,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.time_estimate = call.data[ATTR_TIME_ESTIMATE]
         if ATTR_NEEDS_DETAIL in call.data:
             item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
+        if ATTR_ASSIGNED_TO in call.data:
+            item.assigned_to = call.data[ATTR_ASSIGNED_TO]
 
         list_data.add_item(item)
         await _save_and_refresh(hass, entry_id, store, list_data, "service:add_item")
@@ -490,7 +500,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             recurrence = RecurrenceConfig(type=recurrence_type)
 
             if recurrence_type == "calendar":
-                recurrence.calendar_pattern = call.data.get(ATTR_CALENDAR_PATTERN)
+                recurrence.calendar_preset = call.data.get(ATTR_CALENDAR_PRESET)
+                recurrence.calendar_days = call.data.get(ATTR_CALENDAR_DAYS)
+                recurrence.calendar_days_of_month = call.data.get(ATTR_CALENDAR_DAYS_OF_MONTH)
             elif recurrence_type == "elapsed":
                 recurrence.elapsed_interval = call.data.get(ATTR_ELAPSED_INTERVAL)
                 recurrence.elapsed_unit = call.data.get(ATTR_ELAPSED_UNIT, "days")

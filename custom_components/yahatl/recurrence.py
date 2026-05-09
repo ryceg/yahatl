@@ -16,16 +16,86 @@ def _unit_to_days(count: int, unit: str) -> int:
     return count * multipliers.get(unit, 1)
 
 
+def _get_calendar_period_days(recurrence: RecurrenceConfig) -> int | None:
+    """Get the effective period in days for a calendar recurrence."""
+    if recurrence.calendar_preset:
+        preset = recurrence.calendar_preset.lower()
+        if preset == "daily":
+            return 1
+        elif preset in ("weekdays", "weekends"):
+            return 1  # checked daily, filtered by day
+    if recurrence.calendar_days is not None:
+        return 7  # weekly cycle
+    if recurrence.calendar_days_of_month is not None:
+        return 30  # monthly cycle
+    return None
+
+
+def _next_matching_day(from_time: datetime, recurrence: RecurrenceConfig) -> datetime | None:
+    """Find the next date matching the calendar recurrence after from_time."""
+    if recurrence.calendar_preset:
+        preset = recurrence.calendar_preset.lower()
+        if preset == "daily":
+            return from_time + timedelta(days=1)
+        elif preset == "weekdays":
+            candidate = from_time + timedelta(days=1)
+            while candidate.weekday() >= 5:  # skip Sat/Sun
+                candidate += timedelta(days=1)
+            return candidate
+        elif preset == "weekends":
+            candidate = from_time + timedelta(days=1)
+            while candidate.weekday() < 5:  # skip Mon-Fri
+                candidate += timedelta(days=1)
+            return candidate
+
+    if recurrence.calendar_days is not None:
+        # Find next day-of-week that matches
+        # calendar_days uses ISO: 0=Mon..6=Sun
+        target_days = sorted(recurrence.calendar_days)
+        if not target_days:
+            return None
+        candidate = from_time + timedelta(days=1)
+        for _ in range(8):  # at most 7 days ahead
+            if candidate.weekday() in target_days:
+                return candidate
+            candidate += timedelta(days=1)
+        return None
+
+    if recurrence.calendar_days_of_month is not None:
+        target_days = sorted(recurrence.calendar_days_of_month)
+        if not target_days:
+            return None
+        candidate = from_time + timedelta(days=1)
+        for _ in range(62):  # at most ~2 months ahead
+            if candidate.day in target_days:
+                return candidate
+            candidate += timedelta(days=1)
+        return None
+
+    return None
+
+
+def _is_matching_day(dt: datetime, recurrence: RecurrenceConfig) -> bool:
+    """Check if a datetime falls on a day matching the calendar recurrence."""
+    if recurrence.calendar_preset:
+        preset = recurrence.calendar_preset.lower()
+        if preset == "daily":
+            return True
+        elif preset == "weekdays":
+            return dt.weekday() < 5
+        elif preset == "weekends":
+            return dt.weekday() >= 5
+
+    if recurrence.calendar_days is not None:
+        return dt.weekday() in recurrence.calendar_days
+
+    if recurrence.calendar_days_of_month is not None:
+        return dt.day in recurrence.calendar_days_of_month
+
+    return False
+
+
 def calculate_next_due(item: YahtlItem, completion_time: datetime | None = None) -> datetime | None:
-    """Calculate the next due date based on recurrence configuration.
-
-    Args:
-        item: The item with recurrence configuration
-        completion_time: When the item was completed (defaults to now)
-
-    Returns:
-        Next due date, or None if item doesn't recur
-    """
     if not item.recurrence:
         return None
 
@@ -33,71 +103,28 @@ def calculate_next_due(item: YahtlItem, completion_time: datetime | None = None)
     recurrence = item.recurrence
 
     if recurrence.type == "calendar":
-        # Calendar-based: use the pattern to calculate next occurrence
-        # For now, simple implementation - can be enhanced with croniter later
-        return _calculate_calendar_next(recurrence, completion_time)
-
+        return _next_matching_day(completion_time, recurrence)
     elif recurrence.type == "elapsed":
-        # Elapsed-based: add interval from last completion
         return _calculate_elapsed_next(recurrence, completion_time)
-
     elif recurrence.type == "frequency":
-        # Frequency-based: doesn't set a hard due date
-        # Instead, we track completions within the period
         return None  # Frequency goals don't have a "next due"
 
-    return None
-
-
-def _calculate_calendar_next(recurrence: RecurrenceConfig, from_time: datetime) -> datetime | None:
-    if not recurrence.calendar_pattern:
-        return None
-
-    # Simple pattern parsing (can be enhanced with croniter)
-    pattern = recurrence.calendar_pattern.lower()
-
-    # Handle simple patterns
-    if "daily" in pattern:
-        return from_time + timedelta(days=1)
-    elif "weekly" in pattern or "week" in pattern:
-        return from_time + timedelta(weeks=1)
-    elif "monthly" in pattern or "month" in pattern:
-        # Approximate: 30 days
-        return from_time + timedelta(days=30)
-    elif "yearly" in pattern or "year" in pattern:
-        return from_time + timedelta(days=365)
-
-    # For more complex patterns, would use croniter
-    _LOGGER.warning("Complex calendar pattern not yet supported: %s", pattern)
     return None
 
 
 def _calculate_elapsed_next(recurrence: RecurrenceConfig, from_time: datetime) -> datetime:
     interval = recurrence.elapsed_interval or 1
     unit = recurrence.elapsed_unit or "days"
-
     return from_time + timedelta(days=_unit_to_days(interval, unit))
 
 
 def calculate_streak(item: YahtlItem) -> int:
-    """Calculate current streak for habit tracking.
-
-    A streak is maintained if the item is completed at least once
-    within each period defined by the recurrence.
-
-    Args:
-        item: The item to calculate streak for
-
-    Returns:
-        Current streak count
-    """
     if not item.completion_history:
         return 0
 
     if not item.recurrence or "habit" not in item.traits:
         return 0
 
-    # Sort completion history by timestamp (most recent first)
     sorted_history = sorted(
         item.completion_history,
         key=lambda x: x.timestamp,
@@ -119,33 +146,20 @@ def calculate_streak(item: YahtlItem) -> int:
 
 
 def _calculate_calendar_streak(recurrence: RecurrenceConfig, history: list, now: datetime) -> int:
-    if not recurrence.calendar_pattern:
-        return 0
-
-    pattern = recurrence.calendar_pattern.lower()
-
-    # Determine period length
-    if "daily" in pattern:
-        period_days = 1
-    elif "weekly" in pattern:
-        period_days = 7
-    elif "monthly" in pattern:
-        period_days = 30
-    else:
+    period_days = _get_calendar_period_days(recurrence)
+    if not period_days:
         return 0
 
     streak = 0
     expected_time = now
 
     for completion in history:
-        # Check if completion falls within expected period
         period_start = expected_time - timedelta(days=period_days)
 
         if period_start <= completion.timestamp <= expected_time:
             streak += 1
             expected_time = period_start
         else:
-            # Gap found, streak broken
             break
 
     return streak
@@ -157,24 +171,19 @@ def _calculate_elapsed_streak(recurrence: RecurrenceConfig, history: list) -> in
 
     interval = recurrence.elapsed_interval or 1
     unit = recurrence.elapsed_unit or "days"
-
     interval_days = _unit_to_days(interval, unit)
 
-    streak = 1  # Start with most recent completion
+    streak = 1
 
     for i in range(len(history) - 1):
         current = history[i].timestamp
         previous = history[i + 1].timestamp
-
         days_between = (current - previous).days
-
-        # Allow some tolerance (20% grace period)
         max_days = interval_days * 1.2
 
         if days_between <= max_days:
             streak += 1
         else:
-            # Gap too large, streak broken
             break
 
     return streak
@@ -184,7 +193,6 @@ def _calculate_frequency_streak(recurrence: RecurrenceConfig, history: list, now
     target_count = recurrence.frequency_count or 1
     period = recurrence.frequency_period or 30
     unit = recurrence.frequency_unit or "days"
-
     period_days = _unit_to_days(period, unit)
 
     streak = 0
@@ -192,8 +200,6 @@ def _calculate_frequency_streak(recurrence: RecurrenceConfig, history: list, now
 
     while True:
         period_start = period_end - timedelta(days=period_days)
-
-        # Count completions in this period
         completions_in_period = sum(
             1 for c in history
             if period_start <= c.timestamp <= period_end
@@ -203,10 +209,8 @@ def _calculate_frequency_streak(recurrence: RecurrenceConfig, history: list, now
             streak += 1
             period_end = period_start
         else:
-            # Goal not met in this period, streak broken
             break
 
-        # Safety limit
         if streak > 1000:
             break
 
@@ -214,10 +218,6 @@ def _calculate_frequency_streak(recurrence: RecurrenceConfig, history: list, now
 
 
 def is_streak_at_risk(item: YahtlItem) -> bool:
-    """Check if a habit streak is at risk of being broken.
-
-    Returns True if the item needs to be completed today to maintain streak.
-    """
     if not item.recurrence or "habit" not in item.traits:
         return False
 
@@ -228,42 +228,22 @@ def is_streak_at_risk(item: YahtlItem) -> bool:
     now = datetime.now()
 
     if recurrence.type == "calendar":
-        pattern = (recurrence.calendar_pattern or "").lower()
-
-        if "daily" in pattern:
-            # Must complete each day
+        period_days = _get_calendar_period_days(recurrence)
+        if period_days:
             days_since = (now - item.last_completed).days
-            return days_since >= 1
-
-        elif "weekly" in pattern:
-            # Must complete within 7 days
-            days_since = (now - item.last_completed).days
-            return days_since >= 7
-
-        elif "monthly" in pattern:
-            # Must complete within 30 days
-            days_since = (now - item.last_completed).days
-            return days_since >= 30
+            return days_since >= period_days
 
     elif recurrence.type == "elapsed":
         interval = recurrence.elapsed_interval or 1
         unit = recurrence.elapsed_unit or "days"
-
         threshold_days = _unit_to_days(interval, unit)
-
         days_since = (now - item.last_completed).days
-        # At risk if we're within 1 day of the deadline
         return days_since >= (threshold_days - 1)
 
     return False
 
 
 def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
-    """Get progress toward frequency goal.
-
-    Returns:
-        Dict with count, target, period_end, days_remaining, threshold_priority
-    """
     if not item.recurrence or item.recurrence.type != "frequency":
         return {}
 
@@ -271,13 +251,11 @@ def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
     target_count = recurrence.frequency_count or 1
     period = recurrence.frequency_period or 30
     unit = recurrence.frequency_unit or "days"
-
     period_days = _unit_to_days(period, unit)
 
     now = datetime.now()
     period_start = now - timedelta(days=period_days)
 
-    # Count completions in current period
     count = sum(
         1 for c in item.completion_history
         if c.timestamp >= period_start
@@ -285,11 +263,9 @@ def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
 
     days_remaining = period_days
     if item.last_completed:
-        # Calculate from last completion
         days_since_start = (now - period_start).days
         days_remaining = period_days - days_since_start
 
-    # Check thresholds
     priority = None
     for threshold in sorted(recurrence.thresholds, key=lambda t: t.at_days_remaining, reverse=True):
         if days_remaining <= threshold.at_days_remaining:

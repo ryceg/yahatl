@@ -193,10 +193,12 @@ class YahtlQueueSensor(_YahtlBaseSensor):
         if self._pipeline:
             snap = self._pipeline.get_snapshot()
             if snap and snap.queue:
-                return snap.queue[0].get("title")
+                first = snap.queue[0]
+                return first.get("item", {}).get("title") if isinstance(first, dict) else None
             return None
         if self._queue_cache:
-            return self._queue_cache[0].get("title")
+            first = self._queue_cache[0]
+            return first.get("item", {}).get("title") if isinstance(first, dict) else None
         return None
 
     @property

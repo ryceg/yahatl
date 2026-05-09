@@ -21,43 +21,41 @@ PLATFORMS: list[Platform] = [Platform.TODO, Platform.SENSOR]
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     await async_setup_services(hass)
-    from .websocket_api import async_register_websocket_commands
-    async_register_websocket_commands(hass)
+    try:
+        from .websocket_api import async_register_websocket_commands
+        async_register_websocket_commands(hass)
+    except Exception:
+        _LOGGER.exception("Failed to register yahatl websocket commands")
 
-    # Register all frontend card resources and auto-register as Lovelace resources
+    # Register frontend bundle and auto-register as Lovelace resource
     from .const import VERSION
-    cards = [
-        "yahatl-item-card.js",
-        "yahatl-queue-card.js",
-        "yahatl-item-editor.js",
-    ]
+    bundle = "yahatl.js"
+    bundle_url = f"/yahatl/{bundle}"
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
-                f"/yahatl/{card}",
-                hass.config.path(f"custom_components/yahatl/www/{card}"),
+                bundle_url,
+                hass.config.path(f"custom_components/yahatl/www/{bundle}"),
                 False,
             )
-            for card in cards
         ]
     )
-    for card in cards:
-        url = f"/yahatl/{card}"
-        # Auto-register as Lovelace resource (storage mode only)
-        try:
-            resource_url = f"{url}?v={VERSION}"
-            resources = await hass.components.lovelace.resources.async_get_info()
-            # Remove stale versions of this card before adding the current one
-            for r in resources:
-                if r["url"].split("?")[0] == url and r["url"] != resource_url:
-                    await hass.components.lovelace.resources.async_delete_item(r["id"])
-            existing_urls = {r["url"] for r in resources}
-            if resource_url not in existing_urls:
-                await hass.components.lovelace.resources.async_create_item(
-                    {"res_type": "module", "url": resource_url}
-                )
-        except Exception:  # noqa: BLE001
-            _LOGGER.debug("Could not auto-register Lovelace resource %s", url)
+    try:
+        resource_url = f"{bundle_url}?v={VERSION}"
+        resources = await hass.components.lovelace.resources.async_get_info()
+        # Remove stale entries (old individual cards, old versions)
+        stale_prefixes = ["/yahatl/", "/local/yahatl"]
+        for r in resources:
+            r_base = r["url"].split("?")[0]
+            if any(r_base.startswith(p) for p in stale_prefixes) and r["url"] != resource_url:
+                await hass.components.lovelace.resources.async_delete_item(r["id"])
+        existing_urls = {r["url"] for r in resources}
+        if resource_url not in existing_urls:
+            await hass.components.lovelace.resources.async_create_item(
+                {"res_type": "module", "url": resource_url}
+            )
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning("Could not auto-register Lovelace resource %s", bundle_url)
 
     return True
 

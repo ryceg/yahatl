@@ -387,6 +387,12 @@ set_recurrence:
             - days
             - weeks
             - months
+    thresholds:
+      name: Thresholds
+      description: "List of frequency thresholds. Each: at_days_remaining (int), priority (low/medium/high/critical)."
+      required: false
+      selector:
+        object:
 
 set_blockers:
   name: Set Blockers
@@ -542,3 +548,78 @@ update_context:
       required: false
       selector:
         text:
+
+set_condition_triggers:
+  name: Set Condition Triggers
+  description: Set condition triggers that react to HA entity state changes to boost or set due dates.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    condition_triggers:
+      name: Condition Triggers
+      description: "List of triggers. Each trigger: entity_id, operator (eq/neq/gt/lt/gte/lte/bool), value, optional attribute, optional on_match (boost/set_due)."
+      required: true
+      selector:
+        object:
+
+set_time_blockers:
+  name: Set Time Blockers
+  description: Configure time-based blocking for an item (suppress during or allow only during time windows).
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item.
+      required: true
+      selector:
+        text:
+    time_blockers:
+      name: Time Blockers
+      description: "List of time blockers. Each: start_time (HH:MM), end_time (HH:MM), mode (suppress/allow), optional days (0=Mon..6=Sun)."
+      required: true
+      selector:
+        object:
+
+defer_item:
+  name: Defer Item
+  description: Defer an item until a future date/time. Omit deferred_until to clear the deferral.
+  fields:
+    entity_id:
+      name: Entity
+      description: The yahatl list entity.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to defer.
+      required: true
+      selector:
+        text:
+    deferred_until:
+      name: Deferred Until
+      description: Defer until this date/time. Omit to clear deferral.
+      required: false
+      selector:
+        datetime:

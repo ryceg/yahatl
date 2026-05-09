@@ -208,6 +208,7 @@ class QueueEngine:
         *,
         context: dict[str, Any] | None = None,
         available_time: int | None = None,
+        user_id: str | None = None,
     ) -> QueueResult:
         """Generate prioritized queue with aggregates in a single pass."""
         if context is None:
@@ -215,14 +216,25 @@ class QueueEngine:
         if "time_constraint" not in context:
             context["time_constraint"] = _get_time_constraint()
 
-        resolver = BlockerResolver(self._hass, all_lists)
+        # Filter lists by user visibility
+        visible_lists = all_lists
+        if user_id:
+            visible_lists = [
+                lst for lst in all_lists
+                if not lst.owner  # no owner = visible to all
+                or lst.owner == user_id
+                or (lst.visibility == "shared"
+                    and (not lst.shared_with or user_id in lst.shared_with))
+            ]
+
+        resolver = BlockerResolver(self._hass, visible_lists)
         now = datetime.now()
         candidates: list[dict[str, Any]] = []
         blocked_count = 0
         overdue_count = 0
         due_today_count = 0
 
-        for yahatl_list in all_lists:
+        for yahatl_list in visible_lists:
             for item in yahatl_list.items:
                 if "actionable" not in item.traits:
                     continue
@@ -231,6 +243,9 @@ class QueueEngine:
                 if available_time and item.time_estimate and item.time_estimate > available_time:
                     continue
                 if item.deferred_until and now < item.deferred_until:
+                    continue
+                # Skip items assigned to someone else
+                if user_id and item.assigned_to and user_id not in item.assigned_to:
                     continue
 
                 if item.due:

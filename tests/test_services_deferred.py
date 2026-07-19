@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from homeassistant.util import dt as dt_util
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -16,7 +17,7 @@ class TestUpdateItemDeferred:
         """Test that the update_item schema allows deferred_until field."""
         from custom_components.yahatl.services import SERVICE_UPDATE_ITEM_SCHEMA
 
-        tomorrow = datetime.now() + timedelta(days=1)
+        tomorrow = dt_util.now() + timedelta(days=1)
         data = {
             "entity_id": "todo.yahatl_test",
             "item_id": "abc-123",

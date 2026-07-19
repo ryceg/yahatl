@@ -58,6 +58,10 @@ export class YahtlStatsCard extends LitElement {
 
   setConfig(_config: Record<string, unknown>) {}
 
+  static getStubConfig(): Record<string, unknown> {
+    return {};
+  }
+
   render() {
     const q = this._store.state.queue;
     if (!q) {

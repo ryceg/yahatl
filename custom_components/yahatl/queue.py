@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
+
+from homeassistant.util import dt as dt_util
 
 from .blockers import BlockerResolver, check_requirements_met
 from .recurrence import is_streak_at_risk, get_frequency_progress
@@ -51,7 +53,7 @@ async def _calculate_score(
     - Context match quality: +10
     """
     score = 0
-    now = datetime.now()
+    now = dt_util.now()
 
     # Due date scoring
     if item.due:
@@ -177,7 +179,7 @@ def get_current_context_from_hass(hass: HomeAssistant) -> dict[str, Any]:
 
 def _get_time_constraint() -> str:
     """Get current time constraint based on time of day and day of week."""
-    now = datetime.now()
+    now = dt_util.now()
 
     # Check if weekend
     if now.weekday() >= 5:  # Saturday = 5, Sunday = 6
@@ -228,7 +230,7 @@ class QueueEngine:
             ]
 
         resolver = BlockerResolver(self._hass, visible_lists)
-        now = datetime.now()
+        now = dt_util.now()
         candidates: list[dict[str, Any]] = []
         blocked_count = 0
         overdue_count = 0

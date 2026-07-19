@@ -17,6 +17,9 @@ TRAIT_HABIT = "habit"
 TRAIT_CHORE = "chore"
 TRAIT_REMINDER = "reminder"
 TRAIT_NOTE = "note"
+TRAIT_SOMEDAY = "someday"
+TRAIT_SHOPPING = "shopping"
+TRAIT_GIFT = "gift"
 
 ALL_TRAITS = [
     TRAIT_ACTIONABLE,
@@ -25,7 +28,13 @@ ALL_TRAITS = [
     TRAIT_CHORE,
     TRAIT_REMINDER,
     TRAIT_NOTE,
+    TRAIT_SOMEDAY,
+    TRAIT_SHOPPING,
+    TRAIT_GIFT,
 ]
+
+# Mutually exclusive trait pairs
+EXCLUSIVE_TRAITS = {TRAIT_ACTIONABLE, TRAIT_SOMEDAY}
 
 # Item status
 STATUS_PENDING = "pending"

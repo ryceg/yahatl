@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from homeassistant.util import dt as dt_util
 from unittest.mock import MagicMock, patch
 
 from custom_components.yahatl.blockers import BlockerResolver, BlockResult
@@ -50,7 +51,7 @@ class TestBlockerResolverConstruction:
 class TestResolveSyncDeferral:
     def test_deferred_item_is_blocked(self):
         item = YahtlItem.create(title="Deferred")
-        item.deferred_until = datetime.now() + timedelta(hours=1)
+        item.deferred_until = dt_util.now() + timedelta(hours=1)
         resolver = BlockerResolver(None, [])
         result = resolver.resolve_sync(item)
         assert result.blocked is True
@@ -58,7 +59,7 @@ class TestResolveSyncDeferral:
 
     def test_expired_deferral_not_blocked(self):
         item = YahtlItem.create(title="Was Deferred")
-        item.deferred_until = datetime.now() - timedelta(hours=1)
+        item.deferred_until = dt_util.now() - timedelta(hours=1)
         resolver = BlockerResolver(None, [])
         result = resolver.resolve_sync(item)
         assert result.blocked is False

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -19,20 +20,30 @@ from custom_components.yahatl.websocket_api import (
 )
 
 
+def _unwrap(fn):
+    """Unwrap @websocket_api.async_response decorator to get the inner async function."""
+    # The decorator stores the original function; we can access it via __wrapped__
+    # or by looking at the closure. Fallback to calling directly if not wrapped.
+    return getattr(fn, "__wrapped__", fn)
+
+
 def _make_hass_with_list(yahatl_list, store=None):
-    """Create a mock hass with a yahatl list loaded."""
+    """Create a mock hass with a yahatl list loaded on a config entry.
+
+    Per-entry state now lives on entry.runtime_data, reached via
+    hass.config_entries — so we stub those rather than hass.data[DOMAIN].
+    """
     hass = MagicMock()
     mock_store = store or MagicMock()
     mock_store.async_save = AsyncMock()
     mock_store.data = yahatl_list
-    hass.data = {
-        "yahatl": {
-            "entry_1": {
-                "data": yahatl_list,
-                "store": mock_store,
-            }
-        }
-    }
+    coordinator = MagicMock()
+    coordinator.async_request_refresh = AsyncMock()
+    runtime = SimpleNamespace(data=yahatl_list, store=mock_store, coordinator=coordinator)
+    entry = SimpleNamespace(entry_id="entry_1", runtime_data=runtime)
+    hass.config_entries.async_entries = MagicMock(return_value=[entry])
+    hass.config_entries.async_get_entry = MagicMock(return_value=entry)
+    hass.data = {"yahatl": {}}  # only global state (meta_store, context) lives here now
     hass.bus = MagicMock()
     hass.bus.async_fire = AsyncMock()
     return hass, mock_store
@@ -44,7 +55,7 @@ class TestWebsocketItemDetails:
         item = YahtlItem.create(title="Test Task")
         item.traits = ["actionable", "habit"]
         item.tags = ["urgent"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
 
         yahatl_list = YahtlList(list_id="yahatl_test", name="Test")
         yahatl_list.add_item(item)
@@ -53,7 +64,7 @@ class TestWebsocketItemDetails:
         connection = MagicMock()
         msg = {"id": 1, "entity_id": "todo.yahatl_test", "item_id": item.uid}
 
-        await websocket_item_details(hass, connection, msg)
+        await _unwrap(websocket_item_details)(hass, connection, msg)
 
         connection.send_result.assert_called_once()
         result = connection.send_result.call_args[0][1]
@@ -70,7 +81,7 @@ class TestWebsocketItemDetails:
         connection = MagicMock()
         msg = {"id": 1, "entity_id": "todo.yahatl_test", "item_id": "nonexistent"}
 
-        await websocket_item_details(hass, connection, msg)
+        await _unwrap(websocket_item_details)(hass, connection, msg)
 
         connection.send_error.assert_called_once()
 
@@ -91,7 +102,7 @@ class TestWebsocketItemsList:
         connection = MagicMock()
         msg = {"id": 1, "entity_id": "todo.yahatl_test"}
 
-        await websocket_items_list(hass, connection, msg)
+        await _unwrap(websocket_items_list)(hass, connection, msg)
 
         connection.send_result.assert_called_once()
         result = connection.send_result.call_args[0][1]
@@ -120,7 +131,7 @@ class TestWebsocketItemSave:
             "priority": "high",
         }
 
-        await websocket_item_save(hass, connection, msg)
+        await _unwrap(websocket_item_save)(hass, connection, msg)
 
         assert item.title == "Updated"
         assert item.description == "New desc"
@@ -144,7 +155,7 @@ class TestWebsocketItemSave:
             "tags": ["fitness", "daily"],
         }
 
-        await websocket_item_save(hass, connection, msg)
+        await _unwrap(websocket_item_save)(hass, connection, msg)
 
         assert item.traits == ["actionable", "habit"]
         assert item.tags == ["fitness", "daily"]
@@ -164,7 +175,7 @@ class TestWebsocketItemSave:
             "recurrence": {"type": "elapsed", "elapsed_interval": 7, "elapsed_unit": "days"},
         }
 
-        await websocket_item_save(hass, connection, msg)
+        await _unwrap(websocket_item_save)(hass, connection, msg)
 
         assert item.recurrence is not None
         assert item.recurrence.type == "elapsed"
@@ -173,7 +184,7 @@ class TestWebsocketItemSave:
     @pytest.mark.asyncio
     async def test_clears_recurrence_with_none(self):
         item = YahtlItem.create(title="Task")
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
         yahatl_list = YahtlList(list_id="yahatl_test", name="Test")
         yahatl_list.add_item(item)
 
@@ -186,7 +197,7 @@ class TestWebsocketItemSave:
             "recurrence": None,
         }
 
-        await websocket_item_save(hass, connection, msg)
+        await _unwrap(websocket_item_save)(hass, connection, msg)
 
         assert item.recurrence is None
 
@@ -211,7 +222,7 @@ class TestWebsocketItemSave:
             },
         }
 
-        await websocket_item_save(hass, connection, msg)
+        await _unwrap(websocket_item_save)(hass, connection, msg)
 
         assert item.blockers is not None
         assert item.blockers.mode == "ANY"
@@ -232,7 +243,7 @@ class TestWebsocketItemSave:
             "title": "Updated",
         }
 
-        await websocket_item_save(hass, connection, msg)
+        await _unwrap(websocket_item_save)(hass, connection, msg)
 
         result = connection.send_result.call_args[0][1]
         assert result["title"] == "Updated"

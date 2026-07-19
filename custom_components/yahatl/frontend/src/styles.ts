@@ -8,6 +8,9 @@ export const TRAIT_ICONS: Record<string, string> = {
   chore: "mdi:home",
   reminder: "mdi:bell",
   note: "mdi:note-text",
+  someday: "mdi:clock-outline",
+  shopping: "mdi:cart",
+  gift: "mdi:gift",
 };
 
 // Trait → RGB token name mapping
@@ -18,6 +21,9 @@ export const TRAIT_RGB: Record<string, string> = {
   chore: "var(--rgb-orange, 255, 152, 0)",
   reminder: "var(--rgb-pink, 233, 30, 99)",
   note: "var(--rgb-purple, 146, 107, 199)",
+  someday: "var(--rgb-blue-grey, 96, 125, 139)",
+  shopping: "var(--rgb-teal, 0, 150, 136)",
+  gift: "var(--rgb-amber, 255, 179, 0)",
 };
 
 // Priority → RGB token
@@ -119,7 +125,7 @@ export const sharedStyles = css`
 
   .card-header {
     padding: 16px 16px 6px;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 500;
     letter-spacing: 0.15px;
     color: var(--yahatl-text);
@@ -175,9 +181,9 @@ export const sharedStyles = css`
   }
 
   .mush-state-info__primary {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
-    line-height: 20px;
+    line-height: 22px;
     letter-spacing: 0.1px;
     color: var(--yahatl-text);
     overflow: hidden;
@@ -186,9 +192,9 @@ export const sharedStyles = css`
   }
 
   .mush-state-info__secondary {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 400;
-    line-height: 16px;
+    line-height: 18px;
     letter-spacing: 0.4px;
     color: var(--yahatl-text);
     opacity: 0.7;
@@ -219,7 +225,7 @@ export const sharedStyles = css`
     padding: 0 14px;
     cursor: pointer;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 15px;
     letter-spacing: 0.1px;
     line-height: 1;
     font-family: inherit;
@@ -300,11 +306,11 @@ export const sharedStyles = css`
   .queue-btn {
     border: 0;
     border-radius: 8px;
-    padding: 7px 12px;
+    padding: 8px 14px;
     background: rgba(var(--rgb-primary-color), 0.20);
     color: rgb(var(--rgb-primary-color));
     font-weight: 500;
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
     letter-spacing: 0.1px;
     font-family: inherit;
@@ -318,8 +324,8 @@ export const sharedStyles = css`
 
   /* ── Meta text (secondary info line in queue rows) ── */
   .queue-meta {
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 13px;
+    line-height: 18px;
     letter-spacing: 0.4px;
     color: var(--yahatl-text-secondary);
   }
@@ -373,7 +379,7 @@ export const sharedStyles = css`
   }
 
   .field__label {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--yahatl-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -383,11 +389,11 @@ export const sharedStyles = css`
   .input,
   .textarea,
   .select {
-    padding: 10px 12px;
+    padding: 11px 13px;
     border: 1px solid var(--yahatl-divider);
     border-radius: 10px;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 16px;
     background: var(--yahatl-card-bg);
     color: var(--yahatl-text);
     width: 100%;
@@ -422,7 +428,7 @@ export const sharedStyles = css`
     border-radius: 999px;
     border: 1px solid var(--yahatl-divider);
     background: var(--yahatl-card-bg);
-    font-size: 13px;
+    font-size: 15px;
     cursor: pointer;
     color: var(--yahatl-text-secondary);
     letter-spacing: 0.1px;
@@ -438,7 +444,7 @@ export const sharedStyles = css`
   }
 
   .trait-toggle ha-icon {
-    --mdc-icon-size: 16px;
+    --mdc-icon-size: 18px;
     color: inherit;
   }
 
@@ -450,7 +456,7 @@ export const sharedStyles = css`
     padding: 4px 10px;
     background: rgba(var(--rgb-primary-text-color), 0.05);
     color: var(--yahatl-text);
-    font-size: 12px;
+    font-size: 13px;
     border-radius: 4px;
     letter-spacing: 0.4px;
   }
@@ -468,10 +474,10 @@ export const sharedStyles = css`
 
   /* ── Buttons (modal footer etc) ── */
   .btn {
-    padding: 9px 18px;
+    padding: 10px 20px;
     border: 0;
     border-radius: 10px;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     cursor: pointer;
     letter-spacing: 0.1px;
@@ -504,7 +510,7 @@ export const sharedStyles = css`
     padding: 24px 16px;
     text-align: center;
     color: var(--yahatl-text-secondary);
-    font-size: 14px;
+    font-size: 15px;
   }
 
   /* ── Screen-reader only ── */

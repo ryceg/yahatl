@@ -96,3 +96,9 @@ views:
       - type: todo-list
         entity: todo.yahatl
         title: All Items
+
+  - title: Manage
+    path: manage
+    icon: mdi:cog
+    cards:
+      - type: custom:yahatl-manage-card

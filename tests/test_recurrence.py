@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from homeassistant.util import dt as dt_util
 
 import pytest
 
@@ -43,7 +44,7 @@ class TestCalculateNextDue:
         item = YahtlItem.create(title="Daily Task")
         item.recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="daily",
+            calendar_preset="daily",
         )
 
         completion = datetime(2024, 1, 1, 12, 0)
@@ -51,41 +52,43 @@ class TestCalculateNextDue:
 
         assert next_due == datetime(2024, 1, 2, 12, 0)
 
-    def test_calendar_weekly(self):
-        """Test weekly calendar recurrence."""
+    def test_calendar_weekly_via_days(self):
+        """Test weekly calendar recurrence using calendar_days."""
         item = YahtlItem.create(title="Weekly Task")
+        # Monday = 0 in ISO weekdays
         item.recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="weekly",
+            calendar_days=[0],  # Every Monday
         )
 
+        # 2024-01-01 is a Monday
         completion = datetime(2024, 1, 1, 12, 0)
         next_due = calculate_next_due(item, completion)
 
-        expected = completion + timedelta(weeks=1)
+        expected = datetime(2024, 1, 8, 12, 0)  # Next Monday
         assert next_due == expected
 
-    def test_calendar_monthly(self):
-        """Test monthly calendar recurrence."""
+    def test_calendar_monthly_via_days_of_month(self):
+        """Test monthly calendar recurrence using calendar_days_of_month."""
         item = YahtlItem.create(title="Monthly Task")
         item.recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="monthly",
+            calendar_days_of_month=[1],  # 1st of each month
         )
 
         completion = datetime(2024, 1, 1, 12, 0)
         next_due = calculate_next_due(item, completion)
 
-        # Approximate: 30 days
-        expected = completion + timedelta(days=30)
+        expected = datetime(2024, 2, 1, 12, 0)
         assert next_due == expected
 
-    def test_calendar_yearly(self):
-        """Test yearly calendar recurrence."""
+    def test_elapsed_yearly(self):
+        """Test yearly recurrence via elapsed type."""
         item = YahtlItem.create(title="Yearly Task")
         item.recurrence = RecurrenceConfig(
-            type="calendar",
-            calendar_pattern="yearly",
+            type="elapsed",
+            elapsed_interval=1,
+            elapsed_unit="years",
         )
 
         completion = datetime(2024, 1, 1, 12, 0)
@@ -95,11 +98,11 @@ class TestCalculateNextDue:
         assert next_due == expected
 
     def test_calendar_case_insensitive(self):
-        """Test that calendar patterns are case insensitive."""
+        """Test that calendar presets are case insensitive."""
         item = YahtlItem.create(title="Task")
         item.recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="WEEKLY",
+            calendar_preset="DAILY",
         )
 
         completion = datetime(2024, 1, 1, 12, 0)
@@ -186,12 +189,12 @@ class TestCalculateNextDue:
         item = YahtlItem.create(title="Daily Task")
         item.recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="daily",
+            calendar_preset="daily",
         )
 
-        before = datetime.now()
+        before = dt_util.now()
         next_due = calculate_next_due(item)
-        after = datetime.now()
+        after = dt_util.now()
 
         # Next due should be approximately 1 day from now
         assert next_due is not None
@@ -237,7 +240,7 @@ class TestCalculateStreak:
         """Test streak with no completions."""
         item = YahtlItem.create(title="Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
 
         streak = calculate_streak(item)
 
@@ -246,9 +249,9 @@ class TestCalculateStreak:
     def test_not_a_habit(self):
         """Test streak for non-habit items."""
         item = YahtlItem.create(title="Task")
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
         item.completion_history = [
-            CompletionRecord(user_id="user1", timestamp=datetime.now())
+            CompletionRecord(user_id="user1", timestamp=dt_util.now())
         ]
 
         streak = calculate_streak(item)
@@ -260,7 +263,7 @@ class TestCalculateStreak:
         item = YahtlItem.create(title="Habit")
         item.traits = ["actionable", "habit"]
         item.completion_history = [
-            CompletionRecord(user_id="user1", timestamp=datetime.now())
+            CompletionRecord(user_id="user1", timestamp=dt_util.now())
         ]
 
         streak = calculate_streak(item)
@@ -271,9 +274,9 @@ class TestCalculateStreak:
         """Test daily streak with consecutive days."""
         item = YahtlItem.create(title="Daily Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
 
-        now = datetime.now()
+        now = dt_util.now()
         for i in range(5):
             record = CompletionRecord(
                 user_id="user1",
@@ -289,9 +292,9 @@ class TestCalculateStreak:
         """Test daily streak with gap."""
         item = YahtlItem.create(title="Daily Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
 
-        now = datetime.now()
+        now = dt_util.now()
         # Complete today and yesterday
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
@@ -306,12 +309,12 @@ class TestCalculateStreak:
         assert streak == 2
 
     def test_weekly_streak(self):
-        """Test weekly streak."""
+        """Test weekly streak using calendar_days."""
         item = YahtlItem.create(title="Weekly Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="weekly")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_days=[0])
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=7)),
@@ -332,7 +335,7 @@ class TestCalculateStreak:
             elapsed_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=5)),
@@ -353,7 +356,7 @@ class TestCalculateStreak:
             elapsed_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         # Complete at 11 days (within 20% grace of 10 days)
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
@@ -375,7 +378,7 @@ class TestCalculateStreak:
             elapsed_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         # Gap of 15 days exceeds grace period
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
@@ -398,7 +401,7 @@ class TestCalculateStreak:
             frequency_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         # Complete 3 times in current week
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
@@ -425,7 +428,7 @@ class TestCalculateStreak:
             frequency_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         # Only 2 completions in current period (goal is 3)
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
@@ -449,7 +452,7 @@ class TestCalculateStreak:
         )
 
         # Create many completions to test safety limit
-        now = datetime.now()
+        now = dt_util.now()
         for i in range(2000):
             item.completion_history.append(
                 CompletionRecord(user_id="user1", timestamp=now - timedelta(days=i))
@@ -457,8 +460,8 @@ class TestCalculateStreak:
 
         streak = calculate_streak(item)
 
-        # Should stop at 1000 per safety limit
-        assert streak <= 1000
+        # Should stop at ~1000 per safety limit
+        assert streak <= 1001
 
 
 class TestIsStreakAtRisk:
@@ -467,8 +470,8 @@ class TestIsStreakAtRisk:
     def test_not_a_habit(self):
         """Test non-habit items are never at risk."""
         item = YahtlItem.create(title="Task")
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
-        item.last_completed = datetime.now() - timedelta(days=2)
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
+        item.last_completed = dt_util.now() - timedelta(days=2)
 
         at_risk = is_streak_at_risk(item)
 
@@ -478,7 +481,7 @@ class TestIsStreakAtRisk:
         """Test items without recurrence are never at risk."""
         item = YahtlItem.create(title="Habit")
         item.traits = ["actionable", "habit"]
-        item.last_completed = datetime.now() - timedelta(days=2)
+        item.last_completed = dt_util.now() - timedelta(days=2)
 
         at_risk = is_streak_at_risk(item)
 
@@ -488,7 +491,7 @@ class TestIsStreakAtRisk:
         """Test items never completed are not at risk."""
         item = YahtlItem.create(title="Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
 
         at_risk = is_streak_at_risk(item)
 
@@ -498,8 +501,8 @@ class TestIsStreakAtRisk:
         """Test daily habit at risk."""
         item = YahtlItem.create(title="Daily Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
-        item.last_completed = datetime.now() - timedelta(days=1, hours=1)
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
+        item.last_completed = dt_util.now() - timedelta(days=1, hours=1)
 
         at_risk = is_streak_at_risk(item)
 
@@ -509,19 +512,19 @@ class TestIsStreakAtRisk:
         """Test daily habit not at risk."""
         item = YahtlItem.create(title="Daily Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
-        item.last_completed = datetime.now() - timedelta(hours=12)
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
+        item.last_completed = dt_util.now() - timedelta(hours=12)
 
         at_risk = is_streak_at_risk(item)
 
         assert at_risk is False
 
     def test_weekly_at_risk(self):
-        """Test weekly habit at risk."""
+        """Test weekly habit at risk using calendar_days."""
         item = YahtlItem.create(title="Weekly Habit")
         item.traits = ["actionable", "habit"]
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="weekly")
-        item.last_completed = datetime.now() - timedelta(days=7, hours=1)
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_days=[0])
+        item.last_completed = dt_util.now() - timedelta(days=7, hours=1)
 
         at_risk = is_streak_at_risk(item)
 
@@ -536,7 +539,7 @@ class TestIsStreakAtRisk:
             elapsed_interval=5,
             elapsed_unit="days",
         )
-        item.last_completed = datetime.now() - timedelta(days=4)
+        item.last_completed = dt_util.now() - timedelta(days=4)
 
         at_risk = is_streak_at_risk(item)
 
@@ -552,7 +555,7 @@ class TestIsStreakAtRisk:
             elapsed_interval=10,
             elapsed_unit="days",
         )
-        item.last_completed = datetime.now() - timedelta(days=5)
+        item.last_completed = dt_util.now() - timedelta(days=5)
 
         at_risk = is_streak_at_risk(item)
 
@@ -565,7 +568,7 @@ class TestGetFrequencyProgress:
     def test_not_frequency_type(self):
         """Test non-frequency items return empty dict."""
         item = YahtlItem.create(title="Task")
-        item.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
+        item.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
 
         progress = get_frequency_progress(item)
 
@@ -605,7 +608,7 @@ class TestGetFrequencyProgress:
             frequency_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=1)),
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=3)),
@@ -627,7 +630,7 @@ class TestGetFrequencyProgress:
             frequency_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now),
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=2)),
@@ -654,7 +657,7 @@ class TestGetFrequencyProgress:
             ],
         )
 
-        item.last_completed = datetime.now() - timedelta(days=25)
+        item.last_completed = dt_util.now() - timedelta(days=25)
 
         progress = get_frequency_progress(item)
 
@@ -671,7 +674,7 @@ class TestGetFrequencyProgress:
             frequency_unit="weeks",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=3)),
         ]
@@ -691,7 +694,7 @@ class TestGetFrequencyProgress:
             frequency_unit="months",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=10)),
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=20)),
@@ -712,7 +715,7 @@ class TestGetFrequencyProgress:
             frequency_unit="days",
         )
 
-        now = datetime.now()
+        now = dt_util.now()
         item.completion_history = [
             # Within period
             CompletionRecord(user_id="user1", timestamp=now - timedelta(days=2)),

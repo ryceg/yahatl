@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+
+from homeassistant.util import dt as dt_util
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+from .lead import lead_block_reason
 from .models import BlockerConfig, YahtlItem, YahtlList
 
 
@@ -39,12 +42,15 @@ class BlockerResolver:
                 self._uid_index[item.uid] = item
 
     def resolve_sync(self, item: YahtlItem) -> BlockResult:
-        """Sync-safe subset: deferral + time windows + item dependencies only."""
-        if item.deferred_until and datetime.now() < item.deferred_until:
+        """Sync-safe subset: deferral + lead + time windows + item dependencies only."""
+        if item.deferred_until and dt_util.now() < item.deferred_until:
             return BlockResult(
                 blocked=True,
                 reasons=[f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"],
             )
+        lead_reason = lead_block_reason(item)
+        if lead_reason:
+            return BlockResult(blocked=True, reasons=[lead_reason])
         time_blocked, time_reasons = is_time_blocked(item)
         if time_blocked:
             return BlockResult(blocked=True, reasons=time_reasons)
@@ -68,12 +74,15 @@ class BlockerResolver:
             return all_incomplete, incomplete if all_incomplete else []
 
     def resolve(self, item: YahtlItem) -> BlockResult:
-        """Full resolution: deferral + time windows + item deps + sensor states. Sync."""
-        if item.deferred_until and datetime.now() < item.deferred_until:
+        """Full resolution: deferral + lead + time windows + item deps + sensor states. Sync."""
+        if item.deferred_until and dt_util.now() < item.deferred_until:
             return BlockResult(
                 blocked=True,
                 reasons=[f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"],
             )
+        lead_reason = lead_block_reason(item)
+        if lead_reason:
+            return BlockResult(blocked=True, reasons=[lead_reason])
         time_blocked, time_reasons = is_time_blocked(item)
         if time_blocked:
             return BlockResult(blocked=True, reasons=time_reasons)
@@ -131,7 +140,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def _now_time() -> tuple[time, int]:
     """Return (current_time, weekday). Extracted for test patching."""
-    now = datetime.now()
+    now = dt_util.now()
     return now.time(), now.weekday()
 
 
@@ -175,6 +184,62 @@ def is_time_blocked(item: YahtlItem) -> tuple[bool, list[str]]:
             return True, [f"only allowed during {tb.start_time}-{tb.end_time}"]
 
     return False, []
+
+
+def is_time_blocked_at(item: YahtlItem, when: datetime) -> tuple[bool, list[str]]:
+    """Like is_time_blocked, but evaluated at an arbitrary datetime.
+
+    Used to look forward and find the next moment an item is schedulable.
+    """
+    if not item.time_blockers:
+        return False, []
+
+    now_t = when.time()
+    weekday = when.weekday()
+
+    for tb in item.time_blockers:
+        if tb.days is not None and weekday not in tb.days:
+            continue
+
+        start = time.fromisoformat(tb.start_time)
+        end = time.fromisoformat(tb.end_time)
+
+        if start <= end:
+            in_window = start <= now_t < end
+        else:
+            in_window = now_t >= start or now_t < end
+
+        if tb.mode == "suppress" and in_window:
+            return True, [f"suppressed during {tb.start_time}-{tb.end_time}"]
+        if tb.mode == "allow" and not in_window:
+            return True, [f"only allowed during {tb.start_time}-{tb.end_time}"]
+
+    return False, []
+
+
+def next_valid_time(item: YahtlItem, from_dt: datetime) -> datetime:
+    """Find the next time the item is schedulable, skipping the rest of today.
+
+    Scans from the start of the day *after* from_dt, in 30-minute steps, up to
+    14 days ahead, returning the first moment the item is not time-blocked.
+
+    This makes "delay" push a task to its next valid period: a weekend-only task
+    delayed on Saturday lands on Sunday; delayed on Sunday it lands next Saturday.
+    Falls back to the start of the next day if no window is found (e.g. no
+    schedule constraints, or an always-blocked item).
+    """
+    day_start = (from_dt + timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    step = timedelta(minutes=30)
+    cursor = day_start
+    limit = day_start + timedelta(days=14)
+    while cursor < limit:
+        blocked, _ = is_time_blocked_at(item, cursor)
+        if not blocked:
+            return cursor
+        cursor += step
+    return day_start
 
 
 async def check_requirements_met(

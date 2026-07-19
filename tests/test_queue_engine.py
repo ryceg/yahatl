@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from freezegun import freeze_time
+from homeassistant.util import dt as dt_util
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,7 +22,7 @@ class TestQueueResult:
             blocked_count=0,
             next_task_title=None,
             total_actionable=0,
-            generated_at=datetime.now(),
+            generated_at=dt_util.now(),
         )
         assert result.items == []
         assert result.overdue_count == 0
@@ -29,7 +31,7 @@ class TestQueueResult:
         result = QueueResult(
             items=[], context={}, overdue_count=0, due_today_count=0,
             blocked_count=0, next_task_title=None, total_actionable=0,
-            generated_at=datetime.now(),
+            generated_at=dt_util.now(),
         )
         try:
             result.overdue_count = 5
@@ -51,7 +53,7 @@ class TestQueueEngineGenerate:
     @pytest.mark.asyncio
     async def test_scores_and_sorts_items(self, mock_hass):
         overdue = YahtlItem.create(title="Overdue")
-        overdue.due = datetime.now() - timedelta(days=1)
+        overdue.due = dt_util.now() - timedelta(days=1)
 
         normal = YahtlItem.create(title="Normal")
 
@@ -97,12 +99,13 @@ class TestQueueEngineGenerate:
         assert "time_constraint" in result.context
 
     @pytest.mark.asyncio
+    @freeze_time("2026-06-15 12:00:00")
     async def test_due_today_count(self, mock_hass):
         today = YahtlItem.create(title="Today")
-        today.due = datetime.now() + timedelta(hours=2)
+        today.due = dt_util.now() + timedelta(hours=2)
 
         tomorrow = YahtlItem.create(title="Tomorrow")
-        tomorrow.due = datetime.now() + timedelta(days=2)
+        tomorrow.due = dt_util.now() + timedelta(days=2)
 
         yl = YahtlList(list_id="l", name="L", items=[today, tomorrow])
         engine = QueueEngine(mock_hass)

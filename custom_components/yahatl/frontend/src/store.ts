@@ -7,6 +7,8 @@ import type {
   YahtlItem,
   QueueResult,
   ContextOverride,
+  MetaConfig,
+  TagInfo,
 } from "./types";
 
 type Subscriber = () => void;
@@ -16,6 +18,8 @@ interface StoreState {
   items: Map<string, YahtlItemSummary[]>; // entityId -> items
   queue: QueueResult | null;
   context: ContextOverride | null;
+  meta: MetaConfig | null;
+  tags: TagInfo[];
   loading: boolean;
 }
 
@@ -29,6 +33,8 @@ class YahtlStore {
     items: new Map(),
     queue: null,
     context: null,
+    meta: null,
+    tags: [],
     loading: false,
   };
 
@@ -81,6 +87,18 @@ class YahtlStore {
     this._notify();
   }
 
+  async loadMeta() {
+    if (!this._api) return;
+    this.state.meta = await this._api.getMeta();
+    this._notify();
+  }
+
+  async loadTags() {
+    if (!this._api) return;
+    this.state.tags = await this._api.getTags();
+    this._notify();
+  }
+
   // --- Mutations (call API then refresh) ---
 
   async createItem(entityId: string, data: Parameters<YahtlApi["createItem"]>[1]) {
@@ -106,6 +124,14 @@ class YahtlStore {
 
   async completeItem(entityId: string, itemId: string) {
     if (!this._api) return;
+    // Optimistically remove from queue for instant UI feedback
+    if (this.state.queue) {
+      this.state.queue = {
+        ...this.state.queue,
+        items: this.state.queue.items.filter((e) => e.item.uid !== itemId),
+      };
+      this._notify();
+    }
     await this._api.completeItem(entityId, itemId);
     await this.loadItems(entityId);
     await this.loadQueue();
@@ -118,10 +144,47 @@ class YahtlStore {
     await this.loadQueue();
   }
 
+  /** Delay to next valid period (server-computed). Returns the new
+   *  deferred_until ISO string so the UI can confirm when it'll be back. */
+  async delayItem(entityId: string, itemId: string): Promise<string | null> {
+    if (!this._api) return null;
+    // Optimistically drop from the queue for instant feedback.
+    if (this.state.queue) {
+      this.state.queue = {
+        ...this.state.queue,
+        items: this.state.queue.items.filter((e) => e.item.uid !== itemId),
+      };
+      this._notify();
+    }
+    const updated = await this._api.delayItem(entityId, itemId);
+    await this.loadItems(entityId);
+    await this.loadQueue();
+    return updated?.deferred_until ?? null;
+  }
+
   async setContext(ctx: Partial<ContextOverride>) {
     if (!this._api) return;
     this.state.context = await this._api.setContext(ctx);
     await this.loadQueue();
+  }
+
+  async saveMeta(data: MetaConfig, renames?: Record<string, string>) {
+    if (!this._api) return;
+    this.state.meta = await this._api.setMeta(data, renames);
+    this._notify();
+    await this.loadQueue();
+  }
+
+  async renameTag(oldName: string, newName: string) {
+    if (!this._api) return;
+    await this._api.renameTag(oldName, newName);
+    await this.loadTags();
+  }
+
+  async deleteTag(name: string) {
+    if (!this._api) return;
+    await this._api.deleteTag(name);
+    await this.loadTags();
   }
 
   async getItemDetails(entityId: string, itemId: string): Promise<YahtlItem | null> {

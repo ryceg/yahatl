@@ -51,3 +51,17 @@ class YahtlConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
         )
+
+    async def async_step_import(
+        self, user_input: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Create a list programmatically (e.g. via the yahatl.create_list service)."""
+        storage_key = slugify(user_input[CONF_LIST_NAME])
+        self._async_abort_entries_match({CONF_STORAGE_KEY: storage_key})
+        return self.async_create_entry(
+            title=user_input[CONF_LIST_NAME],
+            data={
+                CONF_LIST_NAME: user_input[CONF_LIST_NAME],
+                CONF_STORAGE_KEY: storage_key,
+            },
+        )

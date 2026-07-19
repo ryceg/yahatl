@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from homeassistant.util import dt as dt_util
 
 import pytest
 
@@ -24,7 +25,7 @@ class TestCompletionRecord:
 
     def test_create_completion_record(self):
         """Test creating a completion record."""
-        timestamp = datetime.now()
+        timestamp = dt_util.now()
         record = CompletionRecord(user_id="test_user", timestamp=timestamp)
 
         assert record.user_id == "test_user"
@@ -32,7 +33,7 @@ class TestCompletionRecord:
 
     def test_to_dict(self):
         """Test serialization to dict."""
-        timestamp = datetime.now()
+        timestamp = dt_util.now()
         record = CompletionRecord(user_id="test_user", timestamp=timestamp)
         data = record.to_dict()
 
@@ -41,7 +42,7 @@ class TestCompletionRecord:
 
     def test_from_dict(self):
         """Test deserialization from dict."""
-        timestamp = datetime.now()
+        timestamp = dt_util.now()
         data = {
             "user_id": "test_user",
             "timestamp": timestamp.isoformat(),
@@ -53,7 +54,7 @@ class TestCompletionRecord:
 
     def test_roundtrip(self):
         """Test serialization roundtrip."""
-        original = CompletionRecord(user_id="test_user", timestamp=datetime.now())
+        original = CompletionRecord(user_id="test_user", timestamp=dt_util.now())
         data = original.to_dict()
         restored = CompletionRecord.from_dict(data)
 
@@ -68,11 +69,11 @@ class TestRecurrenceConfig:
         """Test calendar-based recurrence."""
         recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="weekly",
+            calendar_preset="weekly",
         )
 
         assert recurrence.type == "calendar"
-        assert recurrence.calendar_pattern == "weekly"
+        assert recurrence.calendar_preset == "weekly"
         assert recurrence.elapsed_interval is None
         assert len(recurrence.thresholds) == 0
 
@@ -194,7 +195,7 @@ class TestRequirementsConfig:
     def test_requirements_default_mode(self):
         """Test requirements default mode."""
         requirements = RequirementsConfig()
-        assert requirements.mode == "ANY"
+        assert requirements.mode == "ALL"
 
     def test_requirements_roundtrip(self):
         """Test requirements serialization roundtrip."""
@@ -225,7 +226,7 @@ class TestYahtlItem:
 
     def test_item_with_all_fields(self):
         """Test item with all fields populated."""
-        due_date = datetime.now() + timedelta(days=1)
+        due_date = dt_util.now() + timedelta(days=1)
         item = YahtlItem(
             uid="test-123",
             title="Complete Task",
@@ -255,7 +256,7 @@ class TestYahtlItem:
         item = YahtlItem.create(title="Weekly Task")
         item.recurrence = RecurrenceConfig(
             type="calendar",
-            calendar_pattern="weekly",
+            calendar_preset="weekly",
         )
 
         assert item.recurrence is not None
@@ -288,7 +289,7 @@ class TestYahtlItem:
         item = YahtlItem.create(title="Task")
         assert len(item.completion_history) == 0
 
-        record = CompletionRecord(user_id="user1", timestamp=datetime.now())
+        record = CompletionRecord(user_id="user1", timestamp=dt_util.now())
         item.completion_history.append(record)
 
         assert len(item.completion_history) == 1
@@ -302,7 +303,7 @@ class TestYahtlItem:
         assert item.last_completed is None
 
         item.current_streak = 5
-        item.last_completed = datetime.now()
+        item.last_completed = dt_util.now()
 
         assert item.current_streak == 5
         assert item.last_completed is not None
@@ -320,7 +321,7 @@ class TestYahtlItem:
 
     def test_item_from_dict(self):
         """Test item deserialization from dict."""
-        due_date = datetime.now()
+        due_date = dt_util.now()
         data = {
             "uid": "test-123",
             "title": "Test Task",
@@ -340,7 +341,7 @@ class TestYahtlItem:
             "completion_history": [],
             "current_streak": 0,
             "last_completed": None,
-            "created_at": datetime.now().isoformat(),
+            "created_at": dt_util.now().isoformat(),
             "created_by": "user",
         }
         item = YahtlItem.from_dict(data)
@@ -361,7 +362,7 @@ class TestYahtlItem:
         original.blockers = BlockerConfig(mode="ANY", items=["blocker1"])
         original.requirements = RequirementsConfig(mode="ALL", location=["home"])
         original.completion_history = [
-            CompletionRecord(user_id="user1", timestamp=datetime.now())
+            CompletionRecord(user_id="user1", timestamp=dt_util.now())
         ]
 
         data = original.to_dict()
@@ -503,7 +504,7 @@ class TestYahtlList:
                     "completion_history": [],
                     "current_streak": 0,
                     "last_completed": None,
-                    "created_at": datetime.now().isoformat(),
+                    "created_at": dt_util.now().isoformat(),
                     "created_by": "",
                 }
             ],
@@ -597,7 +598,7 @@ class TestEdgeCases:
 
     def test_item_with_future_dates(self):
         """Test item with far future dates."""
-        far_future = datetime.now() + timedelta(days=36500)  # 100 years
+        far_future = dt_util.now() + timedelta(days=36500)  # 100 years
         item = YahtlItem.create(title="Future Task")
         item.due = far_future
 
@@ -605,7 +606,7 @@ class TestEdgeCases:
 
     def test_item_with_past_dates(self):
         """Test item with past dates."""
-        past = datetime.now() - timedelta(days=36500)  # 100 years ago
+        past = dt_util.now() - timedelta(days=36500)  # 100 years ago
         item = YahtlItem.create(title="Past Task")
         item.due = past
 
@@ -618,7 +619,7 @@ class TestEdgeCases:
         for i in range(1000):
             record = CompletionRecord(
                 user_id=f"user{i}",
-                timestamp=datetime.now() - timedelta(days=i),
+                timestamp=dt_util.now() - timedelta(days=i),
             )
             item.completion_history.append(record)
 

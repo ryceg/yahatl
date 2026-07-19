@@ -6,11 +6,13 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .const import ALL_TRAITS, DOMAIN, SIGNAL_YAHATL_UPDATED
+from .const import ALL_TRAITS, CONF_LIST_NAME, DOMAIN, SIGNAL_YAHATL_UPDATED
+from .entry_data import all_lists as entry_all_lists, resolve_entity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,9 +32,13 @@ SERVICE_UPDATE_CONTEXT = "update_context"
 SERVICE_SET_CONDITION_TRIGGERS = "set_condition_triggers"
 SERVICE_SET_TIME_BLOCKERS = "set_time_blockers"
 SERVICE_DEFER_ITEM = "defer_item"
+SERVICE_MOVE_ITEM = "move_item"
+SERVICE_CREATE_LIST = "create_list"
 
 ATTR_ENTITY_ID = "entity_id"
 ATTR_ITEM_ID = "item_id"
+ATTR_TARGET_ENTITY_ID = "target_entity_id"
+ATTR_LIST_NAME = "name"
 ATTR_TITLE = "title"
 ATTR_DESCRIPTION = "description"
 ATTR_TRAITS = "traits"
@@ -83,6 +89,8 @@ ATTR_AVAILABLE_TIME = "available_time"
 ATTR_CONTEXTS = "contexts"
 ATTR_TIME_BLOCKERS = "time_blockers"
 ATTR_DEFERRED_UNTIL = "deferred_until"
+ATTR_LEAD_OVERRIDE_DAYS = "lead_override_days"
+ATTR_PROJECT = "project"
 
 SERVICE_SET_TRAITS_SCHEMA = vol.Schema(
     {
@@ -119,6 +127,7 @@ SERVICE_ADD_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
         vol.Optional(ATTR_NEEDS_DETAIL, default=False): cv.boolean,
         vol.Optional(ATTR_ASSIGNED_TO): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_PROJECT): vol.Any(cv.string, None),
     }
 )
 
@@ -142,6 +151,9 @@ SERVICE_UPDATE_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_BUFFER_BEFORE): cv.positive_int,
         vol.Optional(ATTR_BUFFER_AFTER): cv.positive_int,
         vol.Optional(ATTR_DEFERRED_UNTIL): vol.Any(cv.datetime, None),
+        vol.Optional(ATTR_LEAD_OVERRIDE_DAYS): vol.Any(cv.positive_int, None),
+        vol.Optional(ATTR_ASSIGNED_TO): vol.All(cv.ensure_list, [cv.string]),
+        vol.Optional(ATTR_PROJECT): vol.Any(cv.string, None),
     }
 )
 
@@ -269,24 +281,29 @@ SERVICE_DEFER_ITEM_SCHEMA = vol.Schema(
 )
 
 
-def _get_entry_data(hass: HomeAssistant, entity_id: str) -> tuple[str | None, dict[str, Any] | None]:
-    # Entity ID format: todo.yahatl_{storage_key}
-    for entry_id, data in hass.data.get(DOMAIN, {}).items():
-        if isinstance(data, dict) and "data" in data:
-            list_data = data["data"]
-            expected_entity = f"todo.{list_data.list_id}"
-            if entity_id == expected_entity:
-                return entry_id, data
-    return None, None
+SERVICE_MOVE_ITEM_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Required(ATTR_TARGET_ENTITY_ID): cv.entity_id,
+    }
+)
+
+
+SERVICE_CREATE_LIST_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_LIST_NAME): cv.string,
+    }
+)
 
 
 def _resolve_list(hass: HomeAssistant, call: ServiceCall):
     entity_id = call.data[ATTR_ENTITY_ID]
-    entry_id, entry_data = _get_entry_data(hass, entity_id)
-    if entry_data is None:
+    entry, runtime = resolve_entity(hass, entity_id)
+    if runtime is None:
         _LOGGER.error("Entity %s not found", entity_id)
         return None, None, None
-    return entry_data["data"], entry_data["store"], entry_id
+    return runtime.data, runtime.store, entry.entry_id
 
 
 def _resolve_item(hass: HomeAssistant, call: ServiceCall):
@@ -302,25 +319,16 @@ def _resolve_item(hass: HomeAssistant, call: ServiceCall):
 
 
 async def _save_and_refresh(hass, entry_id, store, list_data, reason=""):
-    """Persist data and trigger pipeline refresh."""
-    pipeline = hass.data[DOMAIN].get(entry_id, {}).get("pipeline")
-    if pipeline:
-        await pipeline.async_request_refresh(reason)
-    else:
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, "")
+    """Persist the list and ask its coordinator to recompute."""
+    await store.async_save(list_data)
+    entry = hass.config_entries.async_get_entry(entry_id)
+    runtime = getattr(entry, "runtime_data", None) if entry else None
+    if runtime is not None:
+        await runtime.coordinator.async_request_refresh()
 
 
 def _get_all_lists(hass: HomeAssistant) -> list:
-    from .models import YahtlList
-
-    lists = []
-    for entry_id, data in hass.data.get(DOMAIN, {}).items():
-        if isinstance(data, dict) and "data" in data:
-            list_data = data["data"]
-            if isinstance(list_data, YahtlList):
-                lists.append(list_data)
-    return lists
+    return entry_all_lists(hass)
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -331,7 +339,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             return
 
         # Create new item
-        from .models import YahtlItem
+        from .models import YahtlItem, apply_trait_rules
         item = YahtlItem.create(
             title=call.data[ATTR_TITLE],
         )
@@ -339,7 +347,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if ATTR_DESCRIPTION in call.data:
             item.description = call.data[ATTR_DESCRIPTION]
         if ATTR_TRAITS in call.data:
-            item.traits = call.data[ATTR_TRAITS]
+            item.traits = apply_trait_rules(item, call.data[ATTR_TRAITS])
         if ATTR_TAGS in call.data:
             item.tags = call.data[ATTR_TAGS]
         if ATTR_DUE in call.data:
@@ -350,6 +358,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
         if ATTR_ASSIGNED_TO in call.data:
             item.assigned_to = call.data[ATTR_ASSIGNED_TO]
+        if ATTR_PROJECT in call.data:
+            item.project = call.data[ATTR_PROJECT]
 
         list_data.add_item(item)
         await _save_and_refresh(hass, entry_id, store, list_data, "service:add_item")
@@ -362,12 +372,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         user_id = call.data.get(ATTR_USER_ID, "")
 
         # Mark as completed with history
-        from datetime import datetime
+        from homeassistant.util import dt as dt_util
         from .models import CompletionRecord
         from .const import COMPLETION_HISTORY_CAP, STATUS_COMPLETED, STATUS_PENDING
         from .recurrence import calculate_next_due, calculate_streak
 
-        now = datetime.now()
+        now = dt_util.now()
 
         item.status = STATUS_COMPLETED
         item.deferred_until = None
@@ -430,6 +440,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.buffer_after = call.data[ATTR_BUFFER_AFTER]
         if ATTR_DEFERRED_UNTIL in call.data:
             item.deferred_until = call.data[ATTR_DEFERRED_UNTIL]
+        if ATTR_LEAD_OVERRIDE_DAYS in call.data:
+            item.lead_override_days = call.data[ATTR_LEAD_OVERRIDE_DAYS]
+        if ATTR_PROJECT in call.data:
+            item.project = call.data[ATTR_PROJECT]
+        if ATTR_ASSIGNED_TO in call.data:
+            item.assigned_to = call.data[ATTR_ASSIGNED_TO]
 
         await _save_and_refresh(hass, entry_id, store, list_data, "service:update_item")
 
@@ -438,7 +454,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if item is None:
             return
 
-        item.traits = call.data[ATTR_TRAITS]
+        from .models import apply_trait_rules
+        item.traits = apply_trait_rules(item, call.data[ATTR_TRAITS])
         await _save_and_refresh(hass, entry_id, store, list_data, "service:set_traits")
 
     async def handle_add_tags(call: ServiceCall) -> None:
@@ -620,14 +637,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_update_context(call: ServiceCall) -> None:
         from .models import ContextOverride
-        from datetime import datetime
+        from homeassistant.util import dt as dt_util
 
         # Create or update context override
         context_override = ContextOverride(
             location=call.data.get(ATTR_LOCATION),
             people=call.data.get(ATTR_PEOPLE, []),
             contexts=call.data.get(ATTR_CONTEXTS, []),
-            updated_at=datetime.now(),
+            updated_at=dt_util.now(),
         )
 
         # Store in hass.data
@@ -681,6 +698,37 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item.deferred_until = call.data.get(ATTR_DEFERRED_UNTIL)
 
         await _save_and_refresh(hass, entry_id, store, list_data, "service:defer_item")
+
+    async def handle_move_item(call: ServiceCall) -> None:
+        src_list, src_store, item, src_entry = _resolve_item(hass, call)
+        if item is None:
+            return
+
+        target_entity_id = call.data[ATTR_TARGET_ENTITY_ID]
+        tgt_entry, tgt_runtime = resolve_entity(hass, target_entity_id)
+        if tgt_runtime is None:
+            _LOGGER.error("Target list %s not found", target_entity_id)
+            return
+        if tgt_entry.entry_id == src_entry:
+            return  # already in the target list
+
+        tgt_list = tgt_runtime.data
+        tgt_store = tgt_runtime.store
+
+        # Move the same item object so uid, traits, recurrence, assignees and
+        # completion history are all preserved.
+        src_list.remove_item(item.uid)
+        tgt_list.add_item(item)
+
+        await _save_and_refresh(hass, src_entry, src_store, src_list, "service:move_item")
+        await _save_and_refresh(hass, tgt_entry.entry_id, tgt_store, tgt_list, "service:move_item")
+
+    async def handle_create_list(call: ServiceCall) -> None:
+        await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": SOURCE_IMPORT},
+            data={CONF_LIST_NAME: call.data[ATTR_LIST_NAME]},
+        )
 
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_ITEM, handle_add_item, schema=SERVICE_ADD_ITEM_SCHEMA
@@ -763,6 +811,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         handle_defer_item,
         schema=SERVICE_DEFER_ITEM_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_MOVE_ITEM, handle_move_item, schema=SERVICE_MOVE_ITEM_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CREATE_LIST,
+        handle_create_list,
+        schema=SERVICE_CREATE_LIST_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -782,3 +839,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SET_CONDITION_TRIGGERS)
     hass.services.async_remove(DOMAIN, SERVICE_SET_TIME_BLOCKERS)
     hass.services.async_remove(DOMAIN, SERVICE_DEFER_ITEM)
+    hass.services.async_remove(DOMAIN, SERVICE_MOVE_ITEM)
+    hass.services.async_remove(DOMAIN, SERVICE_CREATE_LIST)

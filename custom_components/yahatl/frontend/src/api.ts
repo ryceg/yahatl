@@ -5,6 +5,8 @@ import type {
   YahtlItem,
   QueueResult,
   ContextOverride,
+  MetaConfig,
+  TagInfo,
 } from "./types";
 
 export class YahtlApi {
@@ -110,6 +112,16 @@ export class YahtlApi {
     });
   }
 
+  /** Delay an item to its next valid period (computed server-side from its
+   *  schedule). Returns the updated item, incl. the new deferred_until. */
+  async delayItem(entityId: string, itemId: string): Promise<YahtlItem> {
+    return this.hass.callWS({
+      type: "yahatl/item_delay",
+      entity_id: entityId,
+      item_id: itemId,
+    });
+  }
+
   // --- Queue ---
 
   async getQueue(overrides?: {
@@ -137,6 +149,44 @@ export class YahtlApi {
     return this.hass.callWS({
       type: "yahatl/context_set",
       ...ctx,
+    });
+  }
+
+  // --- Meta config ---
+
+  async getMeta(): Promise<MetaConfig> {
+    return this.hass.callWS({ type: "yahatl/meta_get" });
+  }
+
+  async setMeta(
+    data: MetaConfig,
+    renames?: Record<string, string>
+  ): Promise<MetaConfig> {
+    return this.hass.callWS({
+      type: "yahatl/meta_set",
+      data,
+      ...(renames && Object.keys(renames).length > 0 ? { renames } : {}),
+    });
+  }
+
+  // --- Tags ---
+
+  async getTags(): Promise<TagInfo[]> {
+    return this.hass.callWS({ type: "yahatl/tags_list" });
+  }
+
+  async renameTag(oldName: string, newName: string): Promise<void> {
+    await this.hass.callWS({
+      type: "yahatl/tag_rename",
+      old_name: oldName,
+      new_name: newName,
+    });
+  }
+
+  async deleteTag(name: string): Promise<void> {
+    await this.hass.callWS({
+      type: "yahatl/tag_delete",
+      name,
     });
   }
 }

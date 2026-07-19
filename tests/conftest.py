@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from homeassistant.util import dt as dt_util
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -111,7 +112,7 @@ def sample_list(basic_item):
 def overdue_item():
     """Create an overdue item."""
     item = YahtlItem.create(title="Overdue Task", created_by="test_user")
-    item.due = datetime.now() - timedelta(days=1)
+    item.due = dt_util.now() - timedelta(days=1)
     item.priority = "high"
     return item
 
@@ -120,7 +121,7 @@ def overdue_item():
 def due_today_item():
     """Create an item due today."""
     item = YahtlItem.create(title="Today Task", created_by="test_user")
-    item.due = datetime.now() + timedelta(hours=2)
+    item.due = dt_util.now() + timedelta(hours=2)
     return item
 
 
@@ -139,7 +140,7 @@ def mock_sensor_state():
 @pytest.fixture
 def completion_records():
     """Create a list of completion records."""
-    now = datetime.now()
+    now = dt_util.now()
     return [
         CompletionRecord(user_id="user1", timestamp=now - timedelta(days=i))
         for i in range(5)

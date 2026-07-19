@@ -72,6 +72,7 @@ export interface YahtlItem {
   time_blockers: TimeBlockerConfig[];
   deferred_until: string | null;
   priority: string | null;
+  project: string | null;
   assigned_to: string[];
   completion_history: CompletionRecord[];
   current_streak: number;
@@ -95,6 +96,7 @@ export interface YahtlItemSummary {
   has_recurrence: boolean;
   has_blockers: boolean;
   current_streak: number;
+  project: string | null;
 }
 
 export interface YahtlListInfo {
@@ -130,6 +132,22 @@ export interface ContextOverride {
   people: string[];
   contexts: string[];
   updated_at?: string;
+}
+
+export interface MetaEntry {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export interface MetaConfig {
+  contexts: MetaEntry[];
+  locations: MetaEntry[];
+}
+
+export interface TagInfo {
+  name: string;
+  count: number;
 }
 
 // Home Assistant types (minimal subset)

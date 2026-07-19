@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from freezegun import freeze_time
+from homeassistant.util import dt as dt_util
 
 from custom_components.yahatl.models import BlockerConfig, RecurrenceConfig, YahtlItem, YahtlList
 from custom_components.yahatl.sensor import (
@@ -32,7 +34,7 @@ def _actionable_item(title: str, **kwargs) -> YahtlItem:
 
 class TestOverdueSensor:
     def test_counts_overdue_items(self):
-        now = datetime.now()
+        now = dt_util.now()
         items = [
             _actionable_item("Past due", due=now - timedelta(hours=1)),
             _actionable_item("Also past", due=now - timedelta(days=2)),
@@ -45,7 +47,7 @@ class TestOverdueSensor:
         assert sensor.native_value == 2
 
     def test_excludes_completed(self):
-        now = datetime.now()
+        now = dt_util.now()
         item = _actionable_item("Done", due=now - timedelta(hours=1), status="completed")
         data = _make_list(item)
         sensor = YahtlOverdueSensor.__new__(YahtlOverdueSensor)
@@ -60,8 +62,9 @@ class TestOverdueSensor:
 
 
 class TestDueTodaySensor:
+    @freeze_time("2026-06-15 12:00:00")
     def test_counts_due_today(self):
-        now = datetime.now()
+        now = dt_util.now()
         items = [
             _actionable_item("Today", due=now + timedelta(hours=2)),
             _actionable_item("Today too", due=now.replace(hour=23, minute=59)),
@@ -82,7 +85,7 @@ class TestDueTodaySensor:
 
 class TestNextTaskSensor:
     def test_returns_most_overdue(self):
-        now = datetime.now()
+        now = dt_util.now()
         items = [
             _actionable_item("Less overdue", due=now - timedelta(hours=1)),
             _actionable_item("Most overdue", due=now - timedelta(days=3)),
@@ -94,7 +97,7 @@ class TestNextTaskSensor:
         assert sensor.native_value == "Most overdue"
 
     def test_returns_soonest_due_when_none_overdue(self):
-        now = datetime.now()
+        now = dt_util.now()
         items = [
             _actionable_item("Later", due=now + timedelta(days=5)),
             _actionable_item("Sooner", due=now + timedelta(days=1)),
@@ -212,13 +215,13 @@ class TestStreakRiskSensor:
     def test_counts_at_risk_habits(self):
         habit = YahtlItem.create(title="Daily Run")
         habit.traits = ["actionable", "habit"]
-        habit.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
-        habit.last_completed = datetime.now() - timedelta(days=1, hours=1)
+        habit.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
+        habit.last_completed = dt_util.now() - timedelta(days=1, hours=1)
 
         safe_habit = YahtlItem.create(title="Safe Habit")
         safe_habit.traits = ["actionable", "habit"]
-        safe_habit.recurrence = RecurrenceConfig(type="calendar", calendar_pattern="daily")
-        safe_habit.last_completed = datetime.now() - timedelta(hours=6)
+        safe_habit.recurrence = RecurrenceConfig(type="calendar", calendar_preset="daily")
+        safe_habit.last_completed = dt_util.now() - timedelta(hours=6)
 
         data = _make_list(habit, safe_habit)
         sensor = YahtlStreakRiskSensor.__new__(YahtlStreakRiskSensor)

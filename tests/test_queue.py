@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from homeassistant.util import dt as dt_util
 from unittest.mock import MagicMock
 
 import pytest
+from freezegun import freeze_time
 
 from custom_components.yahatl.models import (
     ConditionTriggerConfig,
@@ -74,71 +76,30 @@ class TestGetCurrentContextFromHass:
 class TestGetTimeConstraint:
     """Test _get_time_constraint function."""
 
+    @freeze_time("2024-01-06 12:00:00")  # Saturday
     def test_weekend(self):
         """Test weekend detection."""
-        # Saturday
-        saturday = datetime(2024, 1, 6, 12, 0)  # Saturday
-        with_time = lambda: saturday
-        import custom_components.yahatl.queue as queue_module
-        original_now = datetime.now
-        datetime.now = with_time
+        assert _get_time_constraint() == "weekend"
 
-        constraint = _get_time_constraint()
-
-        datetime.now = original_now
-        assert constraint == "weekend"
-
+    @freeze_time("2024-01-01 07:00:00")  # Monday 7am
     def test_morning(self):
         """Test morning time constraint."""
-        morning = datetime(2024, 1, 1, 7, 0)  # Monday 7am
-        with_time = lambda: morning
-        import custom_components.yahatl.queue as queue_module
-        original_now = datetime.now
-        datetime.now = with_time
+        assert _get_time_constraint() == "morning"
 
-        constraint = _get_time_constraint()
-
-        datetime.now = original_now
-        assert constraint == "morning"
-
+    @freeze_time("2024-01-01 14:00:00")  # Monday 2pm
     def test_business_hours(self):
         """Test business hours time constraint."""
-        business = datetime(2024, 1, 1, 14, 0)  # Monday 2pm
-        with_time = lambda: business
-        import custom_components.yahatl.queue as queue_module
-        original_now = datetime.now
-        datetime.now = with_time
+        assert _get_time_constraint() == "business_hours"
 
-        constraint = _get_time_constraint()
-
-        datetime.now = original_now
-        assert constraint == "business_hours"
-
+    @freeze_time("2024-01-01 19:00:00")  # Monday 7pm
     def test_evening(self):
         """Test evening time constraint."""
-        evening = datetime(2024, 1, 1, 19, 0)  # Monday 7pm
-        with_time = lambda: evening
-        import custom_components.yahatl.queue as queue_module
-        original_now = datetime.now
-        datetime.now = with_time
+        assert _get_time_constraint() == "evening"
 
-        constraint = _get_time_constraint()
-
-        datetime.now = original_now
-        assert constraint == "evening"
-
+    @freeze_time("2024-01-01 23:00:00")  # Monday 11pm
     def test_night(self):
         """Test night time constraint."""
-        night = datetime(2024, 1, 1, 23, 0)  # Monday 11pm
-        with_time = lambda: night
-        import custom_components.yahatl.queue as queue_module
-        original_now = datetime.now
-        datetime.now = with_time
-
-        constraint = _get_time_constraint()
-
-        datetime.now = original_now
-        assert constraint == "night"
+        assert _get_time_constraint() == "night"
 
 
 class TestQueueEdgeCases:
@@ -164,10 +125,10 @@ class TestQueueEdgeCases:
         yahatl_list = YahtlList(list_id="test", name="Test")
 
         older = YahtlItem.create(title="Older Task")
-        older.created_at = datetime.now() - timedelta(days=2)
+        older.created_at = dt_util.now() - timedelta(days=2)
 
         newer = YahtlItem.create(title="Newer Task")
-        newer.created_at = datetime.now()
+        newer.created_at = dt_util.now()
 
         yahatl_list.add_item(newer)
         yahatl_list.add_item(older)

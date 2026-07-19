@@ -37,3 +37,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 .worktrees/
+
+# Node
+node_modules/
+
+# Data backups
+TickTick-backup-*.csv

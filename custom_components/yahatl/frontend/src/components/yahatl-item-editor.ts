@@ -2,7 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, TRAIT_ICONS, TRAIT_RGB } from "../styles";
 import { store } from "../store";
-import type { HomeAssistant, YahtlItem, RecurrenceConfig } from "../types";
+import type { HomeAssistant, YahtlItem, RecurrenceConfig, MetaEntry } from "../types";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ALL_TRAITS = [
@@ -12,8 +12,76 @@ const ALL_TRAITS = [
   "chore",
   "reminder",
   "note",
+  "someday",
+  "shopping",
+  "gift",
 ];
 const OPERATORS = ["eq", "neq", "gt", "lt", "gte", "lte", "bool"];
+
+/** Fallback contexts, mirroring the backend meta-store defaults, used
+ *  when the meta config hasn't loaded yet. */
+const FALLBACK_CONTEXTS = [
+  { id: "work_hours", name: "Work hours", icon: "mdi:briefcase-clock" },
+  { id: "productive", name: "Productive", icon: "mdi:lightning-bolt" },
+  { id: "weekend_project", name: "Weekend project", icon: "mdi:hammer-wrench" },
+];
+
+/** A time-blocker spec: a concrete window this preset writes into the schedule. */
+interface TbSpec {
+  start_time: string;
+  end_time: string;
+  mode: "suppress" | "allow";
+  days: number[] | null;
+}
+
+/** Schedule shortcuts. Each chip writes a real Time Blocker into the item's
+ *  schedule. `on` = the natural "only during" window; `not` = its inverse
+ *  (blocked during that window / on those days). */
+const TIME_PRESETS: {
+  id: string;
+  label: string;
+  icon: string;
+  on: TbSpec;
+  not: TbSpec;
+}[] = [
+  {
+    id: "work_hours",
+    label: "Work hours",
+    icon: "mdi:briefcase-clock",
+    on: { start_time: "09:00", end_time: "17:00", mode: "allow", days: [0, 1, 2, 3, 4] },
+    not: { start_time: "09:00", end_time: "17:00", mode: "suppress", days: [0, 1, 2, 3, 4] },
+  },
+  {
+    id: "weekend",
+    label: "Weekend",
+    icon: "mdi:calendar-weekend",
+    // Available only on the weekend = suppress all day Mon–Fri.
+    on: { start_time: "00:00", end_time: "23:59", mode: "suppress", days: [0, 1, 2, 3, 4] },
+    // Inverse (weekdays only) = suppress all day Sat–Sun.
+    not: { start_time: "00:00", end_time: "23:59", mode: "suppress", days: [5, 6] },
+  },
+  {
+    id: "morning",
+    label: "Morning",
+    icon: "mdi:weather-sunset-up",
+    on: { start_time: "06:00", end_time: "09:00", mode: "allow", days: null },
+    not: { start_time: "06:00", end_time: "09:00", mode: "suppress", days: null },
+  },
+  {
+    id: "evening",
+    label: "Evening",
+    icon: "mdi:weather-sunset",
+    on: { start_time: "17:00", end_time: "21:00", mode: "allow", days: null },
+    not: { start_time: "17:00", end_time: "21:00", mode: "suppress", days: null },
+  },
+  {
+    id: "night",
+    label: "Night",
+    icon: "mdi:weather-night",
+    on: { start_time: "21:00", end_time: "06:00", mode: "allow", days: null },
+    not: { start_time: "21:00", end_time: "06:00", mode: "suppress", days: null },
+  },
+];
 
 /** Get friendly name for an entity, falling back to the entity_id */
 function entityName(hass: HomeAssistant | undefined, entityId: string): string {
@@ -37,8 +105,11 @@ export class YahtlItemEditor extends LitElement {
   @state() private _busy = false;
   @state() private _error = "";
   @state() private _allItems: { uid: string; title: string; status: string }[] = [];
-
-  private _boundKey = this._onKey.bind(this);
+  @state() private _existingTags: string[] = [];
+  @state() private _existingProjects: string[] = [];
+  @state() private _contexts: MetaEntry[] = [];
+  @state() private _entityFilter = "";
+  @state() private _entityDropdownOpen: string | null = null; // tracks which combobox is open
 
   static styles = [
     sharedStyles,
@@ -47,59 +118,26 @@ export class YahtlItemEditor extends LitElement {
         display: block;
       }
 
-      /* Overlay */
-      .overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 9999;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        animation: overlay-in 200ms ease-out;
+      /* The dialog surface (scrim, escape/back handling, focus trap,
+       * mobile sizing, HA theming) is provided by <ha-dialog>. We only
+       * size it and remove its default content padding so the modal body
+       * below manages its own header/content/footer chrome. */
+      ha-dialog {
+        --dialog-content-padding: 0;
+        --mdc-dialog-min-width: min(92vw, 520px);
+        --mdc-dialog-max-width: 520px;
+        --mdc-dialog-max-height: 92vh;
       }
 
-      @keyframes overlay-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-
-      @media (min-width: 600px) {
-        .overlay {
-          align-items: center;
-        }
-      }
-
-      /* Modal */
+      /* Modal body: sticky header + scrollable content + sticky footer.
+       * Background is transparent so the themed ha-dialog surface (and
+       * its rounded corners) show through as a single seamless panel. */
       .modal {
-        background: var(--yahatl-card-bg);
-        border-radius: 16px 16px 0 0;
-        width: 100%;
-        max-width: 520px;
-        max-height: 90vh;
+        max-height: 88vh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-        animation: modal-slide-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
-      }
-
-      @keyframes modal-slide-up {
-        from { transform: translateY(100%); }
-        to { transform: translateY(0); }
-      }
-
-      @media (min-width: 600px) {
-        .modal {
-          border-radius: 16px;
-          max-height: 80vh;
-          animation: modal-scale-in 200ms ease-out;
-        }
-
-        @keyframes modal-scale-in {
-          from { transform: scale(0.95); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
+        touch-action: auto;
       }
 
       .modal__header {
@@ -115,7 +153,7 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .modal__title {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 500;
         letter-spacing: 0.15px;
         margin: 0;
@@ -123,7 +161,7 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .modal__sub {
-        font-size: 12px;
+        font-size: 13px;
         color: var(--yahatl-text-secondary);
         margin-top: 4px;
         letter-spacing: 0.4px;
@@ -147,6 +185,7 @@ export class YahtlItemEditor extends LitElement {
         padding: 8px 12px 0;
         border-bottom: 1px solid var(--yahatl-divider);
         overflow-x: auto;
+        overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
       }
 
@@ -156,7 +195,7 @@ export class YahtlItemEditor extends LitElement {
 
       .tab {
         padding: 10px 14px;
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 500;
         color: var(--yahatl-text-secondary);
         border: 0;
@@ -182,6 +221,8 @@ export class YahtlItemEditor extends LitElement {
         overflow-y: auto;
         padding: 18px 20px;
         -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
         display: flex;
         flex-direction: column;
         gap: 16px;
@@ -199,7 +240,14 @@ export class YahtlItemEditor extends LitElement {
       .error-msg {
         padding: 8px 20px;
         color: rgb(var(--rgb-danger));
-        font-size: 13px;
+        font-size: 14px;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: var(--yahatl-text-secondary);
+        margin-top: 6px;
+        line-height: 1.4;
       }
 
       /* Traits as pills */
@@ -221,8 +269,8 @@ export class YahtlItemEditor extends LitElement {
         flex: 1;
         min-width: 120px;
         max-width: 200px;
-        padding: 5px 10px;
-        font-size: 12px;
+        padding: 6px 10px;
+        font-size: 14px;
         border: 1px solid var(--yahatl-divider);
         border-radius: 6px;
         background: var(--yahatl-card-bg);
@@ -249,7 +297,7 @@ export class YahtlItemEditor extends LitElement {
         background: none;
         color: var(--yahatl-text);
         cursor: pointer;
-        font-size: 13px;
+        font-size: 14px;
         text-align: left;
         font-family: inherit;
         -webkit-tap-highlight-color: transparent;
@@ -266,7 +314,7 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .preset-desc {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--yahatl-text-secondary);
         margin-top: 2px;
       }
@@ -286,7 +334,7 @@ export class YahtlItemEditor extends LitElement {
         background: none;
         color: var(--yahatl-text);
         cursor: pointer;
-        font-size: 12px;
+        font-size: 13px;
         text-align: center;
         font-family: inherit;
         -webkit-tap-highlight-color: transparent;
@@ -308,7 +356,7 @@ export class YahtlItemEditor extends LitElement {
       }
 
       legend {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 500;
         padding: 0 6px;
         color: var(--yahatl-text-secondary);
@@ -323,7 +371,7 @@ export class YahtlItemEditor extends LitElement {
         gap: 8px;
         padding: 4px 0;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 14px;
         color: var(--yahatl-text);
       }
 
@@ -350,7 +398,7 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .assign-current {
-        font-size: 13px;
+        font-size: 14px;
         color: var(--yahatl-text);
         display: inline-flex;
         align-items: center;
@@ -395,7 +443,7 @@ export class YahtlItemEditor extends LitElement {
 
       .entity-row__name {
         flex: 1;
-        font-size: 13px;
+        font-size: 14px;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -403,7 +451,7 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .entity-row__id {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--yahatl-text-secondary);
         letter-spacing: 0.3px;
       }
@@ -425,9 +473,72 @@ export class YahtlItemEditor extends LitElement {
         color: rgb(var(--rgb-danger));
       }
 
-      ha-entity-picker {
-        display: block;
+      .blocker-items-scroll {
+        max-height: 200px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .entity-combo {
+        position: relative;
+      }
+
+      .entity-combo__input {
         width: 100%;
+        padding: 11px 13px;
+        border: 1px solid var(--yahatl-divider);
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 16px;
+        background: var(--yahatl-card-bg);
+        color: var(--yahatl-text);
+        box-sizing: border-box;
+        -webkit-appearance: none;
+      }
+
+      .entity-combo__input:focus {
+        outline: none;
+        border-color: rgb(var(--rgb-primary-color));
+      }
+
+      .entity-combo__dropdown {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 10;
+        max-height: 200px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: var(--yahatl-card-bg);
+        border: 1px solid var(--yahatl-divider);
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+
+      .entity-combo__option {
+        padding: 9px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .entity-combo__option:hover,
+      .entity-combo__option.is-focused {
+        background: rgba(var(--rgb-primary-color), 0.08);
+      }
+
+      .entity-combo__option-name {
+        color: var(--yahatl-text);
+      }
+
+      .entity-combo__option-id {
+        font-size: 12px;
+        color: var(--yahatl-text-secondary);
+        letter-spacing: 0.3px;
       }
     `,
   ];
@@ -443,51 +554,74 @@ export class YahtlItemEditor extends LitElement {
     this._itemId = detail.itemId || null;
     if (detail.hass) this.hass = detail.hass;
 
+    // Load contexts for the Requirements tab (kept in sync with the context bar).
+    this._contexts = FALLBACK_CONTEXTS;
+    store.api!
+      .getMeta()
+      .then((m) => {
+        if (m.contexts?.length) this._contexts = m.contexts;
+      })
+      .catch(() => {});
+
+    // Load tags and all items for suggestions
+    const allItemsPromise = store.api!.getItems(this._entityId);
+    const tagsPromise = store.api!.getTags().catch(() => [] as { name: string }[]);
+
     if (this._itemId) {
-      const [item, allItems] = await Promise.all([
+      const [item, allItems, tags] = await Promise.all([
         store.getItemDetails(this._entityId, this._itemId),
-        store.api!.getItems(this._entityId),
+        allItemsPromise,
+        tagsPromise,
       ]);
       if (!item) return;
       this._item = { ...item };
       this._allItems = allItems.filter((i) => i.uid !== this._itemId);
+      this._existingTags = tags.map((t) => t.name);
+      this._existingProjects = [...new Set(allItems.map((i) => i.project).filter((p): p is string => !!p))];
     } else {
+      const [allItems, tags] = await Promise.all([
+        allItemsPromise,
+        tagsPromise,
+      ]);
       this._item = {
         title: "",
         description: "",
         traits: ["actionable"],
         tags: [],
         priority: null,
+        project: null,
         assigned_to: this.hass?.user ? [this.hass.user.id] : [],
         needs_detail: false,
       };
-      this._allItems = [];
+      this._allItems = allItems;
+      this._existingTags = tags.map((t) => t.name);
+      this._existingProjects = [...new Set(allItems.map((i) => i.project).filter((p): p is string => !!p))];
     }
 
     this._section = 0;
     this._error = "";
     this._visible = true;
-    document.addEventListener("keydown", this._boundKey);
   }
 
   close() {
     this._visible = false;
-    document.removeEventListener("keydown", this._boundKey);
     this.requestUpdate();
   }
 
-  private _onKey(e: KeyboardEvent) {
-    if (e.key === "Escape") this.close();
-  }
+  private _onDialogClosed = (e: Event) => {
+    // ha-dialog dismissed itself (escape, scrim click, or back button).
+    // Its close events bubble and are composed; stop them reaching parent
+    // cards, then sync our own visibility so the element is torn down.
+    e.stopPropagation();
+    if (this._visible) this.close();
+  };
 
   // --- Rendering ---
 
   render() {
     if (!this._visible) return nothing;
 
-    const sectionNames = this._itemId
-      ? ["Basics", "Traits & Tags", "Recurrence", "Blockers", "Requirements", "Schedule"]
-      : ["Basics", "Traits & Tags", "Recurrence"];
+    const sectionNames = ["Basics", "Recurrence", "Requirements", "Blockers", "Schedule"];
 
     const inner = html`
       <div class="modal__header">
@@ -532,24 +666,19 @@ export class YahtlItemEditor extends LitElement {
     }
 
     return html`
-      <div class="overlay" @click=${this._overlayClick}>
+      <ha-dialog open hideActions @closed=${this._onDialogClosed}>
         <div class="modal">${inner}</div>
-      </div>
+      </ha-dialog>
     `;
-  }
-
-  private _overlayClick(e: Event) {
-    if ((e.target as HTMLElement).classList.contains("overlay")) this.close();
   }
 
   private _renderSection() {
     switch (this._section) {
       case 0: return this._renderBasics();
-      case 1: return this._renderTraitsTags();
-      case 2: return this._renderRecurrence();
+      case 1: return this._renderRecurrence();
+      case 2: return this._renderRequirements();
       case 3: return this._renderBlockers();
-      case 4: return this._renderRequirements();
-      case 5: return this._renderSchedule();
+      case 4: return this._renderSchedule();
       default: return nothing;
     }
   }
@@ -558,8 +687,7 @@ export class YahtlItemEditor extends LitElement {
 
   private _renderBasics() {
     const item = this._item;
-    const currentUser = this.hass?.user;
-    const isAssigned = (item.assigned_to || []).includes(currentUser?.id || "");
+    const users = this._getAssignableUsers();
 
     return html`
       <div class="field">
@@ -583,6 +711,7 @@ export class YahtlItemEditor extends LitElement {
             this._set("description", (e.target as HTMLTextAreaElement).value)}
         ></textarea>
       </div>
+      ${this._renderTraitsTags()}
       <div class="row2">
         <div class="field">
           <div class="field__label">Priority</div>
@@ -619,6 +748,21 @@ export class YahtlItemEditor extends LitElement {
         </div>
       </div>
       <div class="field">
+        <div class="field__label">Project</div>
+        <input
+          class="input"
+          type="text"
+          placeholder="e.g. kitchen-reno"
+          list="yahatl-project-suggestions"
+          .value=${item.project || ""}
+          @input=${(e: InputEvent) =>
+            this._set("project", (e.target as HTMLInputElement).value || null)}
+        />
+        <datalist id="yahatl-project-suggestions">
+          ${this._existingProjects.map((p) => html`<option value=${p}></option>`)}
+        </datalist>
+      </div>
+      <div class="field">
         <div class="field__label">Due</div>
         <input
           class="input"
@@ -633,18 +777,21 @@ export class YahtlItemEditor extends LitElement {
       <div class="field">
         <div class="field__label">Assigned to</div>
         <div class="assign-row">
-          ${currentUser
-            ? html`
-                <button
-                  class="trait-toggle ${isAssigned ? "is-on" : ""}"
-                  style="--rgb-state: var(--rgb-primary-color)"
-                  @click=${() => this._toggleAssign(currentUser.id)}
-                >
-                  <ha-icon icon="mdi:account"></ha-icon>
-                  ${currentUser.name}
-                </button>
-              `
-            : nothing}
+          ${users.length
+            ? users.map((u) => {
+                const on = (item.assigned_to || []).includes(u.id);
+                return html`
+                  <button
+                    class="trait-toggle ${on ? "is-on" : ""}"
+                    style="--rgb-state: var(--rgb-primary-color)"
+                    @click=${() => this._toggleAssign(u.id)}
+                  >
+                    <ha-icon icon="mdi:account"></ha-icon>
+                    ${u.name}
+                  </button>
+                `;
+              })
+            : html`<span class="hint" style="margin: 0">No users found</span>`}
         </div>
       </div>
       <label class="check-row">
@@ -711,10 +858,20 @@ export class YahtlItemEditor extends LitElement {
             class="tag-input"
             type="text"
             placeholder="add tag…"
+            list="yahatl-tag-suggestions"
             @keydown=${(e: KeyboardEvent) => {
               if (e.key === "Enter") this._addTag(e.target as HTMLInputElement);
             }}
+            @change=${(e: Event) => {
+              const input = e.target as HTMLInputElement;
+              if (input.value.trim()) this._addTag(input);
+            }}
           />
+          <datalist id="yahatl-tag-suggestions">
+            ${this._existingTags
+              .filter((t) => !(this._item.tags || []).includes(t))
+              .map((t) => html`<option value=${t}></option>`)}
+          </datalist>
         </div>
       </div>
     `;
@@ -962,6 +1119,7 @@ export class YahtlItemEditor extends LitElement {
             <option value="ALL">ALL must be incomplete to block</option>
           </select>
         </div>
+        <div class="blocker-items-scroll">
         ${this._allItems.length > 0
           ? this._allItems.map(
               (other) => html`
@@ -977,6 +1135,7 @@ export class YahtlItemEditor extends LitElement {
               `
             )
           : html`<div style="font-size: 13px; color: var(--yahatl-text-secondary)">No other items</div>`}
+        </div>
       </fieldset>
 
       <fieldset>
@@ -1010,19 +1169,12 @@ export class YahtlItemEditor extends LitElement {
             `
           )}
         </div>
-        <ha-entity-picker
-          .hass=${this.hass}
-          @value-changed=${(e: CustomEvent) => {
-            const eid = e.detail.value;
-            if (eid && !(b.sensors || []).includes(eid)) {
-              this._setBlockers({ ...b, sensors: [...(b.sensors || []), eid] });
-            }
-            // Reset picker
-            const picker = e.target as any;
-            setTimeout(() => { picker.value = ""; }, 0);
-          }}
-          label="Add sensor entity"
-        ></ha-entity-picker>
+        ${this._renderEntityCombo(
+          "blocker-sensor",
+          "Add sensor entity…",
+          b.sensors || [],
+          (eid) => this._setBlockers({ ...b, sensors: [...(b.sensors || []), eid] }),
+        )}
       </fieldset>
     `;
   }
@@ -1031,32 +1183,25 @@ export class YahtlItemEditor extends LitElement {
 
   private _renderRequirements() {
     const r = this._item.requirements || {
-      mode: "ANY",
+      mode: "ALL",
       location: [],
       people: [],
       time_constraints: [],
       context: [],
       sensors: [],
     };
-    const timeOptions = [
-      "business_hours",
-      "weekend",
-      "evening",
-      "morning",
-      "night",
-    ];
 
     return html`
       <div class="field">
         <div class="field__label">Mode</div>
         <select
           class="select"
-          .value=${r.mode || "ANY"}
+          .value=${r.mode || "ALL"}
           @change=${(e: Event) =>
             this._setRequirements({ ...r, mode: (e.target as HTMLSelectElement).value })}
         >
-          <option value="ANY">ANY requirement met = eligible</option>
           <option value="ALL">ALL requirements must be met</option>
+          <option value="ANY">ANY requirement met = eligible</option>
         </select>
       </div>
       <div class="field">
@@ -1087,84 +1232,33 @@ export class YahtlItemEditor extends LitElement {
         </div>
       </div>
       <div class="field">
-        <div class="field__label">People</div>
-        <div class="chips-strip" style="padding: 0">
-          ${Object.entries(this._getPersonEntities()).map(
-            ([id, name]) => html`
-              <button
-                class="mush-chip ${(r.people || []).includes(id) ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: var(--rgb-primary-color)"
-                @click=${() => {
-                  const ppl = r.people || [];
-                  this._setRequirements({
-                    ...r,
-                    people: ppl.includes(id)
-                      ? ppl.filter((x) => x !== id)
-                      : [...ppl, id],
-                  });
-                }}
-              >
-                <span class="mush-chip__icon">
-                  <ha-icon icon="mdi:account"></ha-icon>
-                </span>
-                ${name}
-              </button>
-            `
-          )}
-        </div>
-      </div>
-      <fieldset>
-        <legend>Time constraints</legend>
-        <div class="chips-strip" style="padding: 0; padding-top: 4px">
-          ${timeOptions.map(
-            (t) => html`
-              <button
-                class="mush-chip ${(r.time_constraints || []).includes(t) ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: var(--rgb-primary-color)"
-                @click=${() => {
-                  const tc = r.time_constraints || [];
-                  this._setRequirements({
-                    ...r,
-                    time_constraints: tc.includes(t)
-                      ? tc.filter((x) => x !== t)
-                      : [...tc, t],
-                  });
-                }}
-              >
-                <span class="mush-chip__icon">
-                  <ha-icon icon=${{business_hours: "mdi:briefcase-clock", weekend: "mdi:calendar-weekend", evening: "mdi:weather-sunset", morning: "mdi:weather-sunset-up", night: "mdi:weather-night"}[t]}></ha-icon>
-                </span>
-                ${t.replace(/_/g, " ")}
-              </button>
-            `
-          )}
-        </div>
-      </fieldset>
-      <div class="field">
         <div class="field__label">Context</div>
         <div class="chips-strip" style="padding: 0">
-          ${(["focused_work", "calls_ok", "errands", "exercise", "relaxation"] as const).map(
+          ${this._contexts.map(
             (c) => html`
               <button
-                class="mush-chip ${(r.context || []).includes(c) ? "mush-chip--filled" : "mush-chip--state"}"
+                class="mush-chip ${(r.context || []).includes(c.id) ? "mush-chip--filled" : "mush-chip--state"}"
                 style="--rgb-state: var(--rgb-primary-color)"
                 @click=${() => {
                   const ctx = r.context || [];
                   this._setRequirements({
                     ...r,
-                    context: ctx.includes(c)
-                      ? ctx.filter((x) => x !== c)
-                      : [...ctx, c],
+                    context: ctx.includes(c.id)
+                      ? ctx.filter((x) => x !== c.id)
+                      : [...ctx, c.id],
                   });
                 }}
               >
                 <span class="mush-chip__icon">
-                  <ha-icon icon=${{focused_work: "mdi:head-cog", calls_ok: "mdi:phone", errands: "mdi:cart", exercise: "mdi:run", relaxation: "mdi:sofa"}[c]}></ha-icon>
+                  <ha-icon icon=${c.icon}></ha-icon>
                 </span>
-                ${c.replace(/_/g, " ")}
+                ${c.name}
               </button>
             `
           )}
+        </div>
+        <div class="hint">
+          Time-of-day rules live in the Schedule tab as time-blocker shortcuts.
         </div>
       </div>
       <fieldset>
@@ -1187,18 +1281,12 @@ export class YahtlItemEditor extends LitElement {
             `
           )}
         </div>
-        <ha-entity-picker
-          .hass=${this.hass}
-          @value-changed=${(e: CustomEvent) => {
-            const eid = e.detail.value;
-            if (eid && !(r.sensors || []).includes(eid)) {
-              this._setRequirements({ ...r, sensors: [...(r.sensors || []), eid] });
-            }
-            const picker = e.target as any;
-            setTimeout(() => { picker.value = ""; }, 0);
-          }}
-          label="Add sensor entity"
-        ></ha-entity-picker>
+        ${this._renderEntityCombo(
+          "req-sensor",
+          "Add sensor entity…",
+          r.sensors || [],
+          (eid) => this._setRequirements({ ...r, sensors: [...(r.sensors || []), eid] }),
+        )}
       </fieldset>
     `;
   }
@@ -1213,6 +1301,31 @@ export class YahtlItemEditor extends LitElement {
     return html`
       <fieldset>
         <legend>Time Blockers</legend>
+        <div class="field__label" style="margin-bottom: 6px">Shortcuts</div>
+        <div class="chips-strip" style="padding: 0 0 4px">
+          ${TIME_PRESETS.map((preset) => {
+            const st = this._presetState(preset);
+            const on = st !== "off";
+            const isNot = st === "not";
+            return html`
+              <button
+                class="mush-chip ${on ? "mush-chip--filled" : "mush-chip--state"}"
+                style="--rgb-state: ${isNot ? "var(--rgb-danger)" : "var(--rgb-primary-color)"}"
+                title="Click to cycle: only during → not during → off"
+                @click=${() => this._cyclePreset(preset)}
+              >
+                <span class="mush-chip__icon">
+                  <ha-icon icon=${preset.icon}></ha-icon>
+                </span>
+                ${isNot ? `Not ${preset.label.toLowerCase()}` : preset.label}
+              </button>
+            `;
+          })}
+        </div>
+        <div class="hint" style="margin-bottom: 10px">
+          Shortcuts add a matching time blocker below. Tap again to invert (NOT), and once
+          more to clear.
+        </div>
         ${tbs.map(
           (tb, i) => html`
             <div class="dyn-row">
@@ -1290,15 +1403,25 @@ export class YahtlItemEditor extends LitElement {
             <div class="dyn-row">
               <div class="field" style="margin-bottom: 8px">
                 <div class="field__label">Entity</div>
-                <ha-entity-picker
-                  .hass=${this.hass}
-                  .value=${ct.entity_id || ""}
-                  @value-changed=${(e: CustomEvent) =>
-                    this._updateConditionTrigger(i, {
-                      entity_id: e.detail.value,
-                    })}
-                  label="Select entity"
-                ></ha-entity-picker>
+                ${ct.entity_id
+                  ? html`
+                    <div class="entity-row" style="margin-bottom: 6px">
+                      <div class="entity-row__name">
+                        ${entityName(this.hass, ct.entity_id)}
+                        <div class="entity-row__id">${ct.entity_id}</div>
+                      </div>
+                      <button class="entity-row__remove" @click=${() =>
+                        this._updateConditionTrigger(i, { entity_id: "" })
+                      }>&times;</button>
+                    </div>
+                  `
+                  : nothing}
+                ${this._renderEntityCombo(
+                  `ct-entity-${i}`,
+                  ct.entity_id ? "Change entity…" : "Select entity…",
+                  [],
+                  (eid) => this._updateConditionTrigger(i, { entity_id: eid }),
+                )}
               </div>
               <div class="row2">
                 <div class="field">
@@ -1518,6 +1641,44 @@ export class YahtlItemEditor extends LitElement {
     this._set("time_blockers", tbs);
   }
 
+  // Time-blocker preset (schedule shortcut) helpers
+  private _sameDays(a: number[] | null | undefined, b: number[] | null): boolean {
+    const na = a && a.length ? [...a].sort((x, y) => x - y).join(",") : "";
+    const nb = b && b.length ? [...b].sort((x, y) => x - y).join(",") : "";
+    return na === nb;
+  }
+
+  private _matchTb(
+    tb: { start_time: string; end_time: string; mode?: string; days?: number[] | null },
+    spec: TbSpec,
+  ): boolean {
+    return (
+      tb.start_time === spec.start_time &&
+      tb.end_time === spec.end_time &&
+      (tb.mode || "suppress") === spec.mode &&
+      this._sameDays(tb.days, spec.days)
+    );
+  }
+
+  private _presetState(preset: (typeof TIME_PRESETS)[number]): "on" | "not" | "off" {
+    const tbs = this._item.time_blockers || [];
+    if (tbs.some((tb) => this._matchTb(tb, preset.on))) return "on";
+    if (tbs.some((tb) => this._matchTb(tb, preset.not))) return "not";
+    return "off";
+  }
+
+  private _cyclePreset(preset: (typeof TIME_PRESETS)[number]) {
+    const state = this._presetState(preset);
+    // Drop any existing blocker belonging to this preset, then add the next state.
+    const tbs = (this._item.time_blockers || []).filter(
+      (tb) => !this._matchTb(tb, preset.on) && !this._matchTb(tb, preset.not),
+    );
+    if (state === "off") tbs.push({ ...preset.on });
+    else if (state === "on") tbs.push({ ...preset.not });
+    // state === "not" → leave removed (cycles back to off)
+    this._set("time_blockers", tbs);
+  }
+
   // Condition trigger helpers
   private _addConditionTrigger() {
     const cts = [...(this._item.condition_triggers || [])];
@@ -1612,6 +1773,80 @@ export class YahtlItemEditor extends LitElement {
     }
   }
 
+  // --- Entity combobox ---
+
+  private _getFilteredEntities(exclude: string[]): { id: string; name: string }[] {
+    if (!this.hass?.states) return [];
+    const filter = this._entityFilter.toLowerCase();
+    const results: { id: string; name: string }[] = [];
+    for (const [eid, state] of Object.entries(this.hass.states)) {
+      if (exclude.includes(eid)) continue;
+      const name = (state.attributes.friendly_name as string) || eid;
+      if (filter && !eid.toLowerCase().includes(filter) && !name.toLowerCase().includes(filter)) continue;
+      results.push({ id: eid, name });
+    }
+    results.sort((a, b) => a.name.localeCompare(b.name));
+    return filter ? results.slice(0, 50) : results.slice(0, 20);
+  }
+
+  private _renderEntityCombo(
+    comboId: string,
+    placeholder: string,
+    exclude: string[],
+    onSelect: (entityId: string) => void,
+  ) {
+    const isOpen = this._entityDropdownOpen === comboId;
+    const entities = isOpen ? this._getFilteredEntities(exclude) : [];
+    return html`
+      <div class="entity-combo">
+        <input
+          class="entity-combo__input"
+          type="text"
+          placeholder=${placeholder}
+          .value=${this._entityDropdownOpen === comboId ? this._entityFilter : ""}
+          @focus=${() => {
+            this._entityDropdownOpen = comboId;
+            this._entityFilter = "";
+          }}
+          @blur=${() => {
+            // Delay to allow click on option
+            setTimeout(() => {
+              if (this._entityDropdownOpen === comboId) {
+                this._entityDropdownOpen = null;
+                this._entityFilter = "";
+              }
+            }, 200);
+          }}
+          @input=${(e: InputEvent) => {
+            this._entityFilter = (e.target as HTMLInputElement).value;
+          }}
+        />
+        ${isOpen ? html`
+          <div class="entity-combo__dropdown">
+            ${entities.length > 0
+              ? entities.map(
+                  (ent) => html`
+                    <div
+                      class="entity-combo__option"
+                      @mousedown=${(e: Event) => {
+                        e.preventDefault();
+                        onSelect(ent.id);
+                        this._entityDropdownOpen = null;
+                        this._entityFilter = "";
+                      }}
+                    >
+                      <span class="entity-combo__option-name">${ent.name}</span>
+                      <span class="entity-combo__option-id">${ent.id}</span>
+                    </div>
+                  `
+                )
+              : html`<div class="entity-combo__option"><span class="entity-combo__option-name" style="color: var(--yahatl-text-secondary)">No matches</span></div>`}
+          </div>
+        ` : nothing}
+      </div>
+    `;
+  }
+
   // --- Utilities ---
 
   private _toLocalDt(iso: string | null | undefined): string {
@@ -1630,6 +1865,34 @@ export class YahtlItemEditor extends LitElement {
       .split(",")
       .map((x) => x.trim())
       .filter(Boolean);
+  }
+
+  /** All assignable HA users: the current user plus every person entity that
+   *  is linked to a user account (assignment stores HA user IDs). */
+  private _getAssignableUsers(): { id: string; name: string }[] {
+    const users: { id: string; name: string }[] = [];
+    const seen = new Set<string>();
+
+    const cu = this.hass?.user;
+    if (cu?.id) {
+      users.push({ id: cu.id, name: cu.name || "Me" });
+      seen.add(cu.id);
+    }
+
+    if (this.hass?.states) {
+      for (const [eid, state] of Object.entries(this.hass.states)) {
+        if (!eid.startsWith("person.")) continue;
+        const uid = state.attributes.user_id as string | undefined;
+        if (!uid || seen.has(uid)) continue;
+        const name =
+          (state.attributes.friendly_name as string) || eid.replace("person.", "");
+        users.push({ id: uid, name });
+        seen.add(uid);
+      }
+    }
+
+    users.sort((a, b) => a.name.localeCompare(b.name));
+    return users;
   }
 
   /** Get all zone entities from hass.states as { zone_name: friendly_name } */
@@ -1658,18 +1921,6 @@ export class YahtlItemEditor extends LitElement {
       }
     }
     return "mdi:map-marker";
-  }
-
-  /** Get all person entities from hass.states as { entity_id: friendly_name } */
-  private _getPersonEntities(): Record<string, string> {
-    if (!this.hass?.states) return {};
-    const result: Record<string, string> = {};
-    for (const [eid, state] of Object.entries(this.hass.states)) {
-      if (eid.startsWith("person.")) {
-        result[eid] = (state.attributes.friendly_name as string) || eid;
-      }
-    }
-    return result;
   }
 }
 

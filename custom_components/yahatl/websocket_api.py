@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+
+from homeassistant.util import dt as dt_util
 from typing import Any
 
 import voluptuous as vol
@@ -18,6 +20,12 @@ from .const import (
     SIGNAL_YAHATL_UPDATED,
     STATUS_COMPLETED,
     STATUS_PENDING,
+)
+from .entry_data import (
+    all_lists as entry_all_lists,
+    iter_runtime,
+    resolve_entity,
+    runtime_for_list,
 )
 from .models import (
     BlockerConfig,
@@ -36,13 +44,10 @@ _LOGGER = logging.getLogger(__name__)
 
 def _resolve_list(hass: HomeAssistant, entity_id: str):
     """Resolve entity_id to (entry_id, list_data, store) or (None, None, None)."""
-    for entry_id, data in hass.data.get(DOMAIN, {}).items():
-        if isinstance(data, dict) and "data" in data:
-            list_data = data["data"]
-            expected_entity = f"todo.{list_data.list_id}"
-            if entity_id == expected_entity:
-                return entry_id, list_data, data["store"]
-    return None, None, None
+    entry, runtime = resolve_entity(hass, entity_id)
+    if runtime is None:
+        return None, None, None
+    return entry.entry_id, runtime.data, runtime.store
 
 
 def _resolve_item(hass: HomeAssistant, entity_id: str, item_id: str):
@@ -57,24 +62,16 @@ def _resolve_item(hass: HomeAssistant, entity_id: str, item_id: str):
 
 
 async def _save_and_notify(hass, entry_id, store, list_data, entity_id):
-    """Persist and notify via pipeline or fallback."""
-    pipeline = hass.data[DOMAIN].get(entry_id, {}).get("pipeline")
-    if pipeline:
-        await pipeline.async_request_refresh("websocket")
-    else:
-        await store.async_save(list_data)
-        async_dispatcher_send(hass, SIGNAL_YAHATL_UPDATED, entity_id)
+    """Persist the list and ask its coordinator to recompute."""
+    await store.async_save(list_data)
+    entry = hass.config_entries.async_get_entry(entry_id)
+    runtime = getattr(entry, "runtime_data", None) if entry else None
+    if runtime is not None:
+        await runtime.coordinator.async_request_refresh()
 
 
 def _get_all_lists(hass: HomeAssistant) -> list:
-    from .models import YahtlList
-    lists = []
-    for entry_id, data in hass.data.get(DOMAIN, {}).items():
-        if isinstance(data, dict) and "data" in data:
-            list_data = data["data"]
-            if isinstance(list_data, YahtlList):
-                lists.append(list_data)
-    return lists
+    return entry_all_lists(hass)
 
 
 # --- Handlers ---
@@ -84,10 +81,8 @@ async def websocket_lists(hass, connection, msg):
     """Return all yahatl lists with metadata."""
     user_id = msg.get("user_id")
     result = []
-    for entry_id, data in hass.data.get(DOMAIN, {}).items():
-        if not isinstance(data, dict) or "data" not in data:
-            continue
-        list_data = data["data"]
+    for _entry, runtime in iter_runtime(hass):
+        list_data = runtime.data
         # Filter by user visibility
         if user_id and list_data.owner:
             if list_data.owner != user_id:
@@ -155,6 +150,7 @@ async def websocket_items_list(hass, connection, msg):
             "has_recurrence": item.recurrence is not None,
             "has_blockers": item.blockers is not None,
             "current_streak": item.current_streak,
+            "project": item.project,
         }
         for item in items
     ]
@@ -183,12 +179,13 @@ async def websocket_item_create(hass, connection, msg):
 
     # Simple fields
     for field in ("description", "priority", "needs_detail",
-                  "time_estimate", "buffer_before", "buffer_after"):
+                  "time_estimate", "buffer_before", "buffer_after", "project"):
         if field in msg:
             setattr(item, field, msg[field])
 
     if "traits" in msg:
-        item.traits = msg["traits"]
+        from .models import apply_trait_rules
+        item.traits = apply_trait_rules(item, msg["traits"])
     if "tags" in msg:
         item.tags = msg["tags"]
     if "assigned_to" in msg:
@@ -226,12 +223,13 @@ async def websocket_item_save(hass, connection, msg):
 
     # Simple scalar fields
     for field in ("title", "description", "priority", "needs_detail",
-                  "time_estimate", "buffer_before", "buffer_after"):
+                  "time_estimate", "buffer_before", "buffer_after", "project"):
         if field in msg:
             setattr(item, field, msg[field])
 
     if "traits" in msg:
-        item.traits = msg["traits"]
+        from .models import apply_trait_rules
+        item.traits = apply_trait_rules(item, msg["traits"])
     if "tags" in msg:
         item.tags = msg["tags"]
     if "assigned_to" in msg:
@@ -288,7 +286,7 @@ async def websocket_item_complete(hass, connection, msg):
     from .recurrence import calculate_next_due, calculate_streak
 
     user_id = msg.get("user_id", "")
-    now = datetime.now()
+    now = dt_util.now()
 
     item.status = STATUS_COMPLETED
     item.deferred_until = None
@@ -332,6 +330,26 @@ async def websocket_item_defer(hass, connection, msg):
         return
 
     item.deferred_until = datetime.fromisoformat(msg["deferred_until"]) if msg.get("deferred_until") else None
+    await _save_and_notify(hass, entry_id, store, list_data, entity_id)
+    connection.send_result(msg["id"], item.to_dict())
+
+
+@websocket_api.async_response
+async def websocket_item_delay(hass, connection, msg):
+    """Delay an item to its next valid period.
+
+    Computes the next moment the item is schedulable from its time blockers
+    (skipping the rest of today) and defers it until then.
+    """
+    from .blockers import next_valid_time
+
+    entity_id = msg["entity_id"]
+    entry_id, list_data, store, item = _resolve_item(hass, entity_id, msg["item_id"])
+    if item is None:
+        connection.send_error(msg["id"], "item_not_found", "Item not found")
+        return
+
+    item.deferred_until = next_valid_time(item, dt_util.now())
     await _save_and_notify(hass, entry_id, store, list_data, entity_id)
     connection.send_result(msg["id"], item.to_dict())
 
@@ -412,7 +430,7 @@ async def websocket_context_set(hass, connection, msg):
         location=msg.get("location"),
         people=msg.get("people", []),
         contexts=msg.get("contexts", []),
-        updated_at=datetime.now(),
+        updated_at=dt_util.now(),
     )
 
     hass.data.setdefault(DOMAIN, {})
@@ -428,6 +446,136 @@ async def websocket_context_set(hass, connection, msg):
     )
 
     connection.send_result(msg["id"], context.to_dict())
+
+
+# --- Meta config ---
+
+@websocket_api.async_response
+async def websocket_meta_get(hass, connection, msg):
+    """Return the global meta configuration."""
+    meta_store = hass.data.get(DOMAIN, {}).get("meta_store")
+    if meta_store is None:
+        connection.send_result(msg["id"], {"contexts": [], "locations": []})
+        return
+    connection.send_result(msg["id"], meta_store.data.to_dict())
+
+
+@websocket_api.async_response
+async def websocket_meta_set(hass, connection, msg):
+    """Replace the global meta configuration.
+
+    Handles cascade deletion: if a context or location was removed and
+    items reference it, strip those references.
+    """
+    from .meta_store import MetaConfig
+
+    meta_store = hass.data.get(DOMAIN, {}).get("meta_store")
+    if meta_store is None:
+        connection.send_error(msg["id"], "meta_store_not_found", "Meta store not initialized")
+        return
+
+    old_data = meta_store.data
+    new_data = MetaConfig.from_dict(msg["data"])
+
+    # Detect deleted contexts
+    old_ctx_ids = {c.id for c in old_data.contexts}
+    new_ctx_ids = {c.id for c in new_data.contexts}
+    removed_ctx_ids = old_ctx_ids - new_ctx_ids
+
+    # Detect renamed contexts
+    # We track renames via the "renames" field in the message
+    renames = msg.get("renames", {})  # { old_id: new_id }
+
+    # Cascade: strip removed contexts from items, apply renames
+    if removed_ctx_ids or renames:
+        all_lists = _get_all_lists(hass)
+        for yahatl_list in all_lists:
+            dirty = False
+            for item in yahatl_list.items:
+                if item.requirements and item.requirements.context:
+                    original = list(item.requirements.context)
+                    # Apply renames
+                    item.requirements.context = [
+                        renames.get(c, c) for c in item.requirements.context
+                    ]
+                    # Remove deleted
+                    item.requirements.context = [
+                        c for c in item.requirements.context
+                        if c not in removed_ctx_ids
+                    ]
+                    if item.requirements.context != original:
+                        dirty = True
+            if dirty:
+                # Persist the list this item belongs to.
+                _entry, runtime = runtime_for_list(hass, yahatl_list)
+                if runtime is not None:
+                    await runtime.store.async_save(yahatl_list)
+
+    await meta_store.async_save(new_data)
+    connection.send_result(msg["id"], new_data.to_dict())
+
+
+# --- Tags ---
+
+@websocket_api.async_response
+async def websocket_tags_list(hass, connection, msg):
+    """Scan all items and return deduplicated tags with usage counts."""
+    tag_counts: dict[str, int] = {}
+    all_lists = _get_all_lists(hass)
+    for yahatl_list in all_lists:
+        for item in yahatl_list.items:
+            for tag in item.tags:
+                tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+    result = sorted(
+        [{"name": name, "count": count} for name, count in tag_counts.items()],
+        key=lambda t: -t["count"],
+    )
+    connection.send_result(msg["id"], result)
+
+
+@websocket_api.async_response
+async def websocket_tag_rename(hass, connection, msg):
+    """Rename a tag across all items in all lists."""
+    old_name = msg["old_name"]
+    new_name = msg["new_name"]
+
+    all_lists = _get_all_lists(hass)
+    for yahatl_list in all_lists:
+        dirty = False
+        for item in yahatl_list.items:
+            if old_name in item.tags:
+                item.tags = [new_name if t == old_name else t for t in item.tags]
+                # Deduplicate in case new_name already existed
+                seen = set()
+                item.tags = [t for t in item.tags if t not in seen and not seen.add(t)]
+                dirty = True
+        if dirty:
+            _entry, runtime = runtime_for_list(hass, yahatl_list)
+            if runtime is not None:
+                await runtime.store.async_save(yahatl_list)
+
+    connection.send_result(msg["id"], {"renamed": True})
+
+
+@websocket_api.async_response
+async def websocket_tag_delete(hass, connection, msg):
+    """Remove a tag from all items in all lists."""
+    tag_name = msg["name"]
+
+    all_lists = _get_all_lists(hass)
+    for yahatl_list in all_lists:
+        dirty = False
+        for item in yahatl_list.items:
+            if tag_name in item.tags:
+                item.tags = [t for t in item.tags if t != tag_name]
+                dirty = True
+        if dirty:
+            _entry, runtime = runtime_for_list(hass, yahatl_list)
+            if runtime is not None:
+                await runtime.store.async_save(yahatl_list)
+
+    connection.send_result(msg["id"], {"deleted": True})
 
 
 # --- Registration ---
@@ -495,6 +643,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("requirements"): vol.Any(dict, None),
             vol.Optional("condition_triggers"): vol.Any([dict], None),
             vol.Optional("time_blockers"): vol.Any([dict], None),
+            vol.Optional("project"): vol.Any(str, None),
         }),
     )
 
@@ -523,6 +672,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("condition_triggers"): vol.Any([dict], None),
             vol.Optional("time_blockers"): vol.Any([dict], None),
             vol.Optional("deferred_until"): vol.Any(str, None),
+            vol.Optional("project"): vol.Any(str, None),
         }),
     )
 
@@ -563,6 +713,17 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
 
     websocket_api.async_register_command(
         hass,
+        "yahatl/item_delay",
+        websocket_item_delay,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/item_delay",
+            vol.Required("entity_id"): str,
+            vol.Required("item_id"): str,
+        }),
+    )
+
+    websocket_api.async_register_command(
+        hass,
         "yahatl/queue",
         websocket_queue,
         websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
@@ -593,5 +754,57 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("location"): vol.Any(str, None),
             vol.Optional("people"): [str],
             vol.Optional("contexts"): [str],
+        }),
+    )
+
+    # Meta config
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/meta_get",
+        websocket_meta_get,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/meta_get",
+        }),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/meta_set",
+        websocket_meta_set,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/meta_set",
+            vol.Required("data"): dict,
+            vol.Optional("renames"): dict,
+        }),
+    )
+
+    # Tags
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/tags_list",
+        websocket_tags_list,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/tags_list",
+        }),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/tag_rename",
+        websocket_tag_rename,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/tag_rename",
+            vol.Required("old_name"): str,
+            vol.Required("new_name"): str,
+        }),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/tag_delete",
+        websocket_tag_delete,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/tag_delete",
+            vol.Required("name"): str,
         }),
     )

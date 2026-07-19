@@ -4,21 +4,6 @@ import { sharedStyles } from "../styles";
 import { store, StoreController } from "../store";
 import type { HomeAssistant } from "../types";
 
-const CONTEXTS = [
-  "focused_work",
-  "calls_ok",
-  "errands",
-  "exercise",
-  "relaxation",
-] as const;
-const CONTEXT_ICONS: Record<string, string> = {
-  focused_work: "mdi:head-cog",
-  calls_ok: "mdi:phone",
-  errands: "mdi:cart",
-  exercise: "mdi:run",
-  relaxation: "mdi:sofa",
-};
-
 function label(s: string): string {
   return s.replace(/_/g, " ");
 }
@@ -66,6 +51,7 @@ export class YahtlContextBar extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     store.loadContext();
+    store.loadMeta();
   }
 
   private _getZones(): { id: string; name: string; icon: string }[] {
@@ -83,14 +69,16 @@ export class YahtlContextBar extends LitElement {
 
   render() {
     const ctx = this._store.state.context;
+    const meta = this._store.state.meta;
     const loc = ctx?.location || null;
     const ctxs = ctx?.contexts || [];
-    const zones = this._getZones();
+    const allLocations = this._getMergedLocations();
+    const contexts = meta?.contexts || [];
 
     return html`
       <div class="context-bar">
         <span class="section-label">Where</span>
-        ${zones.map(
+        ${allLocations.map(
           (z) => html`
             <button
               class="mush-chip ${loc === z.id ? "mush-chip--filled" : "mush-chip--state"}"
@@ -105,22 +93,38 @@ export class YahtlContextBar extends LitElement {
           `
         )}
         <span class="section-label">Doing</span>
-        ${CONTEXTS.map(
+        ${contexts.map(
           (c) => html`
             <button
-              class="mush-chip ${ctxs.includes(c) ? "mush-chip--filled" : "mush-chip--state"}"
+              class="mush-chip ${ctxs.includes(c.id) ? "mush-chip--filled" : "mush-chip--state"}"
               style="--rgb-state: var(--rgb-primary-color)"
-              @click=${() => this._toggleContext(c, ctxs)}
+              @click=${() => this._toggleContext(c.id, ctxs)}
             >
               <span class="mush-chip__icon">
-                <ha-icon icon=${CONTEXT_ICONS[c]}></ha-icon>
+                <ha-icon icon=${c.icon}></ha-icon>
               </span>
-              ${label(c)}
+              ${c.name}
             </button>
           `
         )}
       </div>
     `;
+  }
+
+  private _getMergedLocations(): { id: string; name: string; icon: string }[] {
+    const zones = this._getZones();
+    const customLocations = this._store.state.meta?.locations || [];
+    const merged = new Map<string, { id: string; name: string; icon: string }>();
+
+    // HA zones first
+    for (const z of zones) {
+      merged.set(z.id, z);
+    }
+    // Custom locations override or extend
+    for (const l of customLocations) {
+      merged.set(l.id, l);
+    }
+    return Array.from(merged.values());
   }
 
   private async _setLocation(location: string | null) {

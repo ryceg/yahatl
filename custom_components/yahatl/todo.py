@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+
+from homeassistant.util import dt as dt_util
 from typing import Any, Callable
 
 from homeassistant.components.todo import (
@@ -13,18 +15,19 @@ from homeassistant.components.todo import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     COMPLETION_HISTORY_CAP,
     CONF_STORAGE_KEY,
     DOMAIN,
-    SIGNAL_YAHATL_UPDATED,
     STATUS_COMPLETED,
     STATUS_PENDING,
     TRAIT_ACTIONABLE,
 )
+from .coordinator import YahtlCoordinator
 from .models import CompletionRecord, YahtlItem, YahtlList
 from .store import YahtlStore
 
@@ -36,26 +39,20 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    storage_key = config_entry.data[CONF_STORAGE_KEY]
-
-    entry_data = hass.data[DOMAIN][config_entry.entry_id]
-    store = entry_data["store"]
-    data = entry_data["data"]
-
+    runtime = config_entry.runtime_data
     entity = YahtlTodoListEntity(
-        store=store,
-        data=data,
-        unique_id=storage_key,
+        coordinator=runtime.coordinator,
+        store=runtime.store,
+        data=runtime.data,
+        unique_id=config_entry.data[CONF_STORAGE_KEY],
     )
-
     async_add_entities([entity])
 
 
-class YahtlTodoListEntity(TodoListEntity):
+class YahtlTodoListEntity(CoordinatorEntity[YahtlCoordinator], TodoListEntity):
     """A yahatl todo list entity."""
 
     _attr_has_entity_name = True
-    _attr_should_poll = False
     _attr_supported_features = (
         TodoListEntityFeature.CREATE_TODO_ITEM
         | TodoListEntityFeature.DELETE_TODO_ITEM
@@ -68,33 +65,31 @@ class YahtlTodoListEntity(TodoListEntity):
 
     def __init__(
         self,
+        coordinator: YahtlCoordinator,
         store: YahtlStore,
         data: YahtlList,
         unique_id: str,
     ) -> None:
+        super().__init__(coordinator)
         self._store = store
         self._data = data
         self._attr_unique_id = unique_id
         self._attr_name = data.name
-        self._unsub_update: Callable[[], None] | None = None
-
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-
-        @callback
-        def handle_update(entity_id):
-            if entity_id == self.entity_id:
-                if self._store.data:
-                    self._data = self._store.data
-                self.async_write_ha_state()
-
-        self._unsub_update = async_dispatcher_connect(
-            self.hass, SIGNAL_YAHATL_UPDATED, handle_update
+        # Group the todo entity with this list's sensors under one device.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, unique_id)},
+            name=data.name,
+            manufacturer="yahatl",
+            model="Todo list",
+            entry_type=DeviceEntryType.SERVICE,
         )
 
-    async def async_will_remove_from_hass(self) -> None:
-        if self._unsub_update:
-            self._unsub_update()
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        data = self.coordinator.list_data
+        if data is not None:
+            self._data = data
+        self.async_write_ha_state()
 
     @property
     def todo_items(self) -> list[TodoItem]:
@@ -204,7 +199,7 @@ class YahtlTodoListEntity(TodoListEntity):
         # Add completion record
         record = CompletionRecord(
             user_id=user_id,
-            timestamp=datetime.now(),
+            timestamp=dt_util.now(),
         )
         item.completion_history.append(record)
 
@@ -215,6 +210,4 @@ class YahtlTodoListEntity(TodoListEntity):
     async def _async_save(self) -> None:
         await self._store.async_save(self._data)
         self.async_write_ha_state()
-        async_dispatcher_send(
-            self.hass, SIGNAL_YAHATL_UPDATED, self.entity_id
-        )
+        await self.coordinator.async_request_refresh()

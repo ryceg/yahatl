@@ -226,7 +226,7 @@ class BlockerConfig:
 class RequirementsConfig:
     """Requirements configuration for an item."""
 
-    mode: str = "ANY"  # ANY or ALL
+    mode: str = "ALL"  # ANY or ALL
     location: list[str] = field(default_factory=list)
     people: list[str] = field(default_factory=list)
     time_constraints: list[str] = field(default_factory=list)
@@ -248,7 +248,7 @@ class RequirementsConfig:
     def from_dict(cls, data: dict[str, Any]) -> RequirementsConfig:
         """Create from dictionary."""
         return cls(
-            mode=data.get("mode", "ANY"),
+            mode=data.get("mode", "ALL"),
             location=data.get("location", []),
             people=data.get("people", []),
             time_constraints=data.get("time_constraints", []),
@@ -279,6 +279,11 @@ class YahtlItem:
     buffer_before: int = 0
     buffer_after: int = 0
 
+    # Derived surfacing: days before `due` this item starts appearing in the
+    # queue. Normally computed from attributes (see lead.py); this is an optional
+    # manual override (None = auto).
+    lead_override_days: int | None = None
+
     # Recurrence
     recurrence: RecurrenceConfig | None = None
 
@@ -299,6 +304,9 @@ class YahtlItem:
 
     # Priority
     priority: str | None = None  # low, medium, high
+
+    # Project grouping (GTD: any outcome requiring 2+ actions)
+    project: str | None = None
 
     # Assignment
     assigned_to: list[str] = field(default_factory=list)  # HA user IDs
@@ -334,6 +342,7 @@ class YahtlItem:
             "time_estimate": self.time_estimate,
             "buffer_before": self.buffer_before,
             "buffer_after": self.buffer_after,
+            "lead_override_days": self.lead_override_days,
             "recurrence": self.recurrence.to_dict() if self.recurrence else None,
             "blockers": self.blockers.to_dict() if self.blockers else None,
             "requirements": self.requirements.to_dict() if self.requirements else None,
@@ -341,6 +350,7 @@ class YahtlItem:
             "time_blockers": [tb.to_dict() for tb in self.time_blockers],
             "deferred_until": self.deferred_until.isoformat() if self.deferred_until else None,
             "priority": self.priority,
+            "project": self.project,
             "assigned_to": self.assigned_to,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
@@ -364,6 +374,7 @@ class YahtlItem:
             time_estimate=data.get("time_estimate"),
             buffer_before=data.get("buffer_before", 0),
             buffer_after=data.get("buffer_after", 0),
+            lead_override_days=data.get("lead_override_days"),
             recurrence=RecurrenceConfig.from_dict(data["recurrence"]) if data.get("recurrence") else None,
             blockers=BlockerConfig.from_dict(data["blockers"]) if data.get("blockers") else None,
             requirements=RequirementsConfig.from_dict(data["requirements"]) if data.get("requirements") else None,
@@ -377,6 +388,7 @@ class YahtlItem:
             ],
             deferred_until=datetime.fromisoformat(data["deferred_until"]) if data.get("deferred_until") else None,
             priority=data.get("priority"),
+            project=data.get("project"),
             assigned_to=data.get("assigned_to", []),
             completion_history=[
                 CompletionRecord.from_dict(r)
@@ -387,6 +399,40 @@ class YahtlItem:
             created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
             created_by=data.get("created_by", ""),
         )
+
+
+def apply_trait_rules(item: YahtlItem | None, new_traits: list[str]) -> list[str]:
+    """Apply trait mutual-exclusivity rules and clear fields as needed.
+
+    Rules:
+    - actionable and someday are mutually exclusive (last one wins)
+    - Setting someday clears due and priority
+    """
+    from .const import TRAIT_ACTIONABLE, TRAIT_SOMEDAY
+
+    old_traits = item.traits if item else []
+    had_actionable = TRAIT_ACTIONABLE in old_traits
+    had_someday = TRAIT_SOMEDAY in old_traits
+    has_actionable = TRAIT_ACTIONABLE in new_traits
+    has_someday = TRAIT_SOMEDAY in new_traits
+
+    if has_actionable and has_someday:
+        # Both present — keep whichever is the new addition
+        if had_someday and not had_actionable:
+            # Adding actionable to a someday item → drop someday
+            new_traits = [t for t in new_traits if t != TRAIT_SOMEDAY]
+            has_someday = False
+        else:
+            # Adding someday to an actionable item (or fresh item) → drop actionable
+            new_traits = [t for t in new_traits if t != TRAIT_ACTIONABLE]
+            has_actionable = False
+
+    # Clear due and priority when transitioning to someday
+    if has_someday and not had_someday and item is not None:
+        item.due = None
+        item.priority = None
+
+    return new_traits
 
 
 @dataclass

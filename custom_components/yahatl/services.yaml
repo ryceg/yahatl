@@ -37,6 +37,7 @@ add_item:
             - chore
             - reminder
             - note
+            - someday
     tags:
       name: Tags
       description: Tags to add to the item.
@@ -65,6 +66,18 @@ add_item:
       default: false
       selector:
         boolean:
+    project:
+      name: Project
+      description: Project this item belongs to (any outcome requiring 2+ actions).
+      required: false
+      selector:
+        text:
+    assigned_to:
+      name: Assigned To
+      description: List of Home Assistant user IDs to assign the item to.
+      required: false
+      selector:
+        object:
 
 complete_item:
   name: Complete Item
@@ -172,6 +185,31 @@ update_item:
       required: false
       selector:
         datetime:
+    lead_override_days:
+      name: Lead Override (days)
+      description: >-
+        Manually override how many days before its due date this item starts
+        surfacing in the queue. Leave unset for the automatic, attribute-derived
+        lead. Set to null to return to automatic.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 90
+          unit_of_measurement: days
+          mode: box
+    project:
+      name: Project
+      description: Project this item belongs to. Set to null to remove from project.
+      required: false
+      selector:
+        text:
+    assigned_to:
+      name: Assigned To
+      description: List of Home Assistant user IDs to assign the item to. Replaces any existing assignees.
+      required: false
+      selector:
+        object:
 
 set_traits:
   name: Set Traits
@@ -205,6 +243,7 @@ set_traits:
             - chore
             - reminder
             - note
+            - someday
 
 add_tags:
   name: Add Tags
@@ -623,3 +662,41 @@ defer_item:
       required: false
       selector:
         datetime:
+
+move_item:
+  name: Move Item
+  description: Move an item from one yahatl list to another, preserving its uid, traits, recurrence, assignees and completion history.
+  fields:
+    entity_id:
+      name: Source List
+      description: The yahatl list the item currently lives in.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+    item_id:
+      name: Item ID
+      description: The unique ID of the item to move.
+      required: true
+      selector:
+        text:
+    target_entity_id:
+      name: Target List
+      description: The yahatl list to move the item into.
+      required: true
+      selector:
+        entity:
+          domain: todo
+          integration: yahatl
+
+create_list:
+  name: Create List
+  description: Create a new yahatl list. The entity id is derived from the name.
+  fields:
+    name:
+      name: Name
+      description: Display name for the new list.
+      required: true
+      selector:
+        text:

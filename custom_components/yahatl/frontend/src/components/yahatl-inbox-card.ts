@@ -82,6 +82,10 @@ export class YahtlInboxCard extends LitElement {
     this._config = config;
   }
 
+  static getStubConfig(): Record<string, unknown> {
+    return {};
+  }
+
   updated(changed: Map<string, unknown>) {
     if (changed.has("hass") && this.hass && !this._initialized) {
       this._initialized = true;

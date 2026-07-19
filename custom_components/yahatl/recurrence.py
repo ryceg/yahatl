@@ -5,6 +5,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.util import dt as dt_util
+
 if TYPE_CHECKING:
     from .models import YahtlItem, RecurrenceConfig
 
@@ -99,7 +101,7 @@ def calculate_next_due(item: YahtlItem, completion_time: datetime | None = None)
     if not item.recurrence:
         return None
 
-    completion_time = completion_time or datetime.now()
+    completion_time = completion_time or dt_util.now()
     recurrence = item.recurrence
 
     if recurrence.type == "calendar":
@@ -132,7 +134,7 @@ def calculate_streak(item: YahtlItem) -> int:
     )
 
     recurrence = item.recurrence
-    now = datetime.now()
+    now = dt_util.now()
     streak = 0
 
     if recurrence.type == "calendar":
@@ -225,7 +227,7 @@ def is_streak_at_risk(item: YahtlItem) -> bool:
         return False
 
     recurrence = item.recurrence
-    now = datetime.now()
+    now = dt_util.now()
 
     if recurrence.type == "calendar":
         period_days = _get_calendar_period_days(recurrence)
@@ -253,7 +255,7 @@ def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
     unit = recurrence.frequency_unit or "days"
     period_days = _unit_to_days(period, unit)
 
-    now = datetime.now()
+    now = dt_util.now()
     period_start = now - timedelta(days=period_days)
 
     count = sum(

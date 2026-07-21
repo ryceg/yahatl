@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, primaryTrait, TRAIT_ICONS, TRAIT_RGB } from "../styles";
 import { store, StoreController } from "../store";
+import { openItemEditor } from "../dialog";
 import type { HomeAssistant, YahtlItemSummary } from "../types";
 
 @customElement("yahatl-inbox-card")
@@ -199,13 +200,7 @@ export class YahtlInboxCard extends LitElement {
   }
 
   private _openEditor(entityId: string, itemId: string) {
-    this.dispatchEvent(
-      new CustomEvent("yahatl-open-editor", {
-        detail: { entityId, itemId, hass: this.hass },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    openItemEditor(this, { entityId, itemId, hass: this.hass });
   }
 
   private async _markDone(entityId: string, itemId: string) {

@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, TRAIT_ICONS, TRAIT_RGB } from "../styles";
 import { store } from "../store";
+import { fireEvent } from "../dialog";
 import type { HomeAssistant, YahtlItem, RecurrenceConfig, MetaEntry } from "../types";
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -118,26 +119,54 @@ export class YahtlItemEditor extends LitElement {
         display: block;
       }
 
-      /* The dialog surface (scrim, escape/back handling, focus trap,
-       * mobile sizing, HA theming) is provided by <ha-dialog>. We only
-       * size it and remove its default content padding so the modal body
-       * below manages its own header/content/footer chrome. */
-      ha-dialog {
-        --dialog-content-padding: 0;
-        --mdc-dialog-min-width: min(92vw, 520px);
-        --mdc-dialog-max-width: 520px;
-        --mdc-dialog-max-height: 92vh;
+      /* Self-contained overlay + modal. We deliberately do NOT use HA's
+       * <ha-dialog> here: this element is mounted on document.body (outside
+       * the HA app root), and ha-dialog is lazily registered — if HA hasn't
+       * loaded it yet, <ha-dialog> renders as an unknown element and the
+       * dialog silently fails to appear. A plain fixed overlay always renders. */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.45);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        animation: overlay-in 160ms ease-out;
       }
 
-      /* Modal body: sticky header + scrollable content + sticky footer.
-       * Background is transparent so the themed ha-dialog surface (and
-       * its rounded corners) show through as a single seamless panel. */
+      @keyframes overlay-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @media (min-width: 600px) {
+        .overlay { align-items: center; }
+      }
+
+      /* Modal body: sticky header + scrollable content + sticky footer. */
       .modal {
+        width: 100%;
+        max-width: 520px;
         max-height: 88vh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        background: var(--yahatl-card-bg);
+        color: var(--yahatl-text);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+        animation: modal-slide-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
         touch-action: auto;
+      }
+
+      @keyframes modal-slide-up {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+
+      @media (min-width: 600px) {
+        .modal { border-radius: 16px; }
       }
 
       .modal__header {
@@ -601,20 +630,51 @@ export class YahtlItemEditor extends LitElement {
     this._section = 0;
     this._error = "";
     this._visible = true;
+    document.addEventListener("keydown", this._boundKey);
+    document.body.style.overflow = "hidden";
+  }
+
+  // --- HA dialog-manager entry points (the show-dialog contract) ---
+
+  public async showDialog(params: {
+    entityId: string;
+    itemId?: string;
+    hass?: HomeAssistant;
+  }): Promise<void> {
+    await this.open(params);
+  }
+
+  public closeDialog(): boolean {
+    this.close();
+    return true;
   }
 
   close() {
+    if (!this._visible) return;
     this._visible = false;
+    document.removeEventListener("keydown", this._boundKey);
+    document.body.style.overflow = "";
     this.requestUpdate();
+    if (this.mode !== "inline") {
+      // Ask HA's dialog manager to unmount us and pop the history entry.
+      fireEvent(this, "dialog-closed", { dialog: "yahatl-item-editor" });
+    }
   }
 
-  private _onDialogClosed = (e: Event) => {
-    // ha-dialog dismissed itself (escape, scrim click, or back button).
-    // Its close events bubble and are composed; stop them reaching parent
-    // cards, then sync our own visibility so the element is torn down.
-    e.stopPropagation();
-    if (this._visible) this.close();
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Safety net: never leave the page scroll-locked or a listener dangling.
+    document.removeEventListener("keydown", this._boundKey);
+    document.body.style.overflow = "";
+  }
+
+  private _boundKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") this.close();
   };
+
+  private _overlayClick(e: Event) {
+    if ((e.target as HTMLElement).classList.contains("overlay")) this.close();
+  }
 
   // --- Rendering ---
 
@@ -666,9 +726,9 @@ export class YahtlItemEditor extends LitElement {
     }
 
     return html`
-      <ha-dialog open hideActions @closed=${this._onDialogClosed}>
+      <div class="overlay" @click=${this._overlayClick}>
         <div class="modal">${inner}</div>
-      </ha-dialog>
+      </div>
     `;
   }
 
@@ -1923,13 +1983,3 @@ export class YahtlItemEditor extends LitElement {
     return "mdi:map-marker";
   }
 }
-
-// Global listener for opening editor
-document.addEventListener("yahatl-open-editor", ((e: CustomEvent) => {
-  let editor = document.querySelector("yahatl-item-editor") as YahtlItemEditor;
-  if (!editor) {
-    editor = document.createElement("yahatl-item-editor") as YahtlItemEditor;
-    document.body.appendChild(editor);
-  }
-  editor.open(e.detail);
-}) as EventListener);

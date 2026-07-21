@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, TRAIT_ICONS, TRAIT_RGB, primaryTrait } from "../styles";
 import { store, StoreController } from "../store";
+import { openItemEditor } from "../dialog";
 import type { HomeAssistant, YahtlItemSummary } from "../types";
 
 type FilterKey = "status" | "trait" | "tag";
@@ -410,13 +411,7 @@ export class YahtlListCard extends LitElement {
   }
 
   private _openEditor(entityId: string, itemId: string) {
-    this.dispatchEvent(
-      new CustomEvent("yahatl-open-editor", {
-        detail: { entityId, itemId, hass: this.hass },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    openItemEditor(this, { entityId, itemId, hass: this.hass });
   }
 
   private _formatDue(

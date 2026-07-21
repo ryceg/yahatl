@@ -23,6 +23,8 @@ export class YahtlListCard extends LitElement {
   @state() private _activeListIdx = 0;
   @state() private _filters: Filters = { status: null, trait: null, tag: null };
   @state() private _showFilters = false;
+  @state() private _showDeferred = false;
+  @state() private _showCompleted = false;
   private _store = new StoreController(this);
   private _initialized = false;
 
@@ -204,6 +206,63 @@ export class YahtlListCard extends LitElement {
       .item-badges .deferred {
         color: rgb(var(--rgb-state-deferred));
       }
+
+      /* Collapsible group headers (deferred / completed) */
+      .group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        border: none;
+        border-top: 1px solid var(--yahatl-divider);
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--yahatl-text-secondary);
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 120ms ease;
+      }
+
+      .group-header:hover {
+        background: rgba(var(--rgb-primary-color), 0.04);
+      }
+
+      .group-header:active {
+        background: rgba(var(--rgb-primary-color), 0.08);
+      }
+
+      .group-header__icon {
+        --mdc-icon-size: 18px;
+        color: var(--yahatl-text-secondary);
+      }
+
+      .group-header__label {
+        flex: 1;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      .group-header__count {
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(var(--rgb-primary-color), 0.12);
+        color: var(--yahatl-text-secondary);
+        border-radius: 10px;
+        padding: 1px 8px;
+      }
+
+      .group-header__chevron {
+        --mdc-icon-size: 20px;
+        transition: transform 180ms ease;
+      }
+
+      .group-header--open .group-header__chevron {
+        transform: rotate(180deg);
+      }
     `,
   ];
 
@@ -234,6 +293,15 @@ export class YahtlListCard extends LitElement {
     const filtered = this._applyFilters(items);
     const filterCount = Object.values(this._filters).filter(Boolean).length;
 
+    const active: YahtlItemSummary[] = [];
+    const deferred: YahtlItemSummary[] = [];
+    const completed: YahtlItemSummary[] = [];
+    for (const item of filtered) {
+      if (item.status === "completed") completed.push(item);
+      else if (this._isDeferred(item)) deferred.push(item);
+      else active.push(item);
+    }
+
     return html`
       <ha-card>
         ${lists.length > 0
@@ -254,7 +322,7 @@ export class YahtlListCard extends LitElement {
           : nothing}
 
         <div class="filter-toggle">
-          <span class="filter-toggle__count">${filtered.length} items</span>
+          <span class="filter-toggle__count">${active.length} items</span>
           <button class="filter-toggle__btn" @click=${() => (this._showFilters = !this._showFilters)}>
             Filters${filterCount > 0
               ? html`<span class="active-filter-badge">${filterCount}</span>`
@@ -266,9 +334,60 @@ export class YahtlListCard extends LitElement {
 
         ${filtered.length === 0
           ? html`<div class="empty-state">No items match</div>`
-          : filtered.map((item) => this._renderItem(item, entityId))}
+          : nothing}
+        ${active.map((item) => this._renderItem(item, entityId))}
+        ${deferred.length > 0
+          ? this._renderGroup(
+              "Deferred",
+              "mdi:clock-outline",
+              deferred,
+              entityId,
+              this._showDeferred,
+              () => (this._showDeferred = !this._showDeferred)
+            )
+          : nothing}
+        ${completed.length > 0
+          ? this._renderGroup(
+              "Completed",
+              "mdi:check-circle-outline",
+              completed,
+              entityId,
+              this._showCompleted,
+              () => (this._showCompleted = !this._showCompleted)
+            )
+          : nothing}
       </ha-card>
     `;
+  }
+
+  private _renderGroup(
+    label: string,
+    icon: string,
+    items: YahtlItemSummary[],
+    entityId: string,
+    expanded: boolean,
+    toggle: () => void
+  ) {
+    return html`
+      <button
+        class="group-header ${expanded ? "group-header--open" : ""}"
+        @click=${toggle}
+      >
+        <ha-icon class="group-header__icon" icon=${icon}></ha-icon>
+        <span class="group-header__label">${label}</span>
+        <span class="group-header__count">${items.length}</span>
+        <ha-icon class="group-header__chevron" icon="mdi:chevron-down"></ha-icon>
+      </button>
+      ${expanded
+        ? items.map((item) => this._renderItem(item, entityId))
+        : nothing}
+    `;
+  }
+
+  private _isDeferred(item: YahtlItemSummary): boolean {
+    return (
+      !!item.deferred_until && new Date(item.deferred_until) > new Date()
+    );
   }
 
   private _renderFilters() {
@@ -315,7 +434,7 @@ export class YahtlListCard extends LitElement {
     const traitRgb = trait ? TRAIT_RGB[trait] : "var(--rgb-primary-color)";
     const traitIcon = trait ? TRAIT_ICONS[trait] : "";
     const due = this._formatDue(item.due);
-    const isDeferred = item.deferred_until && new Date(item.deferred_until) > new Date();
+    const isDeferred = this._isDeferred(item);
 
     return html`
       <div

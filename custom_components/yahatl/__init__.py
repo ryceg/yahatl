@@ -1,6 +1,7 @@
 """The yahatl integration."""
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 import hashlib
 import logging
@@ -21,6 +22,9 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.TODO, Platform.SENSOR]
 
+FRONTEND_BUNDLE = "yahatl.js"
+FRONTEND_URL = f"/{DOMAIN}/{FRONTEND_BUNDLE}"
+
 
 @dataclass
 class YahtlRuntimeData:
@@ -40,6 +44,81 @@ def _read_bytes(path: str) -> bytes:
         return fh.read()
 
 
+async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
+    """Point the Lovelace resource at the bundle's current content hash.
+
+    Called from async_setup (once) AND every async_setup_entry, so a
+    no-restart `reload_config_entry` after a `vite build` refreshes the
+    cache-buster. async_setup — where the static path is registered — does
+    NOT re-run on entry reload; only async_setup_entry does, so without the
+    per-entry call the browser keeps serving the stale bundle even though
+    the file on disk changed.
+
+    The cache-buster is the bundle's content hash: every rebuild busts
+    browser caches even when manifest VERSION is unchanged, and an
+    unchanged rebuild keeps the same URL so the cache stays warm.
+
+    A lock serialises the entry setups HA runs concurrently, and a cached
+    last-synced URL makes repeat calls for the same hash a no-op.
+    """
+    from .const import VERSION
+
+    bundle_path = hass.config.path(
+        f"custom_components/{DOMAIN}/www/{FRONTEND_BUNDLE}"
+    )
+    try:
+        digest = hashlib.md5(
+            await hass.async_add_executor_job(_read_bytes, bundle_path)
+        ).hexdigest()[:8]
+    except OSError:
+        digest = VERSION
+    resource_url = f"{FRONTEND_URL}?v={digest}"
+
+    lock: asyncio.Lock = hass.data[DOMAIN].setdefault(
+        "_resource_lock", asyncio.Lock()
+    )
+    async with lock:
+        if hass.data[DOMAIN].get("_resource_url") == resource_url:
+            return
+        try:
+            # The old hass.components.lovelace accessor is deprecated and its
+            # async_get_info() returns a {"resources": <count>} dict — not a
+            # list — so the previous loop raised and was swallowed, which is
+            # why the resource silently stopped updating. Access the
+            # collection directly instead.
+            from homeassistant.components.lovelace.const import LOVELACE_DATA
+            from homeassistant.components.lovelace.resources import (
+                ResourceStorageCollection,
+            )
+
+            lovelace_data = hass.data.get(LOVELACE_DATA)
+            resources = getattr(lovelace_data, "resources", None)
+            if not isinstance(resources, ResourceStorageCollection):
+                # YAML-managed dashboards edit resources in configuration.yaml.
+                _LOGGER.debug(
+                    "Lovelace resources not storage-managed; skipping %s",
+                    resource_url,
+                )
+                return
+            stale_prefixes = ("/yahatl/", "/local/yahatl")
+            found = False
+            for r in resources.async_items():  # sync @callback -> list[dict]
+                url = r.get("url", "")
+                if url == resource_url:
+                    found = True
+                elif url.split("?")[0].startswith(stale_prefixes):
+                    await resources.async_delete_item(r["id"])
+            if not found:
+                await resources.async_create_item(
+                    {"res_type": "module", "url": resource_url}
+                )
+            hass.data[DOMAIN]["_resource_url"] = resource_url
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning(
+                "Could not auto-register Lovelace resource %s", resource_url
+            )
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     await async_setup_services(hass)
@@ -55,55 +134,16 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     except Exception:
         _LOGGER.exception("Failed to register yahatl websocket commands")
 
-    # Register frontend bundle and auto-register as Lovelace resource
-    from .const import VERSION
-    bundle = "yahatl.js"
-    bundle_url = f"/yahatl/{bundle}"
-    bundle_path = hass.config.path(f"custom_components/yahatl/www/{bundle}")
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(bundle_url, bundle_path, False)]
+    # Serve the frontend bundle (once) and sync its Lovelace resource
+    # cache-buster to the built file's content hash. The sync also runs from
+    # async_setup_entry so a no-restart reload refreshes it — see the helper.
+    bundle_path = hass.config.path(
+        f"custom_components/{DOMAIN}/www/{FRONTEND_BUNDLE}"
     )
-    try:
-        # Cache-buster derived from bundle *content*, so every rebuild busts
-        # browser caches even when manifest VERSION is unchanged. Version-based
-        # busting only fires on a version bump — easy to forget, and the source
-        # of the stale-bundle drift this replaces. Same content -> same URL, so
-        # unchanged rebuilds keep the browser cache warm.
-        try:
-            digest = hashlib.md5(
-                await hass.async_add_executor_job(_read_bytes, bundle_path)
-            ).hexdigest()[:8]
-        except OSError:
-            digest = VERSION
-        resource_url = f"{bundle_url}?v={digest}"
-        # Access the Lovelace resource collection directly. The old
-        # hass.components.lovelace accessor is deprecated, and its
-        # async_get_info() returns a {"resources": <count>} dict — not a list —
-        # so the previous loop raised and was swallowed, which is why the
-        # resource silently stopped updating (its cache-buster never changed).
-        from homeassistant.components.lovelace.const import LOVELACE_DATA
-        from homeassistant.components.lovelace.resources import ResourceStorageCollection
-
-        lovelace_data = hass.data.get(LOVELACE_DATA)
-        resources = getattr(lovelace_data, "resources", None)
-        if not isinstance(resources, ResourceStorageCollection):
-            # YAML-managed dashboards edit resources in configuration.yaml.
-            _LOGGER.debug("Lovelace resources not storage-managed; skipping %s", resource_url)
-        else:
-            stale_prefixes = ("/yahatl/", "/local/yahatl")
-            found = False
-            for r in resources.async_items():  # sync @callback -> list[dict]
-                url = r.get("url", "")
-                if url == resource_url:
-                    found = True
-                elif url.split("?")[0].startswith(stale_prefixes):
-                    await resources.async_delete_item(r["id"])
-            if not found:
-                await resources.async_create_item(
-                    {"res_type": "module", "url": resource_url}
-                )
-    except Exception:  # noqa: BLE001
-        _LOGGER.warning("Could not auto-register Lovelace resource %s", bundle_url)
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(FRONTEND_URL, bundle_path, False)]
+    )
+    await _async_sync_lovelace_resource(hass)
 
     return True
 
@@ -128,6 +168,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: YahtlConfigEntry) -> boo
     await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Refresh the frontend cache-buster on every (re)load: async_setup, which
+    # registers the static path, does not re-run on reload_config_entry, so
+    # this per-entry call is what makes a no-restart rebuild reach the browser.
+    await _async_sync_lovelace_resource(hass)
     return True
 
 

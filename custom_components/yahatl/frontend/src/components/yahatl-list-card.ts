@@ -23,6 +23,7 @@ export class YahtlListCard extends LitElement {
   @state() private _activeListIdx = 0;
   @state() private _filters: Filters = { status: null, trait: null, tag: null };
   @state() private _showFilters = false;
+  @state() private _showNotYet = false;
   @state() private _showDeferred = false;
   @state() private _showCompleted = false;
   private _store = new StoreController(this);
@@ -293,12 +294,18 @@ export class YahtlListCard extends LitElement {
     const filtered = this._applyFilters(items);
     const filterCount = Object.values(this._filters).filter(Boolean).length;
 
+    // "Not Yet" = items an automatic blocker (lead-time, time window, or a
+    // dependency) is holding out of the active list. Manual deferral is checked
+    // first so those items keep their own "Deferred" group; a block_reason on a
+    // non-deferred item means it's automatically held.
     const active: YahtlItemSummary[] = [];
+    const notYet: YahtlItemSummary[] = [];
     const deferred: YahtlItemSummary[] = [];
     const completed: YahtlItemSummary[] = [];
     for (const item of filtered) {
       if (item.status === "completed") completed.push(item);
       else if (this._isDeferred(item)) deferred.push(item);
+      else if (item.block_reason) notYet.push(item);
       else active.push(item);
     }
 
@@ -336,6 +343,16 @@ export class YahtlListCard extends LitElement {
           ? html`<div class="empty-state">No items match</div>`
           : nothing}
         ${active.map((item) => this._renderItem(item, entityId))}
+        ${notYet.length > 0
+          ? this._renderGroup(
+              "Not Yet",
+              "mdi:timer-sand",
+              notYet,
+              entityId,
+              this._showNotYet,
+              () => (this._showNotYet = !this._showNotYet)
+            )
+          : nothing}
         ${deferred.length > 0
           ? this._renderGroup(
               "Deferred",
@@ -480,6 +497,9 @@ export class YahtlListCard extends LitElement {
               : nothing}
             ${isDeferred
               ? html`<span class="deferred">deferred</span>`
+              : nothing}
+            ${item.block_reason && !isDeferred
+              ? html`<span class="deferred">${item.block_reason}</span>`
               : nothing}
           </div>
         </div>

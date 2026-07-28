@@ -31,12 +31,25 @@ export function fireEvent(
   );
 }
 
-/** Open the yahatl item editor from any card (source must be in the HA DOM). */
-export function openItemEditor(source: HTMLElement, params: ItemEditorParams): void {
-  fireEvent(source, "show-dialog", {
-    dialogTag: "yahatl-item-editor",
-    dialogImport: () => Promise.resolve(),
-    dialogParams: params,
-    addHistory: true,
-  });
+/**
+ * Open the yahatl item editor by hand-mounting it on document.body.
+ *
+ * We deliberately do NOT route through HA's show-dialog dialog manager: that
+ * path silently failed to surface the editor (the element was never asked to
+ * open). Creating the editor directly and calling open() is self-contained and
+ * matches the behaviour that worked before the dialog-manager refactor. The
+ * editor is a fixed-position overlay designed for body mounting; we reuse a
+ * single instance across opens.
+ */
+type EditorElement = HTMLElement & {
+  open: (p: ItemEditorParams) => void | Promise<void>;
+};
+let editorEl: EditorElement | null = null;
+
+export function openItemEditor(_source: HTMLElement, params: ItemEditorParams): void {
+  if (!editorEl || !editorEl.isConnected) {
+    editorEl = document.createElement("yahatl-item-editor") as EditorElement;
+    document.body.appendChild(editorEl);
+  }
+  void editorEl.open(params);
 }

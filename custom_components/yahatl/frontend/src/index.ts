@@ -1,6 +1,7 @@
 // Yahatl frontend - all custom elements registered on import
 export { YahtlQueueCard } from "./components/yahatl-queue-card";
 export { YahtlListCard } from "./components/yahatl-list-card";
+export { YahtlMyTasksCard } from "./components/yahatl-my-tasks-card";
 export { YahtlItemEditor } from "./components/yahatl-item-editor";
 export { YahtlContextBar } from "./components/yahatl-context-bar";
 export { YahtlStatsCard } from "./components/yahatl-stats-card";

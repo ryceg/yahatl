@@ -3,18 +3,18 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const et = globalThis, ut = et.ShadowRoot && (et.ShadyCSS === void 0 || et.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, gt = Symbol(), vt = /* @__PURE__ */ new WeakMap();
-let Dt = class {
+const rt = globalThis, yt = rt.ShadowRoot && (rt.ShadyCSS === void 0 || rt.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ft = Symbol(), wt = /* @__PURE__ */ new WeakMap();
+let Ot = class {
   constructor(t, i, s) {
-    if (this._$cssResult$ = !0, s !== gt) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, s !== ft) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = t, this.t = i;
   }
   get styleSheet() {
     let t = this.o;
     const i = this.t;
-    if (ut && t === void 0) {
+    if (yt && t === void 0) {
       const s = i !== void 0 && i.length === 1;
-      s && (t = vt.get(i)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && vt.set(i, t));
+      s && (t = wt.get(i)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && wt.set(i, t));
     }
     return t;
   }
@@ -22,33 +22,33 @@ let Dt = class {
     return this.cssText;
   }
 };
-const jt = (e) => new Dt(typeof e == "string" ? e : e + "", void 0, gt), C = (e, ...t) => {
-  const i = e.length === 1 ? e[0] : t.reduce((s, a, r) => s + ((o) => {
-    if (o._$cssResult$ === !0) return o.cssText;
-    if (typeof o == "number") return o;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + o + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(a) + e[r + 1], e[0]);
-  return new Dt(i, e, gt);
-}, Ht = (e, t) => {
-  if (ut) e.adoptedStyleSheets = t.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
+const Ut = (e) => new Ot(typeof e == "string" ? e : e + "", void 0, ft), C = (e, ...t) => {
+  const i = e.length === 1 ? e[0] : t.reduce((s, a, o) => s + ((r) => {
+    if (r._$cssResult$ === !0) return r.cssText;
+    if (typeof r == "number") return r;
+    throw Error("Value passed to 'css' function must be a 'css' function result: " + r + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+  })(a) + e[o + 1], e[0]);
+  return new Ot(i, e, ft);
+}, Bt = (e, t) => {
+  if (yt) e.adoptedStyleSheets = t.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
   else for (const i of t) {
-    const s = document.createElement("style"), a = et.litNonce;
+    const s = document.createElement("style"), a = rt.litNonce;
     a !== void 0 && s.setAttribute("nonce", a), s.textContent = i.cssText, e.appendChild(s);
   }
-}, ft = ut ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
+}, $t = yt ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let i = "";
   for (const s of t.cssRules) i += s.cssText;
-  return jt(i);
+  return Ut(i);
 })(e) : e;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Bt, defineProperty: Ut, getOwnPropertyDescriptor: Wt, getOwnPropertyNames: Ft, getOwnPropertySymbols: Yt, getPrototypeOf: Vt } = Object, I = globalThis, xt = I.trustedTypes, Qt = xt ? xt.emptyScript : "", lt = I.reactiveElementPolyfillSupport, Y = (e, t) => e, it = { toAttribute(e, t) {
+const { is: Yt, defineProperty: Wt, getOwnPropertyDescriptor: Ft, getOwnPropertyNames: Vt, getOwnPropertySymbols: Qt, getPrototypeOf: Zt } = Object, L = globalThis, kt = L.trustedTypes, Gt = kt ? kt.emptyScript : "", ut = L.reactiveElementPolyfillSupport, G = (e, t) => e, ot = { toAttribute(e, t) {
   switch (t) {
     case Boolean:
-      e = e ? Qt : null;
+      e = e ? Gt : null;
       break;
     case Object:
     case Array:
@@ -73,44 +73,44 @@ const { is: Bt, defineProperty: Ut, getOwnPropertyDescriptor: Wt, getOwnProperty
       }
   }
   return i;
-} }, mt = (e, t) => !Bt(e, t), $t = { attribute: !0, type: String, converter: it, reflect: !1, useDefault: !1, hasChanged: mt };
-Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), I.litPropertyMetadata ?? (I.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
-let R = class extends HTMLElement {
+} }, vt = (e, t) => !Yt(e, t), Ct = { attribute: !0, type: String, converter: ot, reflect: !1, useDefault: !1, hasChanged: vt };
+Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), L.litPropertyMetadata ?? (L.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
+let B = class extends HTMLElement {
   static addInitializer(t) {
     this._$Ei(), (this.l ?? (this.l = [])).push(t);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(t, i = $t) {
+  static createProperty(t, i = Ct) {
     if (i.state && (i.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(t) && ((i = Object.create(i)).wrapped = !0), this.elementProperties.set(t, i), !i.noAccessor) {
       const s = Symbol(), a = this.getPropertyDescriptor(t, s, i);
-      a !== void 0 && Ut(this.prototype, t, a);
+      a !== void 0 && Wt(this.prototype, t, a);
     }
   }
   static getPropertyDescriptor(t, i, s) {
-    const { get: a, set: r } = Wt(this.prototype, t) ?? { get() {
+    const { get: a, set: o } = Ft(this.prototype, t) ?? { get() {
       return this[i];
-    }, set(o) {
-      this[i] = o;
+    }, set(r) {
+      this[i] = r;
     } };
-    return { get: a, set(o) {
+    return { get: a, set(r) {
       const l = a == null ? void 0 : a.call(this);
-      r == null || r.call(this, o), this.requestUpdate(t, l, s);
+      o == null || o.call(this, r), this.requestUpdate(t, l, s);
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(t) {
-    return this.elementProperties.get(t) ?? $t;
+    return this.elementProperties.get(t) ?? Ct;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(Y("elementProperties"))) return;
-    const t = Vt(this);
+    if (this.hasOwnProperty(G("elementProperties"))) return;
+    const t = Zt(this);
     t.finalize(), t.l !== void 0 && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(Y("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(Y("properties"))) {
-      const i = this.properties, s = [...Ft(i), ...Yt(i)];
+    if (this.hasOwnProperty(G("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(G("properties"))) {
+      const i = this.properties, s = [...Vt(i), ...Qt(i)];
       for (const a of s) this.createProperty(a, i[a]);
     }
     const t = this[Symbol.metadata];
@@ -129,8 +129,8 @@ let R = class extends HTMLElement {
     const i = [];
     if (Array.isArray(t)) {
       const s = new Set(t.flat(1 / 0).reverse());
-      for (const a of s) i.unshift(ft(a));
-    } else t !== void 0 && i.push(ft(t));
+      for (const a of s) i.unshift($t(a));
+    } else t !== void 0 && i.push($t(t));
     return i;
   }
   static _$Eu(t, i) {
@@ -159,7 +159,7 @@ let R = class extends HTMLElement {
   }
   createRenderRoot() {
     const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Ht(t, this.constructor.elementStyles), t;
+    return Bt(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
     var t;
@@ -181,34 +181,34 @@ let R = class extends HTMLElement {
     this._$AK(t, s);
   }
   _$ET(t, i) {
-    var r;
+    var o;
     const s = this.constructor.elementProperties.get(t), a = this.constructor._$Eu(t, s);
     if (a !== void 0 && s.reflect === !0) {
-      const o = (((r = s.converter) == null ? void 0 : r.toAttribute) !== void 0 ? s.converter : it).toAttribute(i, s.type);
-      this._$Em = t, o == null ? this.removeAttribute(a) : this.setAttribute(a, o), this._$Em = null;
+      const r = (((o = s.converter) == null ? void 0 : o.toAttribute) !== void 0 ? s.converter : ot).toAttribute(i, s.type);
+      this._$Em = t, r == null ? this.removeAttribute(a) : this.setAttribute(a, r), this._$Em = null;
     }
   }
   _$AK(t, i) {
-    var r, o;
+    var o, r;
     const s = this.constructor, a = s._$Eh.get(t);
     if (a !== void 0 && this._$Em !== a) {
-      const l = s.getPropertyOptions(a), c = typeof l.converter == "function" ? { fromAttribute: l.converter } : ((r = l.converter) == null ? void 0 : r.fromAttribute) !== void 0 ? l.converter : it;
+      const l = s.getPropertyOptions(a), d = typeof l.converter == "function" ? { fromAttribute: l.converter } : ((o = l.converter) == null ? void 0 : o.fromAttribute) !== void 0 ? l.converter : ot;
       this._$Em = a;
-      const d = c.fromAttribute(i, l.type);
-      this[a] = d ?? ((o = this._$Ej) == null ? void 0 : o.get(a)) ?? d, this._$Em = null;
+      const p = d.fromAttribute(i, l.type);
+      this[a] = p ?? ((r = this._$Ej) == null ? void 0 : r.get(a)) ?? p, this._$Em = null;
     }
   }
-  requestUpdate(t, i, s, a = !1, r) {
-    var o;
+  requestUpdate(t, i, s, a = !1, o) {
+    var r;
     if (t !== void 0) {
       const l = this.constructor;
-      if (a === !1 && (r = this[t]), s ?? (s = l.getPropertyOptions(t)), !((s.hasChanged ?? mt)(r, i) || s.useDefault && s.reflect && r === ((o = this._$Ej) == null ? void 0 : o.get(t)) && !this.hasAttribute(l._$Eu(t, s)))) return;
+      if (a === !1 && (o = this[t]), s ?? (s = l.getPropertyOptions(t)), !((s.hasChanged ?? vt)(o, i) || s.useDefault && s.reflect && o === ((r = this._$Ej) == null ? void 0 : r.get(t)) && !this.hasAttribute(l._$Eu(t, s)))) return;
       this.C(t, i, s);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
   }
-  C(t, i, { useDefault: s, reflect: a, wrapped: r }, o) {
-    s && !(this._$Ej ?? (this._$Ej = /* @__PURE__ */ new Map())).has(t) && (this._$Ej.set(t, o ?? i ?? this[t]), r !== !0 || o !== void 0) || (this._$AL.has(t) || (this.hasUpdated || s || (i = void 0), this._$AL.set(t, i)), a === !0 && this._$Em !== t && (this._$Eq ?? (this._$Eq = /* @__PURE__ */ new Set())).add(t));
+  C(t, i, { useDefault: s, reflect: a, wrapped: o }, r) {
+    s && !(this._$Ej ?? (this._$Ej = /* @__PURE__ */ new Map())).has(t) && (this._$Ej.set(t, r ?? i ?? this[t]), o !== !0 || r !== void 0) || (this._$AL.has(t) || (this.hasUpdated || s || (i = void 0), this._$AL.set(t, i)), a === !0 && this._$Em !== t && (this._$Eq ?? (this._$Eq = /* @__PURE__ */ new Set())).add(t));
   }
   async _$EP() {
     this.isUpdatePending = !0;
@@ -228,21 +228,21 @@ let R = class extends HTMLElement {
     if (!this.isUpdatePending) return;
     if (!this.hasUpdated) {
       if (this.renderRoot ?? (this.renderRoot = this.createRenderRoot()), this._$Ep) {
-        for (const [r, o] of this._$Ep) this[r] = o;
+        for (const [o, r] of this._$Ep) this[o] = r;
         this._$Ep = void 0;
       }
       const a = this.constructor.elementProperties;
-      if (a.size > 0) for (const [r, o] of a) {
-        const { wrapped: l } = o, c = this[r];
-        l !== !0 || this._$AL.has(r) || c === void 0 || this.C(r, void 0, o, c);
+      if (a.size > 0) for (const [o, r] of a) {
+        const { wrapped: l } = r, d = this[o];
+        l !== !0 || this._$AL.has(o) || d === void 0 || this.C(o, void 0, r, d);
       }
     }
     let t = !1;
     const i = this._$AL;
     try {
       t = this.shouldUpdate(i), t ? (this.willUpdate(i), (s = this._$EO) == null || s.forEach((a) => {
-        var r;
-        return (r = a.hostUpdate) == null ? void 0 : r.call(a);
+        var o;
+        return (o = a.hostUpdate) == null ? void 0 : o.call(a);
       }), this.update(i)) : this._$EM();
     } catch (a) {
       throw t = !1, this._$EM(), a;
@@ -278,76 +278,76 @@ let R = class extends HTMLElement {
   firstUpdated(t) {
   }
 };
-R.elementStyles = [], R.shadowRootOptions = { mode: "open" }, R[Y("elementProperties")] = /* @__PURE__ */ new Map(), R[Y("finalized")] = /* @__PURE__ */ new Map(), lt == null || lt({ ReactiveElement: R }), (I.reactiveElementVersions ?? (I.reactiveElementVersions = [])).push("2.1.2");
+B.elementStyles = [], B.shadowRootOptions = { mode: "open" }, B[G("elementProperties")] = /* @__PURE__ */ new Map(), B[G("finalized")] = /* @__PURE__ */ new Map(), ut == null || ut({ ReactiveElement: B }), (L.reactiveElementVersions ?? (L.reactiveElementVersions = [])).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const V = globalThis, wt = (e) => e, st = V.trustedTypes, kt = st ? st.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Lt = "$lit$", E = `lit$${Math.random().toFixed(9).slice(2)}$`, qt = "?" + E, Zt = `<${qt}>`, N = document, Q = () => N.createComment(""), Z = (e) => e === null || typeof e != "object" && typeof e != "function", _t = Array.isArray, Xt = (e) => _t(e) || typeof (e == null ? void 0 : e[Symbol.iterator]) == "function", ct = `[ 	
-\f\r]`, F = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ct = /-->/g, At = />/g, q = RegExp(`>|${ct}(?:([^\\s"'>=/]+)(${ct}*=${ct}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), St = /'/g, Tt = /"/g, Ot = /^(?:script|style|textarea|title)$/i, Kt = (e) => (t, ...i) => ({ _$litType$: e, strings: t, values: i }), n = Kt(1), j = Symbol.for("lit-noChange"), h = Symbol.for("lit-nothing"), Et = /* @__PURE__ */ new WeakMap(), O = N.createTreeWalker(N, 129);
-function Pt(e, t) {
-  if (!_t(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return kt !== void 0 ? kt.createHTML(t) : t;
+const X = globalThis, At = (e) => e, nt = X.trustedTypes, St = nt ? nt.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Nt = "$lit$", z = `lit$${Math.random().toFixed(9).slice(2)}$`, Pt = "?" + z, Xt = `<${Pt}>`, R = document, K = () => R.createComment(""), J = (e) => e === null || typeof e != "object" && typeof e != "function", xt = Array.isArray, Kt = (e) => xt(e) || typeof (e == null ? void 0 : e[Symbol.iterator]) == "function", gt = `[ 	
+\f\r]`, Q = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Tt = /-->/g, Et = />/g, N = RegExp(`>|${gt}(?:([^\\s"'>=/]+)(${gt}*=${gt}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), It = /'/g, Dt = /"/g, Mt = /^(?:script|style|textarea|title)$/i, Jt = (e) => (t, ...i) => ({ _$litType$: e, strings: t, values: i }), n = Jt(1), Y = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), zt = /* @__PURE__ */ new WeakMap(), P = R.createTreeWalker(R, 129);
+function Rt(e, t) {
+  if (!xt(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return St !== void 0 ? St.createHTML(t) : t;
 }
-const Gt = (e, t) => {
+const te = (e, t) => {
   const i = e.length - 1, s = [];
-  let a, r = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = F;
+  let a, o = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", r = Q;
   for (let l = 0; l < i; l++) {
-    const c = e[l];
-    let d, p, m = -1, k = 0;
-    for (; k < c.length && (o.lastIndex = k, p = o.exec(c), p !== null); ) k = o.lastIndex, o === F ? p[1] === "!--" ? o = Ct : p[1] !== void 0 ? o = At : p[2] !== void 0 ? (Ot.test(p[2]) && (a = RegExp("</" + p[2], "g")), o = q) : p[3] !== void 0 && (o = q) : o === q ? p[0] === ">" ? (o = a ?? F, m = -1) : p[1] === void 0 ? m = -2 : (m = o.lastIndex - p[2].length, d = p[1], o = p[3] === void 0 ? q : p[3] === '"' ? Tt : St) : o === Tt || o === St ? o = q : o === Ct || o === At ? o = F : (o = q, a = void 0);
-    const T = o === q && e[l + 1].startsWith("/>") ? " " : "";
-    r += o === F ? c + Zt : m >= 0 ? (s.push(d), c.slice(0, m) + Lt + c.slice(m) + E + T) : c + E + (m === -2 ? l : T);
+    const d = e[l];
+    let p, h, m = -1, T = 0;
+    for (; T < d.length && (r.lastIndex = T, h = r.exec(d), h !== null); ) T = r.lastIndex, r === Q ? h[1] === "!--" ? r = Tt : h[1] !== void 0 ? r = Et : h[2] !== void 0 ? (Mt.test(h[2]) && (a = RegExp("</" + h[2], "g")), r = N) : h[3] !== void 0 && (r = N) : r === N ? h[0] === ">" ? (r = a ?? Q, m = -1) : h[1] === void 0 ? m = -2 : (m = r.lastIndex - h[2].length, p = h[1], r = h[3] === void 0 ? N : h[3] === '"' ? Dt : It) : r === Dt || r === It ? r = N : r === Tt || r === Et ? r = Q : (r = N, a = void 0);
+    const D = r === N && e[l + 1].startsWith("/>") ? " " : "";
+    o += r === Q ? d + Xt : m >= 0 ? (s.push(p), d.slice(0, m) + Nt + d.slice(m) + z + D) : d + z + (m === -2 ? l : D);
   }
-  return [Pt(e, r + (e[i] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), s];
+  return [Rt(e, o + (e[i] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), s];
 };
-class X {
+class tt {
   constructor({ strings: t, _$litType$: i }, s) {
     let a;
     this.parts = [];
-    let r = 0, o = 0;
-    const l = t.length - 1, c = this.parts, [d, p] = Gt(t, i);
-    if (this.el = X.createElement(d, s), O.currentNode = this.el.content, i === 2 || i === 3) {
+    let o = 0, r = 0;
+    const l = t.length - 1, d = this.parts, [p, h] = te(t, i);
+    if (this.el = tt.createElement(p, s), P.currentNode = this.el.content, i === 2 || i === 3) {
       const m = this.el.content.firstChild;
       m.replaceWith(...m.childNodes);
     }
-    for (; (a = O.nextNode()) !== null && c.length < l; ) {
+    for (; (a = P.nextNode()) !== null && d.length < l; ) {
       if (a.nodeType === 1) {
-        if (a.hasAttributes()) for (const m of a.getAttributeNames()) if (m.endsWith(Lt)) {
-          const k = p[o++], T = a.getAttribute(m).split(E), tt = /([.?@])?(.*)/.exec(k);
-          c.push({ type: 1, index: r, name: tt[2], strings: T, ctor: tt[1] === "." ? te : tt[1] === "?" ? ee : tt[1] === "@" ? ie : ot }), a.removeAttribute(m);
-        } else m.startsWith(E) && (c.push({ type: 6, index: r }), a.removeAttribute(m));
-        if (Ot.test(a.tagName)) {
-          const m = a.textContent.split(E), k = m.length - 1;
-          if (k > 0) {
-            a.textContent = st ? st.emptyScript : "";
-            for (let T = 0; T < k; T++) a.append(m[T], Q()), O.nextNode(), c.push({ type: 2, index: ++r });
-            a.append(m[k], Q());
+        if (a.hasAttributes()) for (const m of a.getAttributeNames()) if (m.endsWith(Nt)) {
+          const T = h[r++], D = a.getAttribute(m).split(z), at = /([.?@])?(.*)/.exec(T);
+          d.push({ type: 1, index: o, name: at[2], strings: D, ctor: at[1] === "." ? ie : at[1] === "?" ? se : at[1] === "@" ? ae : dt }), a.removeAttribute(m);
+        } else m.startsWith(z) && (d.push({ type: 6, index: o }), a.removeAttribute(m));
+        if (Mt.test(a.tagName)) {
+          const m = a.textContent.split(z), T = m.length - 1;
+          if (T > 0) {
+            a.textContent = nt ? nt.emptyScript : "";
+            for (let D = 0; D < T; D++) a.append(m[D], K()), P.nextNode(), d.push({ type: 2, index: ++o });
+            a.append(m[T], K());
           }
         }
-      } else if (a.nodeType === 8) if (a.data === qt) c.push({ type: 2, index: r });
+      } else if (a.nodeType === 8) if (a.data === Pt) d.push({ type: 2, index: o });
       else {
         let m = -1;
-        for (; (m = a.data.indexOf(E, m + 1)) !== -1; ) c.push({ type: 7, index: r }), m += E.length - 1;
+        for (; (m = a.data.indexOf(z, m + 1)) !== -1; ) d.push({ type: 7, index: o }), m += z.length - 1;
       }
-      r++;
+      o++;
     }
   }
   static createElement(t, i) {
-    const s = N.createElement("template");
+    const s = R.createElement("template");
     return s.innerHTML = t, s;
   }
 }
-function H(e, t, i = e, s) {
-  var o, l;
-  if (t === j) return t;
-  let a = s !== void 0 ? (o = i._$Co) == null ? void 0 : o[s] : i._$Cl;
-  const r = Z(t) ? void 0 : t._$litDirective$;
-  return (a == null ? void 0 : a.constructor) !== r && ((l = a == null ? void 0 : a._$AO) == null || l.call(a, !1), r === void 0 ? a = void 0 : (a = new r(e), a._$AT(e, i, s)), s !== void 0 ? (i._$Co ?? (i._$Co = []))[s] = a : i._$Cl = a), a !== void 0 && (t = H(e, a._$AS(e, t.values), a, s)), t;
+function W(e, t, i = e, s) {
+  var r, l;
+  if (t === Y) return t;
+  let a = s !== void 0 ? (r = i._$Co) == null ? void 0 : r[s] : i._$Cl;
+  const o = J(t) ? void 0 : t._$litDirective$;
+  return (a == null ? void 0 : a.constructor) !== o && ((l = a == null ? void 0 : a._$AO) == null || l.call(a, !1), o === void 0 ? a = void 0 : (a = new o(e), a._$AT(e, i, s)), s !== void 0 ? (i._$Co ?? (i._$Co = []))[s] = a : i._$Cl = a), a !== void 0 && (t = W(e, a._$AS(e, t.values), a, s)), t;
 }
-class Jt {
+class ee {
   constructor(t, i) {
     this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
   }
@@ -358,30 +358,30 @@ class Jt {
     return this._$AM._$AU;
   }
   u(t) {
-    const { el: { content: i }, parts: s } = this._$AD, a = ((t == null ? void 0 : t.creationScope) ?? N).importNode(i, !0);
-    O.currentNode = a;
-    let r = O.nextNode(), o = 0, l = 0, c = s[0];
-    for (; c !== void 0; ) {
-      if (o === c.index) {
-        let d;
-        c.type === 2 ? d = new G(r, r.nextSibling, this, t) : c.type === 1 ? d = new c.ctor(r, c.name, c.strings, this, t) : c.type === 6 && (d = new se(r, this, t)), this._$AV.push(d), c = s[++l];
+    const { el: { content: i }, parts: s } = this._$AD, a = ((t == null ? void 0 : t.creationScope) ?? R).importNode(i, !0);
+    P.currentNode = a;
+    let o = P.nextNode(), r = 0, l = 0, d = s[0];
+    for (; d !== void 0; ) {
+      if (r === d.index) {
+        let p;
+        d.type === 2 ? p = new it(o, o.nextSibling, this, t) : d.type === 1 ? p = new d.ctor(o, d.name, d.strings, this, t) : d.type === 6 && (p = new re(o, this, t)), this._$AV.push(p), d = s[++l];
       }
-      o !== (c == null ? void 0 : c.index) && (r = O.nextNode(), o++);
+      r !== (d == null ? void 0 : d.index) && (o = P.nextNode(), r++);
     }
-    return O.currentNode = N, a;
+    return P.currentNode = R, a;
   }
   p(t) {
     let i = 0;
     for (const s of this._$AV) s !== void 0 && (s.strings !== void 0 ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
   }
 }
-class G {
+class it {
   get _$AU() {
     var t;
     return ((t = this._$AM) == null ? void 0 : t._$AU) ?? this._$Cv;
   }
   constructor(t, i, s, a) {
-    this.type = 2, this._$AH = h, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = a, this._$Cv = (a == null ? void 0 : a.isConnected) ?? !0;
+    this.type = 2, this._$AH = c, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = a, this._$Cv = (a == null ? void 0 : a.isConnected) ?? !0;
   }
   get parentNode() {
     let t = this._$AA.parentNode;
@@ -395,7 +395,7 @@ class G {
     return this._$AB;
   }
   _$AI(t, i = this) {
-    t = H(this, t, i), Z(t) ? t === h || t == null || t === "" ? (this._$AH !== h && this._$AR(), this._$AH = h) : t !== this._$AH && t !== j && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Xt(t) ? this.k(t) : this._(t);
+    t = W(this, t, i), J(t) ? t === c || t == null || t === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : t !== this._$AH && t !== Y && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Kt(t) ? this.k(t) : this._(t);
   }
   O(t) {
     return this._$AA.parentNode.insertBefore(t, this._$AB);
@@ -404,33 +404,33 @@ class G {
     this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== h && Z(this._$AH) ? this._$AA.nextSibling.data = t : this.T(N.createTextNode(t)), this._$AH = t;
+    this._$AH !== c && J(this._$AH) ? this._$AA.nextSibling.data = t : this.T(R.createTextNode(t)), this._$AH = t;
   }
   $(t) {
-    var r;
-    const { values: i, _$litType$: s } = t, a = typeof s == "number" ? this._$AC(t) : (s.el === void 0 && (s.el = X.createElement(Pt(s.h, s.h[0]), this.options)), s);
-    if (((r = this._$AH) == null ? void 0 : r._$AD) === a) this._$AH.p(i);
+    var o;
+    const { values: i, _$litType$: s } = t, a = typeof s == "number" ? this._$AC(t) : (s.el === void 0 && (s.el = tt.createElement(Rt(s.h, s.h[0]), this.options)), s);
+    if (((o = this._$AH) == null ? void 0 : o._$AD) === a) this._$AH.p(i);
     else {
-      const o = new Jt(a, this), l = o.u(this.options);
-      o.p(i), this.T(l), this._$AH = o;
+      const r = new ee(a, this), l = r.u(this.options);
+      r.p(i), this.T(l), this._$AH = r;
     }
   }
   _$AC(t) {
-    let i = Et.get(t.strings);
-    return i === void 0 && Et.set(t.strings, i = new X(t)), i;
+    let i = zt.get(t.strings);
+    return i === void 0 && zt.set(t.strings, i = new tt(t)), i;
   }
   k(t) {
-    _t(this._$AH) || (this._$AH = [], this._$AR());
+    xt(this._$AH) || (this._$AH = [], this._$AR());
     const i = this._$AH;
     let s, a = 0;
-    for (const r of t) a === i.length ? i.push(s = new G(this.O(Q()), this.O(Q()), this, this.options)) : s = i[a], s._$AI(r), a++;
+    for (const o of t) a === i.length ? i.push(s = new it(this.O(K()), this.O(K()), this, this.options)) : s = i[a], s._$AI(o), a++;
     a < i.length && (this._$AR(s && s._$AB.nextSibling, a), i.length = a);
   }
   _$AR(t = this._$AA.nextSibling, i) {
     var s;
     for ((s = this._$AP) == null ? void 0 : s.call(this, !1, !0, i); t !== this._$AB; ) {
-      const a = wt(t).nextSibling;
-      wt(t).remove(), t = a;
+      const a = At(t).nextSibling;
+      At(t).remove(), t = a;
     }
   }
   setConnected(t) {
@@ -438,62 +438,62 @@ class G {
     this._$AM === void 0 && (this._$Cv = t, (i = this._$AP) == null || i.call(this, t));
   }
 }
-class ot {
+class dt {
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t, i, s, a, r) {
-    this.type = 1, this._$AH = h, this._$AN = void 0, this.element = t, this.name = i, this._$AM = a, this.options = r, s.length > 2 || s[0] !== "" || s[1] !== "" ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = h;
+  constructor(t, i, s, a, o) {
+    this.type = 1, this._$AH = c, this._$AN = void 0, this.element = t, this.name = i, this._$AM = a, this.options = o, s.length > 2 || s[0] !== "" || s[1] !== "" ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = c;
   }
   _$AI(t, i = this, s, a) {
-    const r = this.strings;
-    let o = !1;
-    if (r === void 0) t = H(this, t, i, 0), o = !Z(t) || t !== this._$AH && t !== j, o && (this._$AH = t);
+    const o = this.strings;
+    let r = !1;
+    if (o === void 0) t = W(this, t, i, 0), r = !J(t) || t !== this._$AH && t !== Y, r && (this._$AH = t);
     else {
       const l = t;
-      let c, d;
-      for (t = r[0], c = 0; c < r.length - 1; c++) d = H(this, l[s + c], i, c), d === j && (d = this._$AH[c]), o || (o = !Z(d) || d !== this._$AH[c]), d === h ? t = h : t !== h && (t += (d ?? "") + r[c + 1]), this._$AH[c] = d;
+      let d, p;
+      for (t = o[0], d = 0; d < o.length - 1; d++) p = W(this, l[s + d], i, d), p === Y && (p = this._$AH[d]), r || (r = !J(p) || p !== this._$AH[d]), p === c ? t = c : t !== c && (t += (p ?? "") + o[d + 1]), this._$AH[d] = p;
     }
-    o && !a && this.j(t);
+    r && !a && this.j(t);
   }
   j(t) {
-    t === h ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
+    t === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class te extends ot {
+class ie extends dt {
   constructor() {
     super(...arguments), this.type = 3;
   }
   j(t) {
-    this.element[this.name] = t === h ? void 0 : t;
+    this.element[this.name] = t === c ? void 0 : t;
   }
 }
-class ee extends ot {
+class se extends dt {
   constructor() {
     super(...arguments), this.type = 4;
   }
   j(t) {
-    this.element.toggleAttribute(this.name, !!t && t !== h);
+    this.element.toggleAttribute(this.name, !!t && t !== c);
   }
 }
-class ie extends ot {
-  constructor(t, i, s, a, r) {
-    super(t, i, s, a, r), this.type = 5;
+class ae extends dt {
+  constructor(t, i, s, a, o) {
+    super(t, i, s, a, o), this.type = 5;
   }
   _$AI(t, i = this) {
-    if ((t = H(this, t, i, 0) ?? h) === j) return;
-    const s = this._$AH, a = t === h && s !== h || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive, r = t !== h && (s === h || a);
-    a && this.element.removeEventListener(this.name, this, s), r && this.element.addEventListener(this.name, this, t), this._$AH = t;
+    if ((t = W(this, t, i, 0) ?? c) === Y) return;
+    const s = this._$AH, a = t === c && s !== c || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive, o = t !== c && (s === c || a);
+    a && this.element.removeEventListener(this.name, this, s), o && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
   handleEvent(t) {
     var i;
     typeof this._$AH == "function" ? this._$AH.call(((i = this.options) == null ? void 0 : i.host) ?? this.element, t) : this._$AH.handleEvent(t);
   }
 }
-class se {
+class re {
   constructor(t, i, s) {
     this.element = t, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
   }
@@ -501,17 +501,17 @@ class se {
     return this._$AM._$AU;
   }
   _$AI(t) {
-    H(this, t);
+    W(this, t);
   }
 }
-const dt = V.litHtmlPolyfillSupport;
-dt == null || dt(X, G), (V.litHtmlVersions ?? (V.litHtmlVersions = [])).push("3.3.2");
-const ae = (e, t, i) => {
+const mt = X.litHtmlPolyfillSupport;
+mt == null || mt(tt, it), (X.litHtmlVersions ?? (X.litHtmlVersions = [])).push("3.3.2");
+const oe = (e, t, i) => {
   const s = (i == null ? void 0 : i.renderBefore) ?? t;
   let a = s._$litPart$;
   if (a === void 0) {
-    const r = (i == null ? void 0 : i.renderBefore) ?? null;
-    s._$litPart$ = a = new G(t.insertBefore(Q(), r), r, void 0, i ?? {});
+    const o = (i == null ? void 0 : i.renderBefore) ?? null;
+    s._$litPart$ = a = new it(t.insertBefore(K(), o), o, void 0, i ?? {});
   }
   return a._$AI(e), a;
 };
@@ -520,8 +520,8 @@ const ae = (e, t, i) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const P = globalThis;
-class y extends R {
+const M = globalThis;
+class y extends B {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -532,7 +532,7 @@ class y extends R {
   }
   update(t) {
     const i = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = ae(i, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = oe(i, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     var t;
@@ -543,14 +543,14 @@ class y extends R {
     super.disconnectedCallback(), (t = this._$Do) == null || t.setConnected(!1);
   }
   render() {
-    return j;
+    return Y;
   }
 }
-var zt;
-y._$litElement$ = !0, y.finalized = !0, (zt = P.litElementHydrateSupport) == null || zt.call(P, { LitElement: y });
-const ht = P.litElementPolyfillSupport;
-ht == null || ht({ LitElement: y });
-(P.litElementVersions ?? (P.litElementVersions = [])).push("4.2.2");
+var qt;
+y._$litElement$ = !0, y.finalized = !0, (qt = M.litElementHydrateSupport) == null || qt.call(M, { LitElement: y });
+const _t = M.litElementPolyfillSupport;
+_t == null || _t({ LitElement: y });
+(M.litElementVersions ?? (M.litElementVersions = [])).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -566,31 +566,31 @@ const A = (e) => (t, i) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const re = { attribute: !0, type: String, converter: it, reflect: !1, hasChanged: mt }, oe = (e = re, t, i) => {
+const ne = { attribute: !0, type: String, converter: ot, reflect: !1, hasChanged: vt }, le = (e = ne, t, i) => {
   const { kind: s, metadata: a } = i;
-  let r = globalThis.litPropertyMetadata.get(a);
-  if (r === void 0 && globalThis.litPropertyMetadata.set(a, r = /* @__PURE__ */ new Map()), s === "setter" && ((e = Object.create(e)).wrapped = !0), r.set(i.name, e), s === "accessor") {
-    const { name: o } = i;
+  let o = globalThis.litPropertyMetadata.get(a);
+  if (o === void 0 && globalThis.litPropertyMetadata.set(a, o = /* @__PURE__ */ new Map()), s === "setter" && ((e = Object.create(e)).wrapped = !0), o.set(i.name, e), s === "accessor") {
+    const { name: r } = i;
     return { set(l) {
-      const c = t.get.call(this);
-      t.set.call(this, l), this.requestUpdate(o, c, e, !0, l);
+      const d = t.get.call(this);
+      t.set.call(this, l), this.requestUpdate(r, d, e, !0, l);
     }, init(l) {
-      return l !== void 0 && this.C(o, void 0, e, l), l;
+      return l !== void 0 && this.C(r, void 0, e, l), l;
     } };
   }
   if (s === "setter") {
-    const { name: o } = i;
+    const { name: r } = i;
     return function(l) {
-      const c = this[o];
-      t.call(this, l), this.requestUpdate(o, c, e, !0, l);
+      const d = this[r];
+      t.call(this, l), this.requestUpdate(r, d, e, !0, l);
     };
   }
   throw Error("Unsupported decorator location: " + s);
 };
 function x(e) {
-  return (t, i) => typeof i == "object" ? oe(e, t, i) : ((s, a, r) => {
-    const o = a.hasOwnProperty(r);
-    return a.constructor.createProperty(r, s), o ? Object.getOwnPropertyDescriptor(a, r) : void 0;
+  return (t, i) => typeof i == "object" ? le(e, t, i) : ((s, a, o) => {
+    const r = a.hasOwnProperty(o);
+    return a.constructor.createProperty(o, s), r ? Object.getOwnPropertyDescriptor(a, o) : void 0;
   })(e, t, i);
 }
 /**
@@ -601,7 +601,7 @@ function x(e) {
 function g(e) {
   return x({ ...e, state: !0, attribute: !1 });
 }
-const B = {
+const j = {
   actionable: "mdi:play",
   recurring: "mdi:refresh",
   habit: "mdi:star-four-points",
@@ -611,7 +611,7 @@ const B = {
   someday: "mdi:clock-outline",
   shopping: "mdi:cart",
   gift: "mdi:gift"
-}, K = {
+}, F = {
   actionable: "var(--rgb-blue, 33, 150, 243)",
   recurring: "var(--rgb-deep-purple, 110, 65, 171)",
   habit: "var(--rgb-green, 76, 175, 80)",
@@ -622,12 +622,12 @@ const B = {
   shopping: "var(--rgb-teal, 0, 150, 136)",
   gift: "var(--rgb-amber, 255, 179, 0)"
 };
-function bt(e) {
+function pt(e) {
   for (const t of e)
-    if (t in B) return t;
+    if (t in j) return t;
   return null;
 }
-const D = C`
+const E = C`
   :host {
     /* Mushroom RGB palette fallbacks — HA themes provide these;
        we define fallbacks so cards render correctly outside a theme. */
@@ -1111,7 +1111,7 @@ const D = C`
     border: 0;
   }
 `;
-class ne {
+class ce {
   constructor(t) {
     this.hass = t;
   }
@@ -1234,7 +1234,7 @@ class ne {
     });
   }
 }
-class le {
+class de {
   constructor() {
     this._api = null, this._hass = null, this._subscribers = /* @__PURE__ */ new Set(), this.state = {
       lists: [],
@@ -1253,7 +1253,7 @@ class le {
     return this._hass;
   }
   setHass(t) {
-    this._hass = t, this._api = new ne(t);
+    this._hass = t, this._api = new ce(t);
   }
   subscribe(t) {
     return this._subscribers.add(t), () => this._subscribers.delete(t);
@@ -1328,8 +1328,8 @@ class le {
     return this._api ? this._api.getItemDetails(t, i) : null;
   }
 }
-const u = new le();
-class W {
+const u = new de();
+class U {
   constructor(t) {
     this.host = t, t.addController(this);
   }
@@ -1344,7 +1344,7 @@ class W {
     return u.state;
   }
 }
-function Nt(e, t, i) {
+function pe(e, t, i) {
   e.dispatchEvent(
     new CustomEvent(t, {
       detail: i,
@@ -1354,22 +1354,18 @@ function Nt(e, t, i) {
     })
   );
 }
-function yt(e, t) {
-  Nt(e, "show-dialog", {
-    dialogTag: "yahatl-item-editor",
-    dialogImport: () => Promise.resolve(),
-    dialogParams: t,
-    addHistory: !0
-  });
+let Z = null;
+function et(e, t) {
+  (!Z || !Z.isConnected) && (Z = document.createElement("yahatl-item-editor"), document.body.appendChild(Z)), Z.open(t);
 }
-var ce = Object.defineProperty, de = Object.getOwnPropertyDescriptor, S = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? de(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && ce(t, i, a), a;
+var he = Object.defineProperty, ue = Object.getOwnPropertyDescriptor, S = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? ue(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && he(t, i, a), a;
 };
-let v = class extends y {
+let f = class extends y {
   constructor() {
-    super(...arguments), this._config = {}, this._quickAddValue = "", this._quickAddBusy = !1, this._flash = "", this._store = new W(this), this._initialized = !1, this._drag = {
+    super(...arguments), this._config = {}, this._quickAddValue = "", this._quickAddBusy = !1, this._flash = "", this._showUpcoming = !1, this._store = new U(this), this._initialized = !1, this._drag = {
       id: "",
       entity: "",
       startX: 0,
@@ -1387,25 +1383,25 @@ let v = class extends y {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadQueue(), u.loadLists(), u.loadMeta()) : e.has("hass") && this.hass && u.setHass(this.hass);
   }
   render() {
-    var l, c, d;
-    const e = this._store.state.queue, t = this._config.max_items || 10, i = this._config.title || "Up Next", s = this._config.todo_entity || "", a = (e == null ? void 0 : e.items.slice(0, t)) || [], r = (c = (l = this.hass) == null ? void 0 : l.user) == null ? void 0 : c.name, o = this._store.state.context;
+    var l, d, p;
+    const e = this._store.state.queue, t = this._config.max_items || 10, i = this._config.title || "Up Next", s = this._config.todo_entity || "", a = (e == null ? void 0 : e.items.slice(0, t)) || [], o = (d = (l = this.hass) == null ? void 0 : l.user) == null ? void 0 : d.name, r = this._store.state.context;
     return n`
       <ha-card>
         <div class="card-header">${i}</div>
-        ${r ? n`<div class="greeting">Hello, ${r}</div>` : h}
-        ${this._flash ? n`<div class="flash">${this._flash}</div>` : h}
+        ${o ? n`<div class="greeting">Hello, ${o}</div>` : c}
+        ${this._flash ? n`<div class="flash">${this._flash}</div>` : c}
 
         <div class="queue-controls" style="padding-top: 10px">
-          <select @change=${(p) => this._setLocation(p.target.value)}>
+          <select @change=${(h) => this._setLocation(h.target.value)}>
             <option value="">Location: any</option>
             ${this._getZones().map(
-      (p) => n`<option value=${p.id} ?selected=${(o == null ? void 0 : o.location) === p.id}>${p.name}</option>`
+      (h) => n`<option value=${h.id} ?selected=${(r == null ? void 0 : r.location) === h.id}>${h.name}</option>`
     )}
           </select>
-          <select @change=${(p) => this._setContextFilter(p.target.value)}>
+          <select @change=${(h) => this._setContextFilter(h.target.value)}>
             <option value="">Context: any</option>
-            ${(((d = this._store.state.meta) == null ? void 0 : d.contexts) || []).map(
-      (p) => n`<option value=${p.id} ?selected=${((o == null ? void 0 : o.contexts) || []).includes(p.id)}>${p.name}</option>`
+            ${(((p = this._store.state.meta) == null ? void 0 : p.contexts) || []).map(
+      (h) => n`<option value=${h.id} ?selected=${((r == null ? void 0 : r.contexts) || []).includes(h.id)}>${h.name}</option>`
     )}
           </select>
         </div>
@@ -1415,9 +1411,9 @@ let v = class extends y {
             type="text"
             placeholder="Quick add a task…"
             .value=${this._quickAddValue}
-            @input=${(p) => this._quickAddValue = p.target.value}
-            @keydown=${(p) => {
-      p.key === "Enter" && this._quickAdd(s);
+            @input=${(h) => this._quickAddValue = h.target.value}
+            @keydown=${(h) => {
+      h.key === "Enter" && this._quickAdd(s);
     }}
             ?disabled=${this._quickAddBusy}
           />
@@ -1429,12 +1425,44 @@ let v = class extends y {
           </button>
         </div>
 
-        ${a.length === 0 ? n`<div class="empty-state">Nothing in the queue</div>` : a.map((p, m) => this._renderItem(p, m, s))}
+        ${a.length === 0 ? n`<div class="empty-state">Nothing in the queue</div>` : a.map((h, m) => this._renderItem(h, m, s))}
+        ${this._renderUpcoming(e)}
       </ha-card>
     `;
   }
+  /** Collapsible "Not yet" group: items a blocker (lead-time, time window,
+   *  dependency) is holding out of the queue, each with its reason. */
+  _renderUpcoming(e) {
+    const t = (e == null ? void 0 : e.upcoming) || [];
+    return t.length ? n`
+      <button
+        class="upcoming-header ${this._showUpcoming ? "upcoming-header--open" : ""}"
+        @click=${() => this._showUpcoming = !this._showUpcoming}
+      >
+        <ha-icon icon="mdi:clock-outline"></ha-icon>
+        <span class="upcoming-header__label">Not yet</span>
+        <span class="upcoming-header__count">${t.length}</span>
+        <ha-icon class="upcoming-header__chevron" icon="mdi:chevron-down"></ha-icon>
+      </button>
+      ${this._showUpcoming ? t.map(
+      (i) => n`
+              <div
+                class="upcoming-row"
+                @click=${() => et(this, {
+        entityId: `todo.${i.list_id}`,
+        itemId: i.item.uid,
+        hass: this.hass
+      })}
+              >
+                <span class="upcoming-row__title">${i.item.title}</span>
+                <span class="upcoming-row__reason">${i.reason || "not yet"}</span>
+              </div>
+            `
+    ) : c}
+    ` : c;
+  }
   _renderItem(e, t, i) {
-    const s = e.item, a = bt(s.traits), r = a ? K[a] : "var(--rgb-primary-color)", o = a ? B[a] : "mdi:checkbox-marked-circle-outline", l = this._formatDue(s.due), c = i || `todo.${e.list_id}`;
+    const s = e.item, a = pt(s.traits), o = a ? F[a] : "var(--rgb-primary-color)", r = a ? j[a] : "mdi:checkbox-marked-circle-outline", l = this._formatDue(s.due), d = e.list_id ? `todo.${e.list_id}` : i;
     return n`
       <div class="queue-item">
         <div class="swipe-hint swipe-hint--done">
@@ -1445,43 +1473,43 @@ let v = class extends y {
         </div>
         <div
           class="queue-item__fg"
-          style="--rgb-state: ${r}"
-          @click=${() => this._onItemClick(c, s.uid)}
-          @touchstart=${(d) => this._onTouchStart(d, c, s.uid)}
-          @touchmove=${(d) => this._onTouchMove(d)}
+          style="--rgb-state: ${o}"
+          @click=${() => this._onItemClick(d, s.uid)}
+          @touchstart=${(p) => this._onTouchStart(p, d, s.uid)}
+          @touchmove=${(p) => this._onTouchMove(p)}
           @touchend=${() => this._onTouchEnd()}
           @touchcancel=${() => this._onTouchEnd()}
         >
-        ${s.priority ? n`<div class="priority-rail priority-rail--${s.priority}"></div>` : h}
+        ${s.priority ? n`<div class="priority-rail priority-rail--${s.priority}"></div>` : c}
         <div class="queue-rank">${t + 1}</div>
         <div class="mush-shape-icon">
-          <ha-icon icon=${o}></ha-icon>
+          <ha-icon icon=${r}></ha-icon>
         </div>
         <div class="queue-info">
           <div class="mush-state-info__primary">${s.title}</div>
           <div class="queue-meta">
-            ${l ? n`<span class=${l.className}>${l.label}</span>` : h}
-            ${l && (s.time_estimate || s.tags.length) ? n`<span class="sep">·</span>` : h}
-            ${s.time_estimate ? n`<span>${s.time_estimate}m</span>` : h}
-            ${s.time_estimate && s.tags.length ? n`<span class="sep">·</span>` : h}
-            ${s.tags.length > 0 ? n`<span>${s.tags.map((d) => `#${d}`).join(" ")}</span>` : h}
-            ${s.current_streak > 0 ? n`<span class="sep">·</span><span>${s.current_streak} day streak</span>` : h}
+            ${l ? n`<span class=${l.className}>${l.label}</span>` : c}
+            ${l && (s.time_estimate || s.tags.length) ? n`<span class="sep">·</span>` : c}
+            ${s.time_estimate ? n`<span>${s.time_estimate}m</span>` : c}
+            ${s.time_estimate && s.tags.length ? n`<span class="sep">·</span>` : c}
+            ${s.tags.length > 0 ? n`<span>${s.tags.map((p) => `#${p}`).join(" ")}</span>` : c}
+            ${s.current_streak > 0 ? n`<span class="sep">·</span><span>${s.current_streak} day streak</span>` : c}
           </div>
         </div>
         <div class="queue-actions">
           <button
             class="queue-btn queue-btn--ghost"
             title="Delay to the next time this task is schedulable"
-            @click=${(d) => {
-      d.stopPropagation(), this._delay(c, s.uid);
+            @click=${(p) => {
+      p.stopPropagation(), this._delay(d, s.uid);
     }}
           >
             delay
           </button>
           <button
             class="queue-btn"
-            @click=${(d) => {
-      d.stopPropagation(), this._complete(c, s.uid);
+            @click=${(p) => {
+      p.stopPropagation(), this._complete(d, s.uid);
     }}
           >
             done
@@ -1535,12 +1563,12 @@ let v = class extends y {
     }
     if (Math.abs(s) > 6 && (t.moved = !0), !t.moved) return;
     e.preventDefault(), t.dx = s;
-    const r = v.SWIPE_MAX, o = Math.max(-r, Math.min(r, s));
-    t.el.style.transform = `translateX(${o}px)`;
+    const o = f.SWIPE_MAX, r = Math.max(-o, Math.min(o, s));
+    t.el.style.transform = `translateX(${r}px)`;
     const l = t.el.parentElement;
     if (l) {
-      const c = Math.min(1, Math.abs(o) / v.SWIPE_THRESHOLD), d = l.querySelector(".swipe-hint--done"), p = l.querySelector(".swipe-hint--delay");
-      d && (d.style.opacity = s > 0 ? String(c) : "0"), p && (p.style.opacity = s < 0 ? String(c) : "0");
+      const d = Math.min(1, Math.abs(r) / f.SWIPE_THRESHOLD), p = l.querySelector(".swipe-hint--done"), h = l.querySelector(".swipe-hint--delay");
+      p && (p.style.opacity = s > 0 ? String(d) : "0"), h && (h.style.opacity = s < 0 ? String(d) : "0");
     }
   }
   _onTouchEnd() {
@@ -1549,15 +1577,15 @@ let v = class extends y {
       e.active = !1;
       return;
     }
-    const t = e.el, i = t.parentElement, s = v.SWIPE_THRESHOLD, a = e.dx <= -s, r = e.dx >= s;
+    const t = e.el, i = t.parentElement, s = f.SWIPE_THRESHOLD, a = e.dx <= -s, o = e.dx >= s;
     t.style.transition = "transform 180ms ease", t.style.transform = "translateX(0)", window.setTimeout(() => {
       if (t.style.transition = "", i) {
-        const c = i.querySelector(".swipe-hint--done"), d = i.querySelector(".swipe-hint--delay");
-        c && (c.style.opacity = "0"), d && (d.style.opacity = "0");
+        const d = i.querySelector(".swipe-hint--done"), p = i.querySelector(".swipe-hint--delay");
+        d && (d.style.opacity = "0"), p && (p.style.opacity = "0");
       }
     }, 180);
-    const { entity: o, id: l } = e;
-    e.active = !1, a ? this._delay(o, l) : r && this._complete(o, l);
+    const { entity: r, id: l } = e;
+    e.active = !1, a ? this._delay(r, l) : o ? this._complete(r, l) : e.moved || (this._drag.moved = !0, this._openEditor(r, l));
   }
   async _delay(e, t) {
     const i = await u.delayItem(e, t);
@@ -1607,7 +1635,7 @@ let v = class extends y {
     e ? await u.setContext({ contexts: [e] }) : await u.setContext({ contexts: [] });
   }
   _openEditor(e, t) {
-    yt(this, { entityId: e, itemId: t, hass: this.hass });
+    et(this, { entityId: e, itemId: t, hass: this.hass });
   }
   // --- Lovelace card editor support ---
   // Makes the card fully configurable from the UI card picker rather than
@@ -1626,10 +1654,10 @@ let v = class extends y {
     return 4;
   }
 };
-v.SWIPE_THRESHOLD = 80;
-v.SWIPE_MAX = 140;
-v.styles = [
-  D,
+f.SWIPE_THRESHOLD = 80;
+f.SWIPE_MAX = 140;
+f.styles = [
+  E,
   C`
       :host {
         display: block;
@@ -1793,27 +1821,98 @@ v.styles = [
         font-size: 13px;
         font-weight: 500;
       }
+
+      /* "Not yet" (lead-blocked / upcoming) group */
+      .upcoming-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        margin-top: 4px;
+        border: none;
+        border-top: 1px solid var(--yahatl-divider);
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--yahatl-text-secondary);
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .upcoming-header__label {
+        flex: 1;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      .upcoming-header__count {
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(var(--rgb-primary-color), 0.12);
+        color: var(--yahatl-text-secondary);
+        border-radius: 10px;
+        padding: 1px 8px;
+      }
+
+      .upcoming-header__chevron {
+        --mdc-icon-size: 20px;
+        transition: transform 180ms ease;
+      }
+
+      .upcoming-header--open .upcoming-header__chevron {
+        transform: rotate(180deg);
+      }
+
+      .upcoming-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--yahatl-divider);
+        opacity: 0.75;
+      }
+
+      .upcoming-row__title {
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .upcoming-row__reason {
+        font-size: 11px;
+        color: var(--yahatl-text-secondary);
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+      }
     `
 ];
 S([
   x({ attribute: !1 })
-], v.prototype, "hass", 2);
+], f.prototype, "hass", 2);
 S([
   g()
-], v.prototype, "_config", 2);
+], f.prototype, "_config", 2);
 S([
   g()
-], v.prototype, "_quickAddValue", 2);
+], f.prototype, "_quickAddValue", 2);
 S([
   g()
-], v.prototype, "_quickAddBusy", 2);
+], f.prototype, "_quickAddBusy", 2);
 S([
   g()
-], v.prototype, "_flash", 2);
-v = S([
+], f.prototype, "_flash", 2);
+S([
+  g()
+], f.prototype, "_showUpcoming", 2);
+f = S([
   A("yahatl-queue-card")
-], v);
-let z = class extends y {
+], f);
+let q = class extends y {
   constructor() {
     super(...arguments), this._config = {};
   }
@@ -1825,11 +1924,11 @@ let z = class extends y {
       <ha-form
         .hass=${this.hass}
         .data=${this._config}
-        .schema=${z._schema}
-        .computeLabel=${(e) => z._labels[e.name] ?? e.name}
+        .schema=${q._schema}
+        .computeLabel=${(e) => q._labels[e.name] ?? e.name}
         @value-changed=${this._valueChanged}
       ></ha-form>
-    ` : h;
+    ` : c;
   }
   _valueChanged(e) {
     this.dispatchEvent(
@@ -1841,13 +1940,13 @@ let z = class extends y {
     );
   }
 };
-z._schema = [
+q._schema = [
   { name: "entity", required: !0, selector: { entity: { domain: "sensor" } } },
   { name: "todo_entity", required: !0, selector: { entity: { domain: "todo" } } },
   { name: "title", selector: { text: {} } },
   { name: "max_items", selector: { number: { min: 1, max: 50, mode: "box" } } }
 ];
-z._labels = {
+q._labels = {
   entity: "Queue sensor",
   todo_entity: "Todo list entity",
   title: "Card title",
@@ -1855,28 +1954,28 @@ z._labels = {
 };
 S([
   x({ attribute: !1 })
-], z.prototype, "hass", 2);
+], q.prototype, "hass", 2);
 S([
   g()
-], z.prototype, "_config", 2);
-z = S([
+], q.prototype, "_config", 2);
+q = S([
   A("yahatl-queue-card-editor")
-], z);
+], q);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-queue-card",
   name: "Yahatl Queue",
   description: "Prioritized task queue with Mushroom-style layout"
 });
-var he = Object.defineProperty, pe = Object.getOwnPropertyDescriptor, L = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? pe(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && he(t, i, a), a;
+var ge = Object.defineProperty, me = Object.getOwnPropertyDescriptor, I = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? me(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && ge(t, i, a), a;
 };
-const ue = ["pending", "in_progress", "completed", "missed"], ge = ["actionable", "recurring", "habit", "chore", "reminder", "note"];
+const _e = ["pending", "in_progress", "completed", "missed"], be = ["actionable", "recurring", "habit", "chore", "reminder", "note"];
 let w = class extends y {
   constructor() {
-    super(...arguments), this._config = {}, this._activeListIdx = 0, this._filters = { status: null, trait: null, tag: null }, this._showFilters = !1, this._showDeferred = !1, this._showCompleted = !1, this._store = new W(this), this._initialized = !1;
+    super(...arguments), this._config = {}, this._activeListIdx = 0, this._filters = { status: null, trait: null, tag: null }, this._showFilters = !1, this._showNotYet = !1, this._showDeferred = !1, this._showCompleted = !1, this._store = new U(this), this._initialized = !1;
   }
   setConfig(e) {
     this._config = e;
@@ -1888,68 +1987,76 @@ let w = class extends y {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadLists(), this._loadActiveList()) : e.has("hass") && this.hass && u.setHass(this.hass);
   }
   render() {
-    const e = this._store.state.lists, t = e[this._activeListIdx], i = (t == null ? void 0 : t.entity_id) || "", s = this._store.state.items.get(i) || [], a = this._applyFilters(s), r = Object.values(this._filters).filter(Boolean).length, o = [], l = [], c = [];
-    for (const d of a)
-      d.status === "completed" ? c.push(d) : this._isDeferred(d) ? l.push(d) : o.push(d);
+    const e = this._store.state.lists, t = e[this._activeListIdx], i = (t == null ? void 0 : t.entity_id) || "", s = this._store.state.items.get(i) || [], a = this._applyFilters(s), o = Object.values(this._filters).filter(Boolean).length, r = [], l = [], d = [], p = [];
+    for (const h of a)
+      h.status === "completed" ? p.push(h) : this._isDeferred(h) ? d.push(h) : h.block_reason ? l.push(h) : r.push(h);
     return n`
       <ha-card>
         ${e.length > 0 ? n`
               <div class="tabs">
                 ${e.map(
-      (d, p) => n`
+      (h, m) => n`
                     <button
-                      class="tab ${p === this._activeListIdx ? "active" : ""}"
-                      @click=${() => this._selectList(p)}
+                      class="tab ${m === this._activeListIdx ? "active" : ""}"
+                      @click=${() => this._selectList(m)}
                     >
-                      ${d.name}
+                      ${h.name}
                     </button>
                   `
     )}
               </div>
-            ` : h}
+            ` : c}
 
         <div class="filter-toggle">
-          <span class="filter-toggle__count">${o.length} items</span>
+          <span class="filter-toggle__count">${r.length} items</span>
           <button class="filter-toggle__btn" @click=${() => this._showFilters = !this._showFilters}>
-            Filters${r > 0 ? n`<span class="active-filter-badge">${r}</span>` : h}
+            Filters${o > 0 ? n`<span class="active-filter-badge">${o}</span>` : c}
           </button>
         </div>
 
-        ${this._showFilters ? this._renderFilters() : h}
+        ${this._showFilters ? this._renderFilters() : c}
 
-        ${a.length === 0 ? n`<div class="empty-state">No items match</div>` : h}
-        ${o.map((d) => this._renderItem(d, i))}
+        ${a.length === 0 ? n`<div class="empty-state">No items match</div>` : c}
+        ${r.map((h) => this._renderItem(h, i))}
         ${l.length > 0 ? this._renderGroup(
+      "Not Yet",
+      "mdi:timer-sand",
+      l,
+      i,
+      this._showNotYet,
+      () => this._showNotYet = !this._showNotYet
+    ) : c}
+        ${d.length > 0 ? this._renderGroup(
       "Deferred",
       "mdi:clock-outline",
-      l,
+      d,
       i,
       this._showDeferred,
       () => this._showDeferred = !this._showDeferred
-    ) : h}
-        ${c.length > 0 ? this._renderGroup(
+    ) : c}
+        ${p.length > 0 ? this._renderGroup(
       "Completed",
       "mdi:check-circle-outline",
-      c,
+      p,
       i,
       this._showCompleted,
       () => this._showCompleted = !this._showCompleted
-    ) : h}
+    ) : c}
       </ha-card>
     `;
   }
-  _renderGroup(e, t, i, s, a, r) {
+  _renderGroup(e, t, i, s, a, o) {
     return n`
       <button
         class="group-header ${a ? "group-header--open" : ""}"
-        @click=${r}
+        @click=${o}
       >
         <ha-icon class="group-header__icon" icon=${t}></ha-icon>
         <span class="group-header__label">${e}</span>
         <span class="group-header__count">${i.length}</span>
         <ha-icon class="group-header__chevron" icon="mdi:chevron-down"></ha-icon>
       </button>
-      ${a ? i.map((o) => this._renderItem(o, s)) : h}
+      ${a ? i.map((r) => this._renderItem(r, s)) : c}
     `;
   }
   _isDeferred(e) {
@@ -1960,7 +2067,7 @@ let w = class extends y {
       <div class="filters">
         <div class="filter-label">Status</div>
         <div class="chips-strip" style="padding: 0 0 4px">
-          ${ue.map(
+          ${_e.map(
       (e) => n`
               <button
                 class="mush-chip ${this._filters.status === e ? "mush-chip--filled" : ""}"
@@ -1974,15 +2081,15 @@ let w = class extends y {
         </div>
         <div class="filter-label">Traits</div>
         <div class="chips-strip" style="padding: 0">
-          ${ge.map(
+          ${be.map(
       (e) => n`
               <button
                 class="mush-chip ${this._filters.trait === e ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: ${K[e]}"
+                style="--rgb-state: ${F[e]}"
                 @click=${() => this._toggleFilter("trait", e)}
               >
                 <span class="mush-chip__icon">
-                  <ha-icon icon=${B[e]}></ha-icon>
+                  <ha-icon icon=${j[e]}></ha-icon>
                 </span>
                 ${e}
               </button>
@@ -1993,41 +2100,42 @@ let w = class extends y {
     `;
   }
   _renderItem(e, t) {
-    const i = e.status === "completed", s = bt(e.traits), a = s ? K[s] : "var(--rgb-primary-color)", r = s ? B[s] : "", o = this._formatDue(e.due), l = this._isDeferred(e);
+    const i = e.status === "completed", s = pt(e.traits), a = s ? F[s] : "var(--rgb-primary-color)", o = s ? j[s] : "", r = this._formatDue(e.due), l = this._isDeferred(e);
     return n`
       <div
         class="item-row"
         style="--rgb-state: ${a}"
         @click=${() => this._openEditor(t, e.uid)}
       >
-        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : h}
+        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : c}
 
         <div
           class="item-check ${i ? "item-check--done" : ""}"
-          @click=${(c) => {
-      c.stopPropagation(), i || this._complete(t, e.uid);
+          @click=${(d) => {
+      d.stopPropagation(), i || this._complete(t, e.uid);
     }}
         ></div>
 
-        ${r ? n`<div class="mush-shape-icon mush-shape-icon--sm">
-              <ha-icon icon=${r}></ha-icon>
-            </div>` : h}
+        ${o ? n`<div class="mush-shape-icon mush-shape-icon--sm">
+              <ha-icon icon=${o}></ha-icon>
+            </div>` : c}
 
         <div class="item-info">
           <div class="item-title ${i ? "item-title--done" : ""}">
             ${e.title}
           </div>
           <div class="item-badges">
-            ${o ? n`<span class=${o.className}>${o.label}</span>` : h}
-            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : h}
-            ${e.has_recurrence ? n`<span>repeats</span>` : h}
-            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : h}
-            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : h}
-            ${l ? n`<span class="deferred">deferred</span>` : h}
+            ${r ? n`<span class=${r.className}>${r.label}</span>` : c}
+            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : c}
+            ${e.has_recurrence ? n`<span>repeats</span>` : c}
+            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : c}
+            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : c}
+            ${l ? n`<span class="deferred">deferred</span>` : c}
+            ${e.block_reason && !l ? n`<span class="deferred">${e.block_reason}</span>` : c}
           </div>
         </div>
 
-        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((c) => `#${c}`).join(" ")}</span>` : h}
+        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((d) => `#${d}`).join(" ")}</span>` : c}
       </div>
     `;
   }
@@ -2052,7 +2160,7 @@ let w = class extends y {
     await u.completeItem(e, t);
   }
   _openEditor(e, t) {
-    yt(this, { entityId: e, itemId: t, hass: this.hass });
+    et(this, { entityId: e, itemId: t, hass: this.hass });
   }
   _formatDue(e) {
     if (!e) return null;
@@ -2069,7 +2177,7 @@ let w = class extends y {
   }
 };
 w.styles = [
-  D,
+  E,
   C`
       :host {
         display: block;
@@ -2305,28 +2413,31 @@ w.styles = [
       }
     `
 ];
-L([
+I([
   x({ attribute: !1 })
 ], w.prototype, "hass", 2);
-L([
+I([
   g()
 ], w.prototype, "_config", 2);
-L([
+I([
   g()
 ], w.prototype, "_activeListIdx", 2);
-L([
+I([
   g()
 ], w.prototype, "_filters", 2);
-L([
+I([
   g()
 ], w.prototype, "_showFilters", 2);
-L([
+I([
+  g()
+], w.prototype, "_showNotYet", 2);
+I([
   g()
 ], w.prototype, "_showDeferred", 2);
-L([
+I([
   g()
 ], w.prototype, "_showCompleted", 2);
-w = L([
+w = I([
   A("yahatl-list-card")
 ], w);
 window.customCards = window.customCards || [];
@@ -2335,12 +2446,454 @@ window.customCards.push({
   name: "Yahatl List",
   description: "Filterable item browser with Mushroom chips and trait icons"
 });
-var me = Object.defineProperty, _e = Object.getOwnPropertyDescriptor, b = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? _e(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && me(t, i, a), a;
+var ye = Object.defineProperty, fe = Object.getOwnPropertyDescriptor, O = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? fe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && ye(t, i, a), a;
 };
-const It = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], be = [
+let k = class extends y {
+  constructor() {
+    super(...arguments), this._config = {}, this._showNotYet = !1, this._showDeferred = !1, this._showCompleted = !1, this._draft = "", this._busy = !1, this._store = new U(this), this._initialized = !1;
+  }
+  setConfig(e) {
+    if (!e.assigned_to)
+      throw new Error("yahatl-my-tasks-card: 'assigned_to' (a Home Assistant user id) is required");
+    this._config = e;
+  }
+  static getStubConfig() {
+    return { assigned_to: "", title: "My Tasks" };
+  }
+  updated(e) {
+    e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), this._loadAll()) : e.has("hass") && this.hass && u.setHass(this.hass);
+  }
+  async _loadAll() {
+    await u.loadLists(), await Promise.all(
+      this._store.state.lists.map((e) => u.loadItems(e.entity_id))
+    );
+  }
+  get _userId() {
+    return String(this._config.assigned_to || "");
+  }
+  // List new quick-added tasks land in — the Inbox by default.
+  get _addEntity() {
+    return String(this._config.add_entity || "todo.yahatl");
+  }
+  _collectTasks() {
+    const e = this._userId, t = /* @__PURE__ */ new Map();
+    for (const s of this._store.state.lists) t.set(s.entity_id, s.name);
+    const i = [];
+    for (const [s, a] of this._store.state.items.entries())
+      for (const o of a)
+        !o.assigned_to || !o.assigned_to.includes(e) || i.push({
+          ...o,
+          _entityId: s,
+          _listName: t.get(s) || ""
+        });
+    return i;
+  }
+  _sortActive(e, t) {
+    const i = e.due ? new Date(e.due).getTime() : 1 / 0, s = t.due ? new Date(t.due).getTime() : 1 / 0;
+    return i !== s ? i - s : e.title.localeCompare(t.title);
+  }
+  render() {
+    const e = String(this._config.title || "My Tasks"), t = this._collectTasks(), i = [], s = [], a = [], o = [];
+    for (const r of t)
+      r.status === "completed" ? o.push(r) : this._isDeferred(r) ? a.push(r) : r.block_reason ? s.push(r) : i.push(r);
+    return i.sort((r, l) => this._sortActive(r, l)), s.sort((r, l) => this._sortActive(r, l)), n`
+      <ha-card>
+        <div class="header">
+          <span class="header__title">${e}</span>
+          <span class="header__count">${i.length} items</span>
+        </div>
+
+        ${t.length === 0 ? n`<div class="empty-state">Nothing assigned to you — nice.</div>` : c}
+        ${i.map((r) => this._renderItem(r))}
+        ${s.length > 0 ? this._renderGroup(
+      "Not Yet",
+      "mdi:timer-sand",
+      s,
+      this._showNotYet,
+      () => this._showNotYet = !this._showNotYet
+    ) : c}
+        ${a.length > 0 ? this._renderGroup(
+      "Deferred",
+      "mdi:clock-outline",
+      a,
+      this._showDeferred,
+      () => this._showDeferred = !this._showDeferred
+    ) : c}
+        ${o.length > 0 ? this._renderGroup(
+      "Completed",
+      "mdi:check-circle-outline",
+      o,
+      this._showCompleted,
+      () => this._showCompleted = !this._showCompleted
+    ) : c}
+
+        <div class="capture-row">
+          <input
+            type="text"
+            placeholder="Add a task for ${e}…"
+            .value=${this._draft}
+            @input=${(r) => this._draft = r.target.value}
+            @keydown=${(r) => {
+      r.key === "Enter" && this._add();
+    }}
+            ?disabled=${this._busy}
+          />
+          <button
+            @click=${this._add}
+            ?disabled=${this._busy || !this._draft.trim()}
+          >
+            add
+          </button>
+        </div>
+      </ha-card>
+    `;
+  }
+  async _add() {
+    const e = this._draft.trim(), t = this._userId;
+    if (!(!e || !t || this._busy)) {
+      this._busy = !0;
+      try {
+        await u.createItem(this._addEntity, {
+          title: e,
+          assigned_to: [t]
+        }), this._draft = "";
+      } finally {
+        this._busy = !1;
+      }
+    }
+  }
+  _renderGroup(e, t, i, s, a) {
+    return n`
+      <button
+        class="group-header ${s ? "group-header--open" : ""}"
+        @click=${a}
+      >
+        <ha-icon class="group-header__icon" icon=${t}></ha-icon>
+        <span class="group-header__label">${e}</span>
+        <span class="group-header__count">${i.length}</span>
+        <ha-icon class="group-header__chevron" icon="mdi:chevron-down"></ha-icon>
+      </button>
+      ${s ? i.map((o) => this._renderItem(o)) : c}
+    `;
+  }
+  _isDeferred(e) {
+    return !!e.deferred_until && new Date(e.deferred_until) > /* @__PURE__ */ new Date();
+  }
+  _renderItem(e) {
+    const t = e.status === "completed", i = pt(e.traits), s = i ? F[i] : "var(--rgb-primary-color)", a = i ? j[i] : "", o = this._formatDue(e.due), r = this._isDeferred(e);
+    return n`
+      <div
+        class="item-row"
+        style="--rgb-state: ${s}"
+        @click=${() => this._openEditor(e)}
+      >
+        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : c}
+
+        <div
+          class="item-check ${t ? "item-check--done" : ""}"
+          @click=${(l) => {
+      l.stopPropagation(), t || this._complete(e);
+    }}
+        ></div>
+
+        ${a ? n`<div class="mush-shape-icon mush-shape-icon--sm">
+              <ha-icon icon=${a}></ha-icon>
+            </div>` : c}
+
+        <div class="item-info">
+          <div class="item-title ${t ? "item-title--done" : ""}">
+            ${e.title}
+          </div>
+          <div class="item-badges">
+            ${e._listName ? n`<span class="list-tag">${e._listName}</span>` : c}
+            ${o ? n`<span class=${o.className}>${o.label}</span>` : c}
+            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : c}
+            ${e.has_recurrence ? n`<span>repeats</span>` : c}
+            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : c}
+            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : c}
+            ${r ? n`<span class="deferred">deferred</span>` : c}
+            ${e.block_reason && !r ? n`<span class="deferred">${e.block_reason}</span>` : c}
+          </div>
+        </div>
+
+        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((l) => `#${l}`).join(" ")}</span>` : c}
+      </div>
+    `;
+  }
+  async _complete(e) {
+    await u.completeItem(e._entityId, e.uid);
+  }
+  _openEditor(e) {
+    et(this, {
+      entityId: e._entityId,
+      itemId: e.uid,
+      hass: this.hass
+    });
+  }
+  _formatDue(e) {
+    if (!e) return null;
+    const t = new Date(e), i = /* @__PURE__ */ new Date();
+    if (t < i)
+      return { label: `Overdue ${Math.ceil((i.getTime() - t.getTime()) / 864e5)}d`, className: "overdue" };
+    if (t.toDateString() === i.toDateString())
+      return { label: "Today", className: "due-today" };
+    const s = new Date(i);
+    return s.setDate(s.getDate() + 1), t.toDateString() === s.toDateString() ? { label: "Tomorrow", className: "" } : { label: t.toLocaleDateString(), className: "" };
+  }
+  getCardSize() {
+    return 6;
+  }
+};
+k.styles = [
+  E,
+  C`
+      :host {
+        display: block;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 14px 16px 10px;
+      }
+
+      .header__title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.1px;
+      }
+
+      .header__count {
+        font-size: 13px;
+        color: var(--yahatl-text-secondary);
+        letter-spacing: 0.4px;
+      }
+
+      .item-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--yahatl-divider);
+        cursor: pointer;
+        position: relative;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 120ms ease;
+      }
+
+      .item-row:hover {
+        background: rgba(var(--rgb-primary-color), 0.04);
+      }
+
+      .item-row:active {
+        background: rgba(var(--rgb-primary-color), 0.08);
+      }
+
+      .item-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .item-title {
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 20px;
+        letter-spacing: 0.1px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .item-title--done {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+
+      .item-tags {
+        font-size: 11px;
+        color: var(--yahatl-text-secondary);
+        letter-spacing: 0.4px;
+      }
+
+      .item-badges {
+        display: flex;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--yahatl-text-secondary);
+        letter-spacing: 0.4px;
+        margin-top: 2px;
+        flex-wrap: wrap;
+      }
+
+      .item-badges .list-tag {
+        color: rgb(var(--rgb-primary-color));
+        font-weight: 500;
+      }
+
+      .item-badges .streak {
+        color: rgb(var(--rgb-state-streak));
+        font-weight: 500;
+      }
+
+      .item-badges .overdue {
+        color: rgb(var(--rgb-state-overdue));
+        font-weight: 500;
+      }
+
+      .item-badges .due-today {
+        color: rgb(var(--rgb-state-due-today));
+        font-weight: 500;
+      }
+
+      .item-badges .needs-detail {
+        color: rgb(var(--rgb-warning));
+        font-weight: 500;
+      }
+
+      .item-badges .deferred {
+        color: rgb(var(--rgb-state-deferred));
+      }
+
+      .group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        border: none;
+        border-top: 1px solid var(--yahatl-divider);
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--yahatl-text-secondary);
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 120ms ease;
+      }
+
+      .group-header:hover {
+        background: rgba(var(--rgb-primary-color), 0.04);
+      }
+
+      .group-header:active {
+        background: rgba(var(--rgb-primary-color), 0.08);
+      }
+
+      .group-header__icon {
+        --mdc-icon-size: 18px;
+        color: var(--yahatl-text-secondary);
+      }
+
+      .group-header__label {
+        flex: 1;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      .group-header__count {
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(var(--rgb-primary-color), 0.12);
+        color: var(--yahatl-text-secondary);
+        border-radius: 10px;
+        padding: 1px 8px;
+      }
+
+      .group-header__chevron {
+        --mdc-icon-size: 20px;
+        transition: transform 180ms ease;
+      }
+
+      .group-header--open .group-header__chevron {
+        transform: rotate(180deg);
+      }
+
+      /* Quick add */
+      .capture-row {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--yahatl-divider);
+      }
+
+      .capture-row input {
+        flex: 1;
+        padding: 9px 12px;
+        border: 1px solid var(--yahatl-divider);
+        border-radius: 8px;
+        background: var(--yahatl-card-bg);
+        color: var(--yahatl-text);
+        font-size: 14px;
+        font-family: inherit;
+        -webkit-appearance: none;
+      }
+
+      .capture-row input:focus {
+        outline: none;
+        border-color: rgb(var(--rgb-primary-color));
+      }
+
+      .capture-row button {
+        padding: 0 18px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(var(--rgb-primary-color), 0.20);
+        color: rgb(var(--rgb-primary-color));
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+        font-family: inherit;
+        -webkit-tap-highlight-color: transparent;
+        min-width: 56px;
+      }
+
+      .capture-row button:active {
+        opacity: 0.7;
+      }
+    `
+];
+O([
+  x({ attribute: !1 })
+], k.prototype, "hass", 2);
+O([
+  g()
+], k.prototype, "_config", 2);
+O([
+  g()
+], k.prototype, "_showNotYet", 2);
+O([
+  g()
+], k.prototype, "_showDeferred", 2);
+O([
+  g()
+], k.prototype, "_showCompleted", 2);
+O([
+  g()
+], k.prototype, "_draft", 2);
+O([
+  g()
+], k.prototype, "_busy", 2);
+k = O([
+  A("yahatl-my-tasks-card")
+], k);
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: "yahatl-my-tasks-card",
+  name: "Yahatl My Tasks",
+  description: "Combined list of tasks assigned to one person across every yahatl list"
+});
+var ve = Object.defineProperty, xe = Object.getOwnPropertyDescriptor, b = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? xe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && ve(t, i, a), a;
+};
+const Lt = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], we = [
   "actionable",
   "recurring",
   "habit",
@@ -2350,11 +2903,11 @@ const It = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], be = [
   "someday",
   "shopping",
   "gift"
-], ye = ["eq", "neq", "gt", "lt", "gte", "lte", "bool"], ve = [
+], $e = ["eq", "neq", "gt", "lt", "gte", "lte", "bool"], ke = [
   { id: "work_hours", name: "Work hours", icon: "mdi:briefcase-clock" },
   { id: "productive", name: "Productive", icon: "mdi:lightning-bolt" },
   { id: "weekend_project", name: "Weekend project", icon: "mdi:hammer-wrench" }
-], fe = [
+], Ce = [
   {
     id: "work_hours",
     label: "Work hours",
@@ -2393,7 +2946,7 @@ const It = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], be = [
     not: { start_time: "21:00", end_time: "06:00", mode: "suppress", days: null }
   }
 ];
-function pt(e, t) {
+function bt(e, t) {
   var s;
   if (!e || !t) return t;
   const i = e.states[t];
@@ -2408,22 +2961,22 @@ let _ = class extends y {
   // --- Public API ---
   async open(e) {
     var s;
-    this._entityId = e.entityId, this._itemId = e.itemId || null, e.hass && (this.hass = e.hass), this._contexts = ve, u.api.getMeta().then((a) => {
-      var r;
-      (r = a.contexts) != null && r.length && (this._contexts = a.contexts);
+    this._entityId = e.entityId, this._itemId = e.itemId || null, e.hass && (this.hass = e.hass), this._contexts = ke, u.api.getMeta().then((a) => {
+      var o;
+      (o = a.contexts) != null && o.length && (this._contexts = a.contexts);
     }).catch(() => {
     });
     const t = u.api.getItems(this._entityId), i = u.api.getTags().catch(() => []);
     if (this._itemId) {
-      const [a, r, o] = await Promise.all([
+      const [a, o, r] = await Promise.all([
         u.getItemDetails(this._entityId, this._itemId),
         t,
         i
       ]);
       if (!a) return;
-      this._item = { ...a }, this._allItems = r.filter((l) => l.uid !== this._itemId), this._existingTags = o.map((l) => l.name), this._existingProjects = [...new Set(r.map((l) => l.project).filter((l) => !!l))];
+      this._item = { ...a }, this._allItems = o.filter((l) => l.uid !== this._itemId), this._existingTags = r.map((l) => l.name), this._existingProjects = [...new Set(o.map((l) => l.project).filter((l) => !!l))];
     } else {
-      const [a, r] = await Promise.all([
+      const [a, o] = await Promise.all([
         t,
         i
       ]);
@@ -2436,7 +2989,7 @@ let _ = class extends y {
         project: null,
         assigned_to: (s = this.hass) != null && s.user ? [this.hass.user.id] : [],
         needs_detail: !1
-      }, this._allItems = a, this._existingTags = r.map((o) => o.name), this._existingProjects = [...new Set(a.map((o) => o.project).filter((o) => !!o))];
+      }, this._allItems = a, this._existingTags = o.map((r) => r.name), this._existingProjects = [...new Set(a.map((r) => r.project).filter((r) => !!r))];
     }
     this._section = 0, this._error = "", this._visible = !0, document.addEventListener("keydown", this._boundKey), document.body.style.overflow = "hidden";
   }
@@ -2448,7 +3001,7 @@ let _ = class extends y {
     return this.close(), !0;
   }
   close() {
-    this._visible && (this._visible = !1, document.removeEventListener("keydown", this._boundKey), document.body.style.overflow = "", this.requestUpdate(), this.mode !== "inline" && Nt(this, "dialog-closed", { dialog: "yahatl-item-editor" }));
+    this._visible && (this._visible = !1, document.removeEventListener("keydown", this._boundKey), document.body.style.overflow = "", this.requestUpdate(), this.mode !== "inline" && pe(this, "dialog-closed", { dialog: "yahatl-item-editor" }));
   }
   disconnectedCallback() {
     super.disconnectedCallback(), document.removeEventListener("keydown", this._boundKey), document.body.style.overflow = "";
@@ -2458,12 +3011,12 @@ let _ = class extends y {
   }
   // --- Rendering ---
   render() {
-    if (!this._visible) return h;
+    if (!this._visible) return c;
     const e = ["Basics", "Recurrence", "Requirements", "Blockers", "Schedule"], t = n`
       <div class="modal__header">
         <div class="modal__header-info">
           <h2 class="modal__title">${this._itemId ? "Edit item" : "New item"}</h2>
-          ${this._itemId ? n`<div class="modal__sub">${this._entityId} · ${this._itemId.slice(0, 8)}…</div>` : h}
+          ${this._itemId ? n`<div class="modal__sub">${this._entityId} · ${this._itemId.slice(0, 8)}…</div>` : c}
         </div>
         <button class="close-btn" @click=${this.close}>&times;</button>
       </div>
@@ -2480,7 +3033,7 @@ let _ = class extends y {
     )}
       </div>
       <div class="content">${this._renderSection()}</div>
-      ${this._error ? n`<div class="error-msg">${this._error}</div>` : h}
+      ${this._error ? n`<div class="error-msg">${this._error}</div>` : c}
       <div class="modal__footer">
         <button class="btn btn--ghost" @click=${this.close}>cancel</button>
         <button
@@ -2511,7 +3064,7 @@ let _ = class extends y {
       case 4:
         return this._renderSchedule();
       default:
-        return h;
+        return c;
     }
   }
   // --- Section 0: Basics ---
@@ -2634,7 +3187,7 @@ let _ = class extends y {
                 Delete this item
               </button>
             </div>
-          ` : h}
+          ` : c}
     `;
   }
   // --- Section 1: Traits & Tags ---
@@ -2644,14 +3197,14 @@ let _ = class extends y {
       <div class="field">
         <div class="field__label">Traits</div>
         <div class="traits-row">
-          ${be.map(
+          ${we.map(
       (i) => n`
               <button
                 class="trait-toggle ${e.includes(i) ? "is-on" : ""}"
-                style="--rgb-state: ${K[i]}"
+                style="--rgb-state: ${F[i]}"
                 @click=${() => this._toggleTrait(i)}
               >
-                <ha-icon icon=${B[i]}></ha-icon>
+                <ha-icon icon=${j[i]}></ha-icon>
                 ${i}
               </button>
             `
@@ -2724,28 +3277,28 @@ let _ = class extends y {
         </button>
       </div>
 
-      ${t === "calendar" ? this._renderCalendarConfig() : h}
-      ${t === "elapsed" ? this._renderElapsedConfig() : h}
-      ${t === "frequency" ? this._renderFrequencyConfig() : h}
+      ${t === "calendar" ? this._renderCalendarConfig() : c}
+      ${t === "elapsed" ? this._renderElapsedConfig() : c}
+      ${t === "frequency" ? this._renderFrequencyConfig() : c}
     `;
   }
   _renderCalendarConfig() {
-    const e = this._item.recurrence, t = e.calendar_preset || null, i = e.calendar_days || [], s = e.calendar_days_of_month || [], a = !t, r = !t && i.length === 0;
+    const e = this._item.recurrence, t = e.calendar_preset || null, i = e.calendar_days || [], s = e.calendar_days_of_month || [], a = !t, o = !t && i.length === 0;
     return n`
       <div class="chips-strip" style="padding-left: 0; padding-top: 12px">
         ${["daily", "weekdays", "weekends"].map(
-      (o) => n`
+      (r) => n`
             <button
-              class="mush-chip ${t === o ? "mush-chip--filled" : ""}"
+              class="mush-chip ${t === r ? "mush-chip--filled" : ""}"
               style="--rgb-state: var(--rgb-primary-color)"
-              @click=${() => this._setCalendarPreset(t === o ? null : o)}
+              @click=${() => this._setCalendarPreset(t === r ? null : r)}
             >
-              ${o}
+              ${r}
             </button>
           `
     )}
         <button
-          class="mush-chip ${a && !r ? "mush-chip--filled" : ""}"
+          class="mush-chip ${a && !o ? "mush-chip--filled" : ""}"
           style="--rgb-state: var(--rgb-primary-color)"
           @click=${() => this._setCalendarPreset(null)}
         >
@@ -2757,13 +3310,13 @@ let _ = class extends y {
             <div class="field">
               <div class="field__label">Days of the week</div>
               <div class="day-picker">
-                ${It.map(
-      (o, l) => n`
+                ${Lt.map(
+      (r, l) => n`
                     <button
                       class="day-btn ${i.includes(l) ? "active" : ""}"
                       @click=${() => this._toggleCalendarDay(l)}
                     >
-                      ${o}
+                      ${r}
                     </button>
                   `
     )}
@@ -2778,16 +3331,16 @@ let _ = class extends y {
                       type="text"
                       placeholder="e.g. 1, 15"
                       .value=${s.join(", ")}
-                      @change=${(o) => {
-      const c = o.target.value.split(",").map((d) => parseInt(d.trim())).filter((d) => d >= 1 && d <= 31);
+                      @change=${(r) => {
+      const d = r.target.value.split(",").map((p) => parseInt(p.trim())).filter((p) => p >= 1 && p <= 31);
       this._updateRecurrence({
-        calendar_days_of_month: c.length ? c : null
+        calendar_days_of_month: d.length ? d : null
       });
     }}
                     />
                   </div>
-                ` : h}
-          ` : h}
+                ` : c}
+          ` : c}
     `;
   }
   _renderElapsedConfig() {
@@ -2934,7 +3487,7 @@ let _ = class extends y {
               <div class="entity-row">
                 <ha-icon icon="mdi:eye" style="--mdc-icon-size: 16px; color: var(--yahatl-text-secondary)"></ha-icon>
                 <div class="entity-row__name">
-                  ${pt(this.hass, t)}
+                  ${bt(this.hass, t)}
                   <div class="entity-row__id">${t}</div>
                 </div>
                 <button class="entity-row__remove" @click=${() => {
@@ -2984,13 +3537,7 @@ let _ = class extends y {
               <button
                 class="mush-chip ${(e.location || []).includes(t) ? "mush-chip--filled" : "mush-chip--state"}"
                 style="--rgb-state: var(--rgb-primary-color)"
-                @click=${() => {
-        const s = e.location || [];
-        this._setRequirements({
-          ...e,
-          location: s.includes(t) ? s.filter((a) => a !== t) : [...s, t]
-        });
-      }}
+                @click=${() => this._toggleLocation(t)}
               >
                 <span class="mush-chip__icon">
                   <ha-icon icon=${this._getZoneIcon(t)}></ha-icon>
@@ -3009,13 +3556,7 @@ let _ = class extends y {
               <button
                 class="mush-chip ${(e.context || []).includes(t.id) ? "mush-chip--filled" : "mush-chip--state"}"
                 style="--rgb-state: var(--rgb-primary-color)"
-                @click=${() => {
-        const i = e.context || [];
-        this._setRequirements({
-          ...e,
-          context: i.includes(t.id) ? i.filter((s) => s !== t.id) : [...i, t.id]
-        });
-      }}
+                @click=${() => this._toggleContext(t.id)}
               >
                 <span class="mush-chip__icon">
                   <ha-icon icon=${t.icon}></ha-icon>
@@ -3037,7 +3578,7 @@ let _ = class extends y {
               <div class="entity-row">
                 <ha-icon icon="mdi:eye" style="--mdc-icon-size: 16px; color: var(--yahatl-text-secondary)"></ha-icon>
                 <div class="entity-row__name">
-                  ${pt(this.hass, t)}
+                  ${bt(this.hass, t)}
                   <div class="entity-row__id">${t}</div>
                 </div>
                 <button class="entity-row__remove" @click=${() => {
@@ -3059,25 +3600,25 @@ let _ = class extends y {
   }
   // --- Section 5: Schedule ---
   _renderSchedule() {
-    const e = this._item.time_blockers || [], t = this._item.condition_triggers || [], i = this._item.deferred_until;
+    const e = this._item.time_blockers || [], t = this._item.condition_triggers || [], i = this._item.deferred_until, s = this._item.lead_override_days;
     return n`
       <fieldset>
         <legend>Time Blockers</legend>
         <div class="field__label" style="margin-bottom: 6px">Shortcuts</div>
         <div class="chips-strip" style="padding: 0 0 4px">
-          ${fe.map((s) => {
-      const a = this._presetState(s), r = a !== "off", o = a === "not";
+          ${Ce.map((a) => {
+      const o = this._presetState(a), r = o !== "off", l = o === "not";
       return n`
               <button
                 class="mush-chip ${r ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: ${o ? "var(--rgb-danger)" : "var(--rgb-primary-color)"}"
+                style="--rgb-state: ${l ? "var(--rgb-danger)" : "var(--rgb-primary-color)"}"
                 title="Click to cycle: only during → not during → off"
-                @click=${() => this._cyclePreset(s)}
+                @click=${() => this._cyclePreset(a)}
               >
                 <span class="mush-chip__icon">
-                  <ha-icon icon=${s.icon}></ha-icon>
+                  <ha-icon icon=${a.icon}></ha-icon>
                 </span>
-                ${o ? `Not ${s.label.toLowerCase()}` : s.label}
+                ${l ? `Not ${a.label.toLowerCase()}` : a.label}
               </button>
             `;
     })}
@@ -3087,7 +3628,7 @@ let _ = class extends y {
           more to clear.
         </div>
         ${e.map(
-      (s, a) => n`
+      (a, o) => n`
             <div class="dyn-row">
               <div class="row2">
                 <div class="field">
@@ -3095,8 +3636,8 @@ let _ = class extends y {
                   <input
                     class="input"
                     type="time"
-                    .value=${s.start_time || ""}
-                    @change=${(r) => this._updateTimeBlocker(a, {
+                    .value=${a.start_time || ""}
+                    @change=${(r) => this._updateTimeBlocker(o, {
         start_time: r.target.value
       })}
                   />
@@ -3106,8 +3647,8 @@ let _ = class extends y {
                   <input
                     class="input"
                     type="time"
-                    .value=${s.end_time || ""}
-                    @change=${(r) => this._updateTimeBlocker(a, {
+                    .value=${a.end_time || ""}
+                    @change=${(r) => this._updateTimeBlocker(o, {
         end_time: r.target.value
       })}
                   />
@@ -3117,8 +3658,8 @@ let _ = class extends y {
                 <div class="field__label">Mode</div>
                 <select
                   class="select"
-                  .value=${s.mode || "suppress"}
-                  @change=${(r) => this._updateTimeBlocker(a, {
+                  .value=${a.mode || "suppress"}
+                  @change=${(r) => this._updateTimeBlocker(o, {
         mode: r.target.value
       })}
                 >
@@ -3127,11 +3668,11 @@ let _ = class extends y {
                 </select>
               </div>
               <div class="day-picker">
-                ${It.map(
-        (r, o) => n`
+                ${Lt.map(
+        (r, l) => n`
                     <button
-                      class="day-btn ${!s.days || s.days.includes(o) ? "active" : ""}"
-                      @click=${() => this._toggleTimeBlockerDay(a, o)}
+                      class="day-btn ${!a.days || a.days.includes(l) ? "active" : ""}"
+                      @click=${() => this._toggleTimeBlockerDay(o, l)}
                     >
                       ${r}
                     </button>
@@ -3141,7 +3682,7 @@ let _ = class extends y {
               <button
                 class="btn btn--danger"
                 style="font-size: 12px; padding: 6px 12px"
-                @click=${() => this._removeTimeBlocker(a)}
+                @click=${() => this._removeTimeBlocker(o)}
               >
                 Remove
               </button>
@@ -3156,24 +3697,24 @@ let _ = class extends y {
       <fieldset>
         <legend>Condition Triggers</legend>
         ${t.map(
-      (s, a) => n`
+      (a, o) => n`
             <div class="dyn-row">
               <div class="field" style="margin-bottom: 8px">
                 <div class="field__label">Entity</div>
-                ${s.entity_id ? n`
+                ${a.entity_id ? n`
                     <div class="entity-row" style="margin-bottom: 6px">
                       <div class="entity-row__name">
-                        ${pt(this.hass, s.entity_id)}
-                        <div class="entity-row__id">${s.entity_id}</div>
+                        ${bt(this.hass, a.entity_id)}
+                        <div class="entity-row__id">${a.entity_id}</div>
                       </div>
-                      <button class="entity-row__remove" @click=${() => this._updateConditionTrigger(a, { entity_id: "" })}>&times;</button>
+                      <button class="entity-row__remove" @click=${() => this._updateConditionTrigger(o, { entity_id: "" })}>&times;</button>
                     </div>
-                  ` : h}
+                  ` : c}
                 ${this._renderEntityCombo(
-        `ct-entity-${a}`,
-        s.entity_id ? "Change entity…" : "Select entity…",
+        `ct-entity-${o}`,
+        a.entity_id ? "Change entity…" : "Select entity…",
         [],
-        (r) => this._updateConditionTrigger(a, { entity_id: r })
+        (r) => this._updateConditionTrigger(o, { entity_id: r })
       )}
               </div>
               <div class="row2">
@@ -3181,12 +3722,12 @@ let _ = class extends y {
                   <div class="field__label">Operator</div>
                   <select
                     class="select"
-                    .value=${s.operator || "eq"}
-                    @change=${(r) => this._updateConditionTrigger(a, {
+                    .value=${a.operator || "eq"}
+                    @change=${(r) => this._updateConditionTrigger(o, {
         operator: r.target.value
       })}
                   >
-                    ${ye.map(
+                    ${$e.map(
         (r) => n`<option value=${r}>${r}</option>`
       )}
                   </select>
@@ -3198,8 +3739,8 @@ let _ = class extends y {
                   <input
                     class="input"
                     type="text"
-                    .value=${s.value || ""}
-                    @change=${(r) => this._updateConditionTrigger(a, {
+                    .value=${a.value || ""}
+                    @change=${(r) => this._updateConditionTrigger(o, {
         value: r.target.value
       })}
                   />
@@ -3208,8 +3749,8 @@ let _ = class extends y {
                   <div class="field__label">On match</div>
                   <select
                     class="select"
-                    .value=${s.on_match || "boost"}
-                    @change=${(r) => this._updateConditionTrigger(a, {
+                    .value=${a.on_match || "boost"}
+                    @change=${(r) => this._updateConditionTrigger(o, {
         on_match: r.target.value
       })}
                   >
@@ -3221,7 +3762,7 @@ let _ = class extends y {
               <button
                 class="btn btn--danger"
                 style="font-size: 12px; padding: 6px 12px; margin-top: 8px"
-                @click=${() => this._removeConditionTrigger(a)}
+                @click=${() => this._removeConditionTrigger(o)}
               >
                 Remove
               </button>
@@ -3234,6 +3775,39 @@ let _ = class extends y {
       </fieldset>
 
       <fieldset>
+        <legend>Lead time (days before due)</legend>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <input
+            class="input"
+            type="number"
+            min="0"
+            placeholder="Auto"
+            style="flex: 1"
+            .value=${s ?? ""}
+            @change=${(a) => {
+      const o = a.target.value;
+      this._set(
+        "lead_override_days",
+        o === "" ? null : Math.max(0, parseInt(o, 10) || 0)
+      );
+    }}
+          />
+          <button
+            class="btn btn--ghost"
+            style="font-size: 12px; padding: 6px 12px"
+            @click=${() => this._set("lead_override_days", null)}
+          >
+            Auto
+          </button>
+        </div>
+        <div style="font-size: 12px; color: var(--yahatl-text-secondary); margin-top: 6px">
+          How many days before its due date this surfaces in the queue. Leave
+          blank to auto-compute from the recurrence (longer repeats get a longer
+          run-up).
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>Defer Until</legend>
         <div style="display: flex; gap: 8px; align-items: center">
           <input
@@ -3241,11 +3815,11 @@ let _ = class extends y {
             type="datetime-local"
             style="flex: 1"
             .value=${this._toLocalDt(i)}
-            @change=${(s) => {
-      const a = s.target.value;
+            @change=${(a) => {
+      const o = a.target.value;
       this._set(
         "deferred_until",
-        a ? new Date(a).toISOString() : null
+        o ? new Date(o).toISOString() : null
       );
     }}
           />
@@ -3320,6 +3894,25 @@ let _ = class extends y {
   _setRequirements(e) {
     this._set("requirements", e);
   }
+  _emptyRequirements() {
+    return { mode: "ALL", location: [], people: [], time_constraints: [], context: [], sensors: [] };
+  }
+  _toggleLocation(e) {
+    try {
+      const t = this._item.requirements || this._emptyRequirements(), i = t.location || [], s = i.includes(e) ? i.filter((a) => a !== e) : [...i, e];
+      this._setRequirements({ ...t, location: s }), this._error = `✓ loc ${e} → [${s.join(", ")}]`;
+    } catch (t) {
+      this._error = `✗ loc ${e}: ${String(t)}`;
+    }
+  }
+  _toggleContext(e) {
+    try {
+      const t = this._item.requirements || this._emptyRequirements(), i = t.context || [], s = i.includes(e) ? i.filter((a) => a !== e) : [...i, e];
+      this._setRequirements({ ...t, context: s }), this._error = `✓ ctx ${e} → [${s.join(", ")}]`;
+    } catch (t) {
+      this._error = `✗ ctx ${e}: ${String(t)}`;
+    }
+  }
   // Time blocker helpers
   _addTimeBlocker() {
     const e = [...this._item.time_blockers || []];
@@ -3334,12 +3927,12 @@ let _ = class extends y {
     i[e] = { ...i[e], ...t }, this._set("time_blockers", i);
   }
   _toggleTimeBlockerDay(e, t) {
-    const i = [...this._item.time_blockers || []], s = { ...i[e] }, a = s.days ? [...s.days] : [0, 1, 2, 3, 4, 5, 6], r = a.indexOf(t);
-    r >= 0 ? a.splice(r, 1) : a.push(t), s.days = a.length === 7 ? null : a, i[e] = s, this._set("time_blockers", i);
+    const i = [...this._item.time_blockers || []], s = { ...i[e] }, a = s.days ? [...s.days] : [0, 1, 2, 3, 4, 5, 6], o = a.indexOf(t);
+    o >= 0 ? a.splice(o, 1) : a.push(t), s.days = a.length === 7 ? null : a, i[e] = s, this._set("time_blockers", i);
   }
   // Time-blocker preset (schedule shortcut) helpers
   _sameDays(e, t) {
-    const i = e && e.length ? [...e].sort((a, r) => a - r).join(",") : "", s = t && t.length ? [...t].sort((a, r) => a - r).join(",") : "";
+    const i = e && e.length ? [...e].sort((a, o) => a - o).join(",") : "", s = t && t.length ? [...t].sort((a, o) => a - o).join(",") : "";
     return i === s;
   }
   _matchTb(e, t) {
@@ -3370,14 +3963,14 @@ let _ = class extends y {
   }
   // --- Save / Delete ---
   async _save() {
-    var e, t, i, s, a, r, o, l;
+    var e, t, i, s, a, o, r, l;
     if (!((e = this._item.title) != null && e.trim())) {
       this._error = "Title is required";
       return;
     }
     this._busy = !0, this._error = "";
     try {
-      const c = [
+      const d = [
         "title",
         "description",
         "traits",
@@ -3394,21 +3987,22 @@ let _ = class extends y {
         "requirements",
         "condition_triggers",
         "time_blockers",
-        "deferred_until"
-      ], d = {};
-      for (const p of c)
-        p in this._item && (d[p] = this._item[p]);
-      if (d.blockers) {
-        const p = d.blockers;
-        !((t = p.items) != null && t.length) && !((i = p.sensors) != null && i.length) && (d.blockers = null);
+        "deferred_until",
+        "lead_override_days"
+      ], p = {};
+      for (const h of d)
+        h in this._item && (p[h] = this._item[h]);
+      if (p.blockers) {
+        const h = p.blockers;
+        !((t = h.items) != null && t.length) && !((i = h.sensors) != null && i.length) && (p.blockers = null);
       }
-      if (d.requirements) {
-        const p = d.requirements;
-        !((s = p.location) != null && s.length) && !((a = p.people) != null && a.length) && !((r = p.time_constraints) != null && r.length) && !((o = p.context) != null && o.length) && !((l = p.sensors) != null && l.length) && (d.requirements = null);
+      if (p.requirements) {
+        const h = p.requirements;
+        !((s = h.location) != null && s.length) && !((a = h.people) != null && a.length) && !((o = h.time_constraints) != null && o.length) && !((r = h.context) != null && r.length) && !((l = h.sensors) != null && l.length) && (p.requirements = null);
       }
-      d.time_blockers && d.time_blockers.length === 0 && delete d.time_blockers, d.condition_triggers && d.condition_triggers.length === 0 && delete d.condition_triggers, this._itemId ? await u.saveItem(this._entityId, this._itemId, d) : await u.createItem(this._entityId, d), this.close();
-    } catch (c) {
-      this._error = c.message || "Failed to save";
+      p.time_blockers && p.time_blockers.length === 0 && delete p.time_blockers, p.condition_triggers && p.condition_triggers.length === 0 && delete p.condition_triggers, this._itemId ? await u.saveItem(this._entityId, this._itemId, p) : await u.createItem(this._entityId, p), this.close();
+    } catch (d) {
+      this._error = d.message || "Failed to save";
     } finally {
       this._busy = !1;
     }
@@ -3430,15 +4024,15 @@ let _ = class extends y {
     var s;
     if (!((s = this.hass) != null && s.states)) return [];
     const t = this._entityFilter.toLowerCase(), i = [];
-    for (const [a, r] of Object.entries(this.hass.states)) {
+    for (const [a, o] of Object.entries(this.hass.states)) {
       if (e.includes(a)) continue;
-      const o = r.attributes.friendly_name || a;
-      t && !a.toLowerCase().includes(t) && !o.toLowerCase().includes(t) || i.push({ id: a, name: o });
+      const r = o.attributes.friendly_name || a;
+      t && !a.toLowerCase().includes(t) && !r.toLowerCase().includes(t) || i.push({ id: a, name: r });
     }
-    return i.sort((a, r) => a.name.localeCompare(r.name)), t ? i.slice(0, 50) : i.slice(0, 20);
+    return i.sort((a, o) => a.name.localeCompare(o.name)), t ? i.slice(0, 50) : i.slice(0, 20);
   }
   _renderEntityCombo(e, t, i, s) {
-    const a = this._entityDropdownOpen === e, r = a ? this._getFilteredEntities(i) : [];
+    const a = this._entityDropdownOpen === e, o = a ? this._getFilteredEntities(i) : [];
     return n`
       <div class="entity-combo">
         <input
@@ -3454,27 +4048,27 @@ let _ = class extends y {
         this._entityDropdownOpen === e && (this._entityDropdownOpen = null, this._entityFilter = "");
       }, 200);
     }}
-          @input=${(o) => {
-      this._entityFilter = o.target.value;
+          @input=${(r) => {
+      this._entityFilter = r.target.value;
     }}
         />
         ${a ? n`
           <div class="entity-combo__dropdown">
-            ${r.length > 0 ? r.map(
-      (o) => n`
+            ${o.length > 0 ? o.map(
+      (r) => n`
                     <div
                       class="entity-combo__option"
                       @mousedown=${(l) => {
-        l.preventDefault(), s(o.id), this._entityDropdownOpen = null, this._entityFilter = "";
+        l.preventDefault(), s(r.id), this._entityDropdownOpen = null, this._entityFilter = "";
       }}
                     >
-                      <span class="entity-combo__option-name">${o.name}</span>
-                      <span class="entity-combo__option-id">${o.id}</span>
+                      <span class="entity-combo__option-name">${r.name}</span>
+                      <span class="entity-combo__option-id">${r.id}</span>
                     </div>
                   `
     ) : n`<div class="entity-combo__option"><span class="entity-combo__option-name" style="color: var(--yahatl-text-secondary)">No matches</span></div>`}
           </div>
-        ` : h}
+        ` : c}
       </div>
     `;
   }
@@ -3497,14 +4091,14 @@ let _ = class extends y {
     var s, a;
     const e = [], t = /* @__PURE__ */ new Set(), i = (s = this.hass) == null ? void 0 : s.user;
     if (i != null && i.id && (e.push({ id: i.id, name: i.name || "Me" }), t.add(i.id)), (a = this.hass) != null && a.states)
-      for (const [r, o] of Object.entries(this.hass.states)) {
-        if (!r.startsWith("person.")) continue;
-        const l = o.attributes.user_id;
+      for (const [o, r] of Object.entries(this.hass.states)) {
+        if (!o.startsWith("person.")) continue;
+        const l = r.attributes.user_id;
         if (!l || t.has(l)) continue;
-        const c = o.attributes.friendly_name || r.replace("person.", "");
-        e.push({ id: l, name: c }), t.add(l);
+        const d = r.attributes.friendly_name || o.replace("person.", "");
+        e.push({ id: l, name: d }), t.add(l);
       }
-    return e.sort((r, o) => r.name.localeCompare(o.name)), e;
+    return e.sort((o, r) => o.name.localeCompare(r.name)), e;
   }
   /** Get all zone entities from hass.states as { zone_name: friendly_name } */
   _getZoneEntities() {
@@ -3528,7 +4122,7 @@ let _ = class extends y {
   }
 };
 _.styles = [
-  D,
+  E,
   C`
       :host {
         display: block;
@@ -4034,14 +4628,14 @@ b([
 _ = b([
   A("yahatl-item-editor")
 ], _);
-var xe = Object.defineProperty, $e = Object.getOwnPropertyDescriptor, Mt = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? $e(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && xe(t, i, a), a;
+var Ae = Object.defineProperty, Se = Object.getOwnPropertyDescriptor, jt = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Se(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && Ae(t, i, a), a;
 };
-let at = class extends y {
+let lt = class extends y {
   constructor() {
-    super(...arguments), this._store = new W(this);
+    super(...arguments), this._store = new U(this);
   }
   setConfig(e) {
   }
@@ -4054,42 +4648,42 @@ let at = class extends y {
     const e = [];
     for (const [i, s] of Object.entries(this.hass.states))
       if (i.startsWith("zone.")) {
-        const a = s.attributes.friendly_name || i.replace("zone.", ""), r = s.attributes.icon || "mdi:map-marker";
-        e.push({ id: a.toLowerCase(), name: a, icon: r });
+        const a = s.attributes.friendly_name || i.replace("zone.", ""), o = s.attributes.icon || "mdi:map-marker";
+        e.push({ id: a.toLowerCase(), name: a, icon: o });
       }
     return e;
   }
   render() {
-    const e = this._store.state.context, t = this._store.state.meta, i = (e == null ? void 0 : e.location) || null, s = (e == null ? void 0 : e.contexts) || [], a = this._getMergedLocations(), r = (t == null ? void 0 : t.contexts) || [];
+    const e = this._store.state.context, t = this._store.state.meta, i = (e == null ? void 0 : e.location) || null, s = (e == null ? void 0 : e.contexts) || [], a = this._getMergedLocations(), o = (t == null ? void 0 : t.contexts) || [];
     return n`
       <div class="context-bar">
         <span class="section-label">Where</span>
         ${a.map(
-      (o) => n`
+      (r) => n`
             <button
-              class="mush-chip ${i === o.id ? "mush-chip--filled" : "mush-chip--state"}"
+              class="mush-chip ${i === r.id ? "mush-chip--filled" : "mush-chip--state"}"
               style="--rgb-state: var(--rgb-primary-color)"
-              @click=${() => this._setLocation(i === o.id ? null : o.id)}
+              @click=${() => this._setLocation(i === r.id ? null : r.id)}
             >
               <span class="mush-chip__icon">
-                <ha-icon icon=${o.icon}></ha-icon>
+                <ha-icon icon=${r.icon}></ha-icon>
               </span>
-              ${o.name}
+              ${r.name}
             </button>
           `
     )}
         <span class="section-label">Doing</span>
-        ${r.map(
-      (o) => n`
+        ${o.map(
+      (r) => n`
             <button
-              class="mush-chip ${s.includes(o.id) ? "mush-chip--filled" : "mush-chip--state"}"
+              class="mush-chip ${s.includes(r.id) ? "mush-chip--filled" : "mush-chip--state"}"
               style="--rgb-state: var(--rgb-primary-color)"
-              @click=${() => this._toggleContext(o.id, s)}
+              @click=${() => this._toggleContext(r.id, s)}
             >
               <span class="mush-chip__icon">
-                <ha-icon icon=${o.icon}></ha-icon>
+                <ha-icon icon=${r.icon}></ha-icon>
               </span>
-              ${o.name}
+              ${r.name}
             </button>
           `
     )}
@@ -4113,8 +4707,8 @@ let at = class extends y {
     await u.setContext({ contexts: i });
   }
 };
-at.styles = [
-  D,
+lt.styles = [
+  E,
   C`
       :host {
         display: block;
@@ -4145,20 +4739,20 @@ at.styles = [
       }
     `
 ];
-Mt([
+jt([
   x({ attribute: !1 })
-], at.prototype, "hass", 2);
-at = Mt([
+], lt.prototype, "hass", 2);
+lt = jt([
   A("yahatl-context-bar")
-], at);
-var we = Object.defineProperty, ke = Object.getOwnPropertyDescriptor, Rt = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? ke(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && we(t, i, a), a;
+], lt);
+var Te = Object.defineProperty, Ee = Object.getOwnPropertyDescriptor, Ht = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Ee(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && Te(t, i, a), a;
 };
-let rt = class extends y {
+let ct = class extends y {
   constructor() {
-    super(...arguments), this._store = new W(this), this._initialized = !1;
+    super(...arguments), this._store = new U(this), this._initialized = !1;
   }
   updated(e) {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadQueue()) : e.has("hass") && this.hass && u.setHass(this.hass);
@@ -4236,8 +4830,8 @@ let rt = class extends y {
     return 2;
   }
 };
-rt.styles = [
-  D,
+ct.styles = [
+  E,
   C`
       :host {
         display: block;
@@ -4264,24 +4858,24 @@ rt.styles = [
       }
     `
 ];
-Rt([
+Ht([
   x({ attribute: !1 })
-], rt.prototype, "hass", 2);
-rt = Rt([
+], ct.prototype, "hass", 2);
+ct = Ht([
   A("yahatl-stats-card")
-], rt);
+], ct);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-stats-card",
   name: "Yahatl Stats",
   description: "Mushroom-style stat tiles: overdue, today, blocked, ready"
 });
-var Ce = Object.defineProperty, Ae = Object.getOwnPropertyDescriptor, J = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Ae(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && Ce(t, i, a), a;
+var Ie = Object.defineProperty, De = Object.getOwnPropertyDescriptor, st = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? De(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && Ie(t, i, a), a;
 };
-let M = class extends y {
+let H = class extends y {
   constructor() {
     super(...arguments), this.entityId = "", this._value = "", this._busy = !1;
   }
@@ -4322,8 +4916,8 @@ let M = class extends y {
     }
   }
 };
-M.styles = [
-  D,
+H.styles = [
+  E,
   C`
       :host {
         display: block;
@@ -4371,29 +4965,29 @@ M.styles = [
       }
     `
 ];
-J([
+st([
   x({ attribute: !1 })
-], M.prototype, "hass", 2);
-J([
+], H.prototype, "hass", 2);
+st([
   x()
-], M.prototype, "entityId", 2);
-J([
+], H.prototype, "entityId", 2);
+st([
   g()
-], M.prototype, "_value", 2);
-J([
+], H.prototype, "_value", 2);
+st([
   g()
-], M.prototype, "_busy", 2);
-M = J([
+], H.prototype, "_busy", 2);
+H = st([
   A("yahatl-quick-add")
-], M);
-var Se = Object.defineProperty, Te = Object.getOwnPropertyDescriptor, nt = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Te(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && Se(t, i, a), a;
+], H);
+var ze = Object.defineProperty, Le = Object.getOwnPropertyDescriptor, ht = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Le(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && ze(t, i, a), a;
 };
-let U = class extends y {
+let V = class extends y {
   constructor() {
-    super(...arguments), this._config = {}, this._currentIdx = 0, this._store = new W(this), this._initialized = !1;
+    super(...arguments), this._config = {}, this._currentIdx = 0, this._store = new U(this), this._initialized = !1;
   }
   setConfig(e) {
     this._config = e;
@@ -4425,7 +5019,7 @@ let U = class extends y {
           <div class="empty-state">All caught up — nothing needs detail</div>
         </ha-card>
       `;
-    const i = Math.min(this._currentIdx, t - 1), s = e[i], a = bt(s.item.traits), r = a ? K[a] : "var(--rgb-primary-color)", o = a ? B[a] : "mdi:tray-full";
+    const i = Math.min(this._currentIdx, t - 1), s = e[i], a = pt(s.item.traits), o = a ? F[a] : "var(--rgb-primary-color)", r = a ? j[a] : "mdi:tray-full";
     return n`
       <ha-card>
         <div class="inbox-header">
@@ -4435,8 +5029,8 @@ let U = class extends y {
 
         <div class="inbox-item">
           <div class="inbox-title-row">
-            <div class="mush-shape-icon" style="--rgb-state: ${r}">
-              <ha-icon icon=${o}></ha-icon>
+            <div class="mush-shape-icon" style="--rgb-state: ${o}">
+              <ha-icon icon=${r}></ha-icon>
             </div>
             <div class="inbox-title">${s.item.title}</div>
           </div>
@@ -4446,7 +5040,7 @@ let U = class extends y {
       (l) => n`<span class="tag-chip">#${l}</span>`
     )}
                 </div>
-              ` : h}
+              ` : c}
           <div class="inbox-actions">
             <button
               class="btn btn--primary"
@@ -4480,12 +5074,12 @@ let U = class extends y {
                   Next
                 </button>
               </div>
-            ` : h}
+            ` : c}
       </ha-card>
     `;
   }
   _openEditor(e, t) {
-    yt(this, { entityId: e, itemId: t, hass: this.hass });
+    et(this, { entityId: e, itemId: t, hass: this.hass });
   }
   async _markDone(e, t) {
     await u.saveItem(e, t, { needs_detail: !1 }), await this._loadInbox();
@@ -4494,8 +5088,8 @@ let U = class extends y {
     return 3;
   }
 };
-U.styles = [
-  D,
+V.styles = [
+  E,
   C`
       :host {
         display: block;
@@ -4559,32 +5153,32 @@ U.styles = [
       }
     `
 ];
-nt([
+ht([
   x({ attribute: !1 })
-], U.prototype, "hass", 2);
-nt([
+], V.prototype, "hass", 2);
+ht([
   g()
-], U.prototype, "_config", 2);
-nt([
+], V.prototype, "_config", 2);
+ht([
   g()
-], U.prototype, "_currentIdx", 2);
-U = nt([
+], V.prototype, "_currentIdx", 2);
+V = ht([
   A("yahatl-inbox-card")
-], U);
+], V);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-inbox-card",
   name: "Yahatl Inbox",
   description: "Triage items that need more detail"
 });
-var Ee = Object.defineProperty, Ie = Object.getOwnPropertyDescriptor, $ = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Ie(t, i) : t, r = e.length - 1, o; r >= 0; r--)
-    (o = e[r]) && (a = (s ? o(t, i, a) : o(a)) || a);
-  return s && a && Ee(t, i, a), a;
+var qe = Object.defineProperty, Oe = Object.getOwnPropertyDescriptor, $ = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Oe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && qe(t, i, a), a;
 };
-let f = class extends y {
+let v = class extends y {
   constructor() {
-    super(...arguments), this._store = new W(this), this._initialized = !1, this._editingContext = null, this._editName = "", this._editIcon = "", this._editingLocation = null, this._editLocName = "", this._editLocIcon = "", this._renamingTag = null, this._renameValue = "", this._confirmDelete = null;
+    super(...arguments), this._store = new U(this), this._initialized = !1, this._editingContext = null, this._editName = "", this._editIcon = "", this._editingLocation = null, this._editLocName = "", this._editLocIcon = "", this._renamingTag = null, this._renameValue = "", this._confirmDelete = null;
   }
   setConfig(e) {
   }
@@ -4605,7 +5199,7 @@ let f = class extends y {
           <div class="section-header">
             <span class="section-title">Contexts</span>
           </div>
-          ${i.map((r, o) => this._renderContextRow(r, o, i.length))}
+          ${i.map((o, r) => this._renderContextRow(o, r, i.length))}
           ${this._editingContext === "__new__" ? this._renderContextEditor(null) : n`
                 <button class="add-btn" @click=${() => this._startNewContext()}>
                   <ha-icon icon="mdi:plus"></ha-icon>
@@ -4621,7 +5215,7 @@ let f = class extends y {
           <div class="section-header">
             <span class="section-title">Tags</span>
           </div>
-          ${t.length === 0 ? n`<div class="empty-state" style="padding: 12px 16px">No tags in use</div>` : t.map((r) => this._renderTagRow(r))}
+          ${t.length === 0 ? n`<div class="empty-state" style="padding: 12px 16px">No tags in use</div>` : t.map((o) => this._renderTagRow(o))}
         </div>
 
         <hr class="section-divider" />
@@ -4635,8 +5229,8 @@ let f = class extends y {
                 <div style="padding: 0 16px 6px; font-size: 12px; color: var(--yahatl-text-secondary)">
                   HA zones auto-included. Custom locations extend them.
                 </div>
-              ` : h}
-          ${s.map((r, o) => this._renderLocationRow(r, o, s.length))}
+              ` : c}
+          ${s.map((o, r) => this._renderLocationRow(o, r, s.length))}
           ${this._editingLocation === "__new__" ? this._renderLocationEditor(null) : n`
                 <button class="add-btn" @click=${() => this._startNewLocation()}>
                   <ha-icon icon="mdi:plus"></ha-icon>
@@ -4646,7 +5240,7 @@ let f = class extends y {
         </div>
 
         <!-- Confirm delete bar -->
-        ${this._confirmDelete ? this._renderConfirmBar() : h}
+        ${this._confirmDelete ? this._renderConfirmBar() : c}
       </ha-card>
     `;
   }
@@ -4661,10 +5255,10 @@ let f = class extends y {
         <div class="entry-actions">
           ${t > 0 ? n`<button class="icon-btn" @click=${() => this._moveContext(t, -1)} title="Move up">
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
-              </button>` : h}
+              </button>` : c}
           ${t < i - 1 ? n`<button class="icon-btn" @click=${() => this._moveContext(t, 1)} title="Move down">
                 <ha-icon icon="mdi:arrow-down"></ha-icon>
-              </button>` : h}
+              </button>` : c}
           <button class="icon-btn" @click=${() => this._startEditContext(e)} title="Edit">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </button>
@@ -4721,10 +5315,10 @@ let f = class extends y {
         <div class="entry-actions">
           ${t > 0 ? n`<button class="icon-btn" @click=${() => this._moveLocation(t, -1)} title="Move up">
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
-              </button>` : h}
+              </button>` : c}
           ${t < i - 1 ? n`<button class="icon-btn" @click=${() => this._moveLocation(t, 1)} title="Move down">
                 <ha-icon icon="mdi:arrow-down"></ha-icon>
-              </button>` : h}
+              </button>` : c}
           <button class="icon-btn" @click=${() => this._startEditLocation(e)} title="Edit">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </button>
@@ -4843,11 +5437,11 @@ let f = class extends y {
     if (!t) return;
     const i = this._editName.trim();
     if (!i) return;
-    const s = (e == null ? void 0 : e.id) || i.toLowerCase().replace(/\s+/g, "_"), a = this._editIcon || "mdi:label", r = {};
-    let o;
-    e ? (e.id !== s && (r[e.id] = s), o = t.contexts.map(
+    const s = (e == null ? void 0 : e.id) || i.toLowerCase().replace(/\s+/g, "_"), a = this._editIcon || "mdi:label", o = {};
+    let r;
+    e ? (e.id !== s && (o[e.id] = s), r = t.contexts.map(
       (l) => l.id === e.id ? { id: e.id, name: i, icon: a } : l
-    )) : o = [...t.contexts, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, contexts: o }, r), this._editingContext = null;
+    )) : r = [...t.contexts, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, contexts: r }, o), this._editingContext = null;
   }
   async _moveContext(e, t) {
     const i = this._store.state.meta;
@@ -4871,10 +5465,10 @@ let f = class extends y {
     const i = this._editLocName.trim();
     if (!i) return;
     const s = i.toLowerCase().replace(/\s+/g, "_"), a = this._editLocIcon || "mdi:map-marker";
-    let r;
-    e ? r = t.locations.map(
-      (o) => o.id === e.id ? { id: e.id, name: i, icon: a } : o
-    ) : r = [...t.locations, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, locations: r }), this._editingLocation = null;
+    let o;
+    e ? o = t.locations.map(
+      (r) => r.id === e.id ? { id: e.id, name: i, icon: a } : r
+    ) : o = [...t.locations, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, locations: o }), this._editingLocation = null;
   }
   async _moveLocation(e, t) {
     const i = this._store.state.meta;
@@ -4920,8 +5514,8 @@ let f = class extends y {
     const e = [];
     for (const [i, s] of Object.entries(this.hass.states))
       if (i.startsWith("zone.")) {
-        const a = s.attributes.friendly_name || i.replace("zone.", ""), r = s.attributes.icon || "mdi:map-marker";
-        e.push({ id: a.toLowerCase(), name: a, icon: r });
+        const a = s.attributes.friendly_name || i.replace("zone.", ""), o = s.attributes.icon || "mdi:map-marker";
+        e.push({ id: a.toLowerCase(), name: a, icon: o });
       }
     return e;
   }
@@ -4929,8 +5523,8 @@ let f = class extends y {
     return 6;
   }
 };
-f.styles = [
-  D,
+v.styles = [
+  E,
   C`
       :host {
         display: block;
@@ -5155,37 +5749,37 @@ f.styles = [
 ];
 $([
   x({ attribute: !1 })
-], f.prototype, "hass", 2);
+], v.prototype, "hass", 2);
 $([
   g()
-], f.prototype, "_editingContext", 2);
+], v.prototype, "_editingContext", 2);
 $([
   g()
-], f.prototype, "_editName", 2);
+], v.prototype, "_editName", 2);
 $([
   g()
-], f.prototype, "_editIcon", 2);
+], v.prototype, "_editIcon", 2);
 $([
   g()
-], f.prototype, "_editingLocation", 2);
+], v.prototype, "_editingLocation", 2);
 $([
   g()
-], f.prototype, "_editLocName", 2);
+], v.prototype, "_editLocName", 2);
 $([
   g()
-], f.prototype, "_editLocIcon", 2);
+], v.prototype, "_editLocIcon", 2);
 $([
   g()
-], f.prototype, "_renamingTag", 2);
+], v.prototype, "_renamingTag", 2);
 $([
   g()
-], f.prototype, "_renameValue", 2);
+], v.prototype, "_renameValue", 2);
 $([
   g()
-], f.prototype, "_confirmDelete", 2);
-f = $([
+], v.prototype, "_confirmDelete", 2);
+v = $([
   A("yahatl-manage-card")
-], f);
+], v);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-manage-card",
@@ -5193,12 +5787,13 @@ window.customCards.push({
   description: "Manage contexts, tags, and locations for yahatl"
 });
 export {
-  at as YahtlContextBar,
-  U as YahtlInboxCard,
+  lt as YahtlContextBar,
+  V as YahtlInboxCard,
   _ as YahtlItemEditor,
   w as YahtlListCard,
-  f as YahtlManageCard,
-  v as YahtlQueueCard,
-  M as YahtlQuickAdd,
-  rt as YahtlStatsCard
+  v as YahtlManageCard,
+  k as YahtlMyTasksCard,
+  f as YahtlQueueCard,
+  H as YahtlQuickAdd,
+  ct as YahtlStatsCard
 };

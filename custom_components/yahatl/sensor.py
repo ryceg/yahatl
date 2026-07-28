@@ -192,7 +192,9 @@ class YahtlQueueSensor(_YahtlBaseSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         queue = self._queue()
-        return {"queue": queue, "queue_length": len(queue)}
+        snap = getattr(self, "coordinator", None) and self.coordinator.data
+        upcoming = snap.upcoming if snap else []
+        return {"queue": queue, "queue_length": len(queue), "upcoming": upcoming}
 
 
 class YahtlInboxCountSensor(_YahtlBaseSensor):

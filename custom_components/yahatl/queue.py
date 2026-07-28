@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -32,6 +32,10 @@ class QueueResult:
     next_task_title: str | None
     total_actionable: int
     generated_at: datetime
+    # Items held out of the queue by a blocker (lead-time / time window / item
+    # dependency), each with its reason — for the "not yet" UI. Deferred items
+    # (a manual snooze) are intentionally excluded.
+    blocked: list[dict[str, Any]] = field(default_factory=list)
 
 
 
@@ -232,6 +236,7 @@ class QueueEngine:
         resolver = BlockerResolver(self._hass, visible_lists)
         now = dt_util.now()
         candidates: list[dict[str, Any]] = []
+        blocked: list[dict[str, Any]] = []
         blocked_count = 0
         overdue_count = 0
         due_today_count = 0
@@ -259,6 +264,12 @@ class QueueEngine:
                 result = resolver.resolve(item)
                 if result:
                     blocked_count += 1
+                    blocked.append({
+                        "item": item.to_dict(),
+                        "list_id": yahatl_list.list_id,
+                        "list_name": yahatl_list.name,
+                        "reason": result.reasons[0] if result.reasons else "not yet",
+                    })
                     continue
 
                 requirements_met, _ = await check_requirements_met(
@@ -283,6 +294,8 @@ class QueueEngine:
             )
         )
 
+        blocked.sort(key=lambda x: x["item"].get("due") or "9999-12-31")
+
         return QueueResult(
             items=candidates,
             context=context,
@@ -292,4 +305,5 @@ class QueueEngine:
             next_task_title=candidates[0]["item"]["title"] if candidates else None,
             total_actionable=len(candidates),
             generated_at=now,
+            blocked=blocked,
         )

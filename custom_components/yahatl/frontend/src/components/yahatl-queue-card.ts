@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, TRAIT_ICONS, TRAIT_RGB, primaryTrait } from "../styles";
 import { store, StoreController } from "../store";
 import { openItemEditor } from "../dialog";
-import type { HomeAssistant, QueueEntry } from "../types";
+import type { HomeAssistant, QueueEntry, QueueResult } from "../types";
 
 @customElement("yahatl-queue-card")
 export class YahtlQueueCard extends LitElement {
@@ -12,6 +12,7 @@ export class YahtlQueueCard extends LitElement {
   @state() private _quickAddValue = "";
   @state() private _quickAddBusy = false;
   @state() private _flash = "";
+  @state() private _showUpcoming = false;
   private _store = new StoreController(this);
   private _initialized = false;
 
@@ -194,6 +195,74 @@ export class YahtlQueueCard extends LitElement {
         font-size: 13px;
         font-weight: 500;
       }
+
+      /* "Not yet" (lead-blocked / upcoming) group */
+      .upcoming-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        margin-top: 4px;
+        border: none;
+        border-top: 1px solid var(--yahatl-divider);
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--yahatl-text-secondary);
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .upcoming-header__label {
+        flex: 1;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      .upcoming-header__count {
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(var(--rgb-primary-color), 0.12);
+        color: var(--yahatl-text-secondary);
+        border-radius: 10px;
+        padding: 1px 8px;
+      }
+
+      .upcoming-header__chevron {
+        --mdc-icon-size: 20px;
+        transition: transform 180ms ease;
+      }
+
+      .upcoming-header--open .upcoming-header__chevron {
+        transform: rotate(180deg);
+      }
+
+      .upcoming-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--yahatl-divider);
+        opacity: 0.75;
+      }
+
+      .upcoming-row__title {
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .upcoming-row__reason {
+        font-size: 11px;
+        color: var(--yahatl-text-secondary);
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+      }
     `,
   ];
 
@@ -268,7 +337,44 @@ export class YahtlQueueCard extends LitElement {
         ${items.length === 0
           ? html`<div class="empty-state">Nothing in the queue</div>`
           : items.map((entry, i) => this._renderItem(entry, i, todoEntity))}
+        ${this._renderUpcoming(q)}
       </ha-card>
+    `;
+  }
+
+  /** Collapsible "Not yet" group: items a blocker (lead-time, time window,
+   *  dependency) is holding out of the queue, each with its reason. */
+  private _renderUpcoming(q: QueueResult | null) {
+    const upcoming = q?.upcoming || [];
+    if (!upcoming.length) return nothing;
+    return html`
+      <button
+        class="upcoming-header ${this._showUpcoming ? "upcoming-header--open" : ""}"
+        @click=${() => (this._showUpcoming = !this._showUpcoming)}
+      >
+        <ha-icon icon="mdi:clock-outline"></ha-icon>
+        <span class="upcoming-header__label">Not yet</span>
+        <span class="upcoming-header__count">${upcoming.length}</span>
+        <ha-icon class="upcoming-header__chevron" icon="mdi:chevron-down"></ha-icon>
+      </button>
+      ${this._showUpcoming
+        ? upcoming.map(
+            (entry) => html`
+              <div
+                class="upcoming-row"
+                @click=${() =>
+                  openItemEditor(this, {
+                    entityId: `todo.${entry.list_id}`,
+                    itemId: entry.item.uid,
+                    hass: this.hass,
+                  })}
+              >
+                <span class="upcoming-row__title">${entry.item.title}</span>
+                <span class="upcoming-row__reason">${entry.reason || "not yet"}</span>
+              </div>
+            `
+          )
+        : nothing}
     `;
   }
 
@@ -278,7 +384,10 @@ export class YahtlQueueCard extends LitElement {
     const traitRgb = trait ? TRAIT_RGB[trait] : "var(--rgb-primary-color)";
     const traitIcon = trait ? TRAIT_ICONS[trait] : "mdi:checkbox-marked-circle-outline";
     const due = this._formatDue(item.due);
-    const entityId = todoEntity || `todo.${entry.list_id}`;
+    // Use the item's OWN list, not the inbox: queue items come from many lists
+    // (post list-split), so completing/opening must address the list that
+    // actually holds the uid or the backend returns item_not_found.
+    const entityId = entry.list_id ? `todo.${entry.list_id}` : todoEntity;
 
     return html`
       <div class="queue-item">
@@ -461,6 +570,14 @@ export class YahtlQueueCard extends LitElement {
     d.active = false;
     if (doDelay) this._delay(entity, id);
     else if (doDone) this._complete(entity, id);
+    else if (!d.moved) {
+      // A plain tap (no swipe): open the editor here. Touch devices don't
+      // reliably synthesize a @click after our gesture handling, so we can't
+      // depend on _onItemClick firing. Mark moved so the click that MAY still
+      // follow is suppressed (avoids a double-open).
+      this._drag.moved = true;
+      this._openEditor(entity, id);
+    }
   }
 
   private async _delay(entityId: string, itemId: string) {

@@ -9,9 +9,11 @@ never persisted, so it survives recurrence regeneration with zero completion-tim
 bookkeeping (unlike deferral, which is wiped on every completion).
 
 Scope:
-- Only recurring items with a `due` get an automatic lead — a bare period is what
-  the curve is based on. One-off dated tasks are unaffected unless the user sets
-  `lead_override_days`.
+- Any item with a `due` gets an automatic lead. Recurring items scale their
+  run-up from the repeat period (a yearly task is seen weeks out, a weekly chore
+  only just in time); one-off dated tasks have no period, so they use a flat base
+  (`_ONEOFF_LEAD_DAYS`). Both are then shifted by the same kind-of-task factors.
+- Undated items are unaffected (they are the always-visible backlog).
 - `lead_override_days` on the item short-circuits the formula entirely.
 
 Phase 2 (learning): `compute_lead_days()` is the single seam. A per-item
@@ -35,6 +37,7 @@ _LEAD_COEFF = 0.9        # base = _LEAD_COEFF * period_days ** _LEAD_EXP
 _LEAD_EXP = 0.6          # sub-linear: a yearly task needs more run-up than a weekly one, not 52x
 _LEAD_MIN_DAYS = 1
 _LEAD_MAX_DAYS = 45
+_ONEOFF_LEAD_DAYS = 14   # flat base run-up for a one-off dated task (no period to scale from)
 
 # Kind-of-task multipliers. Highest matching trait wins.
 _TRAIT_FACTORS = {
@@ -72,17 +75,24 @@ def recurrence_period_days(recurrence: RecurrenceConfig | None) -> int | None:
 def compute_lead_days(item: YahtlItem) -> int:
     """How many days before its due an item should start surfacing.
 
-    Returns 0 when there's nothing to base a lead on (no recurrence period and no
-    override), i.e. the item just surfaces normally against its due date.
+    Returns 0 when there's nothing to base a lead on (undated item and no
+    override), i.e. the item just surfaces normally.
     """
     if item.lead_override_days is not None:
         return max(0, item.lead_override_days)
 
     period = recurrence_period_days(item.recurrence)
-    if not period:
+    if period:
+        # Recurring: scale the run-up from the repeat period, and never lead by
+        # the whole period (it must hide for at least a day).
+        base = _LEAD_COEFF * (period ** _LEAD_EXP)
+        ceiling = min(_LEAD_MAX_DAYS, max(_LEAD_MIN_DAYS, period - 1))
+    elif item.due is not None:
+        # One-off dated task: no period to scale from — flat base run-up, capped.
+        base = float(_ONEOFF_LEAD_DAYS)
+        ceiling = _LEAD_MAX_DAYS
+    else:
         return 0
-
-    base = _LEAD_COEFF * (period ** _LEAD_EXP)
 
     # Longer jobs need to be seen sooner: +~0.5 day per hour of estimate.
     estimate_factor = 1.0
@@ -105,8 +115,6 @@ def compute_lead_days(item: YahtlItem) -> int:
     lead = base * estimate_factor * trait_factor * priority_factor * requirement_factor
     # Phase 2 seam:  lead *= getattr(item, "lead_factor", 1.0)
 
-    # Never lead by the whole period (it must hide for at least a day) or past the cap.
-    ceiling = min(_LEAD_MAX_DAYS, max(_LEAD_MIN_DAYS, period - 1))
     return int(max(_LEAD_MIN_DAYS, min(round(lead), ceiling)))
 
 

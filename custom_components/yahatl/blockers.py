@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+from .const import TRAIT_SOMEDAY
 from .lead import lead_block_reason
 from .models import BlockerConfig, YahtlItem, YahtlList
 
@@ -42,12 +43,14 @@ class BlockerResolver:
                 self._uid_index[item.uid] = item
 
     def resolve_sync(self, item: YahtlItem) -> BlockResult:
-        """Sync-safe subset: deferral + lead + time windows + item dependencies only."""
+        """Sync-safe subset: someday + deferral + lead + time windows + item dependencies only."""
         if item.deferred_until and dt_util.now() < item.deferred_until:
             return BlockResult(
                 blocked=True,
                 reasons=[f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"],
             )
+        if TRAIT_SOMEDAY in item.traits:
+            return BlockResult(blocked=True, reasons=["someday"])
         lead_reason = lead_block_reason(item)
         if lead_reason:
             return BlockResult(blocked=True, reasons=[lead_reason])
@@ -74,12 +77,14 @@ class BlockerResolver:
             return all_incomplete, incomplete if all_incomplete else []
 
     def resolve(self, item: YahtlItem) -> BlockResult:
-        """Full resolution: deferral + lead + time windows + item deps + sensor states. Sync."""
+        """Full resolution: someday + deferral + lead + time windows + item deps + sensor states. Sync."""
         if item.deferred_until and dt_util.now() < item.deferred_until:
             return BlockResult(
                 blocked=True,
                 reasons=[f"deferred until {item.deferred_until.strftime('%Y-%m-%d %H:%M')}"],
             )
+        if TRAIT_SOMEDAY in item.traits:
+            return BlockResult(blocked=True, reasons=["someday"])
         lead_reason = lead_block_reason(item)
         if lead_reason:
             return BlockResult(blocked=True, reasons=[lead_reason])

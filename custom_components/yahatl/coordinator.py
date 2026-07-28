@@ -8,7 +8,7 @@ subscribe/unsubscribe for every entity automatically.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
 from typing import Any, Callable
@@ -20,13 +20,32 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .conditions import evaluate_condition
-from .const import DOMAIN
+from .const import (
+    CONF_STORAGE_KEY,
+    DOMAIN,
+    STATUS_COMPLETED,
+    STATUS_MISSED,
+    TRAIT_ACTIONABLE,
+)
 from .models import YahtlList
 
 _LOGGER = logging.getLogger(__name__)
 
 _UPDATE_INTERVAL = timedelta(seconds=60)
 _COOLDOWN_SECONDS = 60
+
+# Event fired when an assigned item's due time passes, consumed by the
+# "yahatl — due-time notification" automation which routes it to the
+# assignee's phone. See automations.yaml.
+_DUE_NOTIFY_EVENT = "yahatl_item_due"
+# Only announce dues that elapsed within this window, so a rollout or a long
+# HA downtime doesn't replay a backlog of stale dues; a due that passed during
+# a brief restart still fires. Dedup across refreshes is via item.notified_due.
+_DUE_NOTIFY_GRACE = timedelta(hours=3)
+# Date-only items carry a due at midnight (00:00); a midnight ping is useless,
+# so announce them at this hour instead. The item's actual `due` is untouched
+# (scheduling/lead logic still see midnight) — only the notify time shifts.
+_DATE_ONLY_NOTIFY_HOUR = 8
 
 
 @dataclass(frozen=True)
@@ -39,6 +58,7 @@ class YahtlSnapshot:
     blocked_count: int
     next_task_title: str | None
     total_actionable: int
+    upcoming: list[dict[str, Any]] = field(default_factory=list)
 
 
 class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
@@ -74,6 +94,18 @@ class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
 
     async def _async_update_data(self) -> YahtlSnapshot:
         from .queue import QueueEngine
+        from .recurrence import ensure_recurring_due
+
+        # Backfill a concrete next-due on recurring items that lack one, so
+        # lead-time surfacing applies to them (see lead.py / recurrence.py).
+        # No-op once every recurring item carries a due.
+        data = self.list_data
+        if data is not None:
+            # List, not a generator — must normalize every item, not stop at the first.
+            changed = [ensure_recurring_due(item) for item in data.items]
+            notified = self._notify_due_items(data)
+            if any(changed) or notified:
+                await self._store.async_save(data)
 
         # Keep the condition-trigger subscriptions in sync with current items.
         self._sync_state_tracking()
@@ -87,7 +119,66 @@ class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
             blocked_count=result.blocked_count,
             next_task_title=result.next_task_title,
             total_actionable=result.total_actionable,
+            upcoming=result.blocked,
         )
+
+    @callback
+    def _notify_due_items(self, data: YahtlList) -> bool:
+        """Fire ``yahatl_item_due`` for each assigned item whose due just passed.
+
+        Runs every refresh over this coordinator's OWN list only (so no
+        cross-list duplication). An item pings once per due value: dedup is the
+        persisted ``notified_due`` == the due already announced, so it fires
+        again when due changes (recurrence regen / edit) but never repeats on
+        the same due. Unassigned items are skipped (no target) and left
+        unmarked. Deferred and non-actionable/completed items are held back.
+        Returns True if any item was marked, so the caller persists.
+        """
+        now = dt_util.now()
+        storage_key = self.config_entry.data.get(CONF_STORAGE_KEY)
+        entity_id = f"todo.{storage_key}" if storage_key else None
+        changed = False
+        for item in data.items:
+            due = item.due
+            if due is None:
+                continue
+            if TRAIT_ACTIONABLE not in item.traits:
+                continue
+            if item.status in (STATUS_COMPLETED, STATUS_MISSED):
+                continue
+            if item.notified_due == due:
+                continue
+            # Compare tz-aware; legacy items may carry a naive due. Normalize a
+            # local copy for the window test but store the RAW due, so the
+            # notified_due == due dedup above stays consistent next refresh.
+            due_cmp = due if due.tzinfo else due.replace(tzinfo=now.tzinfo)
+            # Date-only items (due exactly at midnight) ping at 08:00 that day
+            # instead of 00:00. Genuine midnight-timed items are treated the
+            # same, but deliberately setting a task to 00:00:00 is vanishingly
+            # rare vs. the date-only default.
+            notify_at = due_cmp
+            if (due_cmp.hour, due_cmp.minute, due_cmp.second, due_cmp.microsecond) == (0, 0, 0, 0):
+                notify_at = due_cmp.replace(hour=_DATE_ONLY_NOTIFY_HOUR)
+            if not (now - _DUE_NOTIFY_GRACE <= notify_at <= now):
+                continue
+            if item.deferred_until and item.deferred_until > now:
+                continue
+            if not item.assigned_to:
+                continue
+            self.hass.bus.async_fire(
+                _DUE_NOTIFY_EVENT,
+                {
+                    "uid": item.uid,
+                    "title": item.title,
+                    "entity_id": entity_id,
+                    "list_name": data.name,
+                    "due": due.isoformat(),
+                    "assigned_to": list(item.assigned_to),
+                },
+            )
+            item.notified_due = due
+            changed = True
+        return changed
 
     async def async_shutdown(self) -> None:
         """Cancel the periodic refresh and drop state-change subscriptions."""

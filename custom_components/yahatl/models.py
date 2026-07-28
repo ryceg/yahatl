@@ -302,6 +302,11 @@ class YahtlItem:
     # Deferral
     deferred_until: datetime | None = None
 
+    # Due-time notification bookkeeping: the `due` value already announced to
+    # the assignee's phone. Kept so the coordinator pings once per due and
+    # again only when due changes (recurrence regen / edit). See coordinator.py.
+    notified_due: datetime | None = None
+
     # Priority
     priority: str | None = None  # low, medium, high
 
@@ -349,6 +354,7 @@ class YahtlItem:
             "condition_triggers": [t.to_dict() for t in self.condition_triggers],
             "time_blockers": [tb.to_dict() for tb in self.time_blockers],
             "deferred_until": self.deferred_until.isoformat() if self.deferred_until else None,
+            "notified_due": self.notified_due.isoformat() if self.notified_due else None,
             "priority": self.priority,
             "project": self.project,
             "assigned_to": self.assigned_to,
@@ -387,6 +393,7 @@ class YahtlItem:
                 for tb in data.get("time_blockers", [])
             ],
             deferred_until=datetime.fromisoformat(data["deferred_until"]) if data.get("deferred_until") else None,
+            notified_due=datetime.fromisoformat(data["notified_due"]) if data.get("notified_due") else None,
             priority=data.get("priority"),
             project=data.get("project"),
             assigned_to=data.get("assigned_to", []),

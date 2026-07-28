@@ -1272,15 +1272,7 @@ export class YahtlItemEditor extends LitElement {
               <button
                 class="mush-chip ${(r.location || []).includes(zoneId) ? "mush-chip--filled" : "mush-chip--state"}"
                 style="--rgb-state: var(--rgb-primary-color)"
-                @click=${() => {
-                  const loc = r.location || [];
-                  this._setRequirements({
-                    ...r,
-                    location: loc.includes(zoneId)
-                      ? loc.filter((x) => x !== zoneId)
-                      : [...loc, zoneId],
-                  });
-                }}
+                @click=${() => this._toggleLocation(zoneId)}
               >
                 <span class="mush-chip__icon">
                   <ha-icon icon=${this._getZoneIcon(zoneId)}></ha-icon>
@@ -1299,15 +1291,7 @@ export class YahtlItemEditor extends LitElement {
               <button
                 class="mush-chip ${(r.context || []).includes(c.id) ? "mush-chip--filled" : "mush-chip--state"}"
                 style="--rgb-state: var(--rgb-primary-color)"
-                @click=${() => {
-                  const ctx = r.context || [];
-                  this._setRequirements({
-                    ...r,
-                    context: ctx.includes(c.id)
-                      ? ctx.filter((x) => x !== c.id)
-                      : [...ctx, c.id],
-                  });
-                }}
+                @click=${() => this._toggleContext(c.id)}
               >
                 <span class="mush-chip__icon">
                   <ha-icon icon=${c.icon}></ha-icon>
@@ -1357,6 +1341,7 @@ export class YahtlItemEditor extends LitElement {
     const tbs = this._item.time_blockers || [];
     const cts = this._item.condition_triggers || [];
     const deferred = this._item.deferred_until;
+    const lead = this._item.lead_override_days;
 
     return html`
       <fieldset>
@@ -1544,6 +1529,39 @@ export class YahtlItemEditor extends LitElement {
       </fieldset>
 
       <fieldset>
+        <legend>Lead time (days before due)</legend>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <input
+            class="input"
+            type="number"
+            min="0"
+            placeholder="Auto"
+            style="flex: 1"
+            .value=${lead ?? ""}
+            @change=${(e: Event) => {
+              const v = (e.target as HTMLInputElement).value;
+              this._set(
+                "lead_override_days",
+                v === "" ? null : Math.max(0, parseInt(v, 10) || 0)
+              );
+            }}
+          />
+          <button
+            class="btn btn--ghost"
+            style="font-size: 12px; padding: 6px 12px"
+            @click=${() => this._set("lead_override_days", null)}
+          >
+            Auto
+          </button>
+        </div>
+        <div style="font-size: 12px; color: var(--yahatl-text-secondary); margin-top: 6px">
+          How many days before its due date this surfaces in the queue. Leave
+          blank to auto-compute from the recurrence (longer repeats get a longer
+          run-up).
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>Defer Until</legend>
         <div style="display: flex; gap: 8px; align-items: center">
           <input
@@ -1670,6 +1688,34 @@ export class YahtlItemEditor extends LitElement {
     this._set("requirements", requirements);
   }
 
+  private _emptyRequirements() {
+    return { mode: "ALL", location: [], people: [], time_constraints: [], context: [], sensors: [] };
+  }
+
+  private _toggleLocation(zoneId: string) {
+    try {
+      const r = this._item.requirements || this._emptyRequirements();
+      const loc = r.location || [];
+      const next = loc.includes(zoneId) ? loc.filter((x) => x !== zoneId) : [...loc, zoneId];
+      this._setRequirements({ ...r, location: next });
+      this._error = `✓ loc ${zoneId} → [${next.join(", ")}]`;
+    } catch (err) {
+      this._error = `✗ loc ${zoneId}: ${String(err)}`;
+    }
+  }
+
+  private _toggleContext(id: string) {
+    try {
+      const r = this._item.requirements || this._emptyRequirements();
+      const ctx = r.context || [];
+      const next = ctx.includes(id) ? ctx.filter((x) => x !== id) : [...ctx, id];
+      this._setRequirements({ ...r, context: next });
+      this._error = `✓ ctx ${id} → [${next.join(", ")}]`;
+    } catch (err) {
+      this._error = `✗ ctx ${id}: ${String(err)}`;
+    }
+  }
+
   // Time blocker helpers
   private _addTimeBlocker() {
     const tbs = [...(this._item.time_blockers || [])];
@@ -1775,6 +1821,7 @@ export class YahtlItemEditor extends LitElement {
         "priority", "due", "time_estimate", "buffer_before", "buffer_after",
         "needs_detail", "recurrence", "blockers", "requirements",
         "condition_triggers", "time_blockers", "deferred_until",
+        "lead_override_days",
       ] as const;
 
       const data: Record<string, unknown> = {};

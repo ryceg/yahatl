@@ -120,6 +120,39 @@ def _calculate_elapsed_next(recurrence: RecurrenceConfig, from_time: datetime) -
     return from_time + timedelta(days=_unit_to_days(interval, unit))
 
 
+def ensure_recurring_due(item: YahtlItem) -> bool:
+    """Give a recurring elapsed/calendar item a concrete next-due if it has none.
+
+    Lead-time surfacing (see lead.py) is anchored on ``due``: an item with no
+    due is invisible to it and so sits in the queue permanently. A recurring
+    item's natural due is its next occurrence, anchored on the last completion —
+    or on creation for one never completed (which then reads as overdue, i.e. it
+    should have been done by now, and surfaces until it is).
+
+    Frequency goals are skipped: they surface by progress, not a due date, and
+    ``calculate_next_due`` returns None for them. Returns True if a due was set,
+    so the caller knows to persist.
+    """
+    if item.due is not None or item.recurrence is None:
+        return False
+    if item.recurrence.type == "frequency":
+        return False
+
+    tz = dt_util.now().tzinfo
+    anchor = item.last_completed or item.created_at
+    if anchor.tzinfo is None:
+        # created_at is stored naive; lead compares against tz-aware now().
+        anchor = anchor.replace(tzinfo=tz)
+
+    nxt = calculate_next_due(item, anchor)
+    if nxt is None:
+        return False
+    if nxt.tzinfo is None:
+        nxt = nxt.replace(tzinfo=tz)
+    item.due = nxt
+    return True
+
+
 def calculate_streak(item: YahtlItem) -> int:
     if not item.completion_history:
         return 0

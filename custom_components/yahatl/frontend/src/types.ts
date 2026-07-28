@@ -65,6 +65,7 @@ export interface YahtlItem {
   time_estimate: number | null;
   buffer_before: number;
   buffer_after: number;
+  lead_override_days: number | null;
   recurrence: RecurrenceConfig | null;
   blockers: BlockerConfig | null;
   requirements: RequirementsConfig | null;
@@ -97,6 +98,9 @@ export interface YahtlItemSummary {
   has_blockers: boolean;
   current_streak: number;
   project: string | null;
+  // Why this item is held out of the queue (lead-time / deferral / time
+  // window / dependency), or null if it would surface now.
+  block_reason: string | null;
 }
 
 export interface YahtlListInfo {
@@ -114,7 +118,9 @@ export interface QueueEntry {
   item: YahtlItem;
   list_id: string;
   list_name: string;
-  score: number;
+  score?: number;
+  // Present on "upcoming" (blocked) entries: why it's held back.
+  reason?: string;
 }
 
 export interface QueueResult {
@@ -125,6 +131,8 @@ export interface QueueResult {
   blocked_count: number;
   next_task_title: string | null;
   total_actionable: number;
+  // Items held out of the queue by a blocker, each with a `reason`.
+  upcoming?: QueueEntry[];
 }
 
 export interface ContextOverride {

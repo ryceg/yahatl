@@ -134,6 +134,15 @@ async def websocket_items_list(hass, connection, msg):
     if assigned_to:
         items = [i for i in items if not i.assigned_to or assigned_to in i.assigned_to]
 
+    # Sync-safe blocker reason (deferral / lead-time / time window / item deps
+    # within this list) so cards can flag a "not yet" item and why.
+    from .blockers import BlockerResolver
+    resolver = BlockerResolver(hass, [list_data])
+
+    def _block_reason(item):
+        res = resolver.resolve_sync(item)
+        return res.reasons[0] if res and res.reasons else None
+
     result = [
         {
             "uid": item.uid,
@@ -151,6 +160,7 @@ async def websocket_items_list(hass, connection, msg):
             "has_blockers": item.blockers is not None,
             "current_streak": item.current_streak,
             "project": item.project,
+            "block_reason": _block_reason(item),
         }
         for item in items
     ]
@@ -179,7 +189,8 @@ async def websocket_item_create(hass, connection, msg):
 
     # Simple fields
     for field in ("description", "priority", "needs_detail",
-                  "time_estimate", "buffer_before", "buffer_after", "project"):
+                  "time_estimate", "buffer_before", "buffer_after", "project",
+                  "lead_override_days"):
         if field in msg:
             setattr(item, field, msg[field])
 
@@ -223,7 +234,8 @@ async def websocket_item_save(hass, connection, msg):
 
     # Simple scalar fields
     for field in ("title", "description", "priority", "needs_detail",
-                  "time_estimate", "buffer_before", "buffer_after", "project"):
+                  "time_estimate", "buffer_before", "buffer_after", "project",
+                  "lead_override_days"):
         if field in msg:
             setattr(item, field, msg[field])
 
@@ -401,6 +413,7 @@ async def websocket_queue(hass, connection, msg):
         "blocked_count": result.blocked_count,
         "next_task_title": result.next_task_title,
         "total_actionable": result.total_actionable,
+        "upcoming": result.blocked,
     })
 
 
@@ -633,6 +646,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("assigned_to"): [str],
             vol.Optional("priority"): vol.Any(vol.In(["low", "medium", "high"]), None),
             vol.Optional("due"): vol.Any(str, None),
+            vol.Optional("lead_override_days"): vol.Any(int, None),
             vol.Optional("time_estimate"): vol.Any(int, None),
             vol.Optional("buffer_before"): int,
             vol.Optional("buffer_after"): int,
@@ -661,6 +675,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("tags"): [str],
             vol.Optional("assigned_to"): [str],
             vol.Optional("due"): vol.Any(str, None),
+            vol.Optional("lead_override_days"): vol.Any(int, None),
             vol.Optional("time_estimate"): vol.Any(int, None),
             vol.Optional("buffer_before"): int,
             vol.Optional("buffer_after"): int,

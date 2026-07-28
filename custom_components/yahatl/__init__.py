@@ -102,6 +102,15 @@ async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
                     resource_url,
                 )
                 return
+            # The collection loads lazily (first frontend request). At boot we
+            # get here first, so an unloaded collection iterates as [] — the
+            # stale entry survives and a duplicate gets created, double-loading
+            # the bundle ("custom element already defined" errors). Mirror
+            # lovelace's own lazy-load guard before touching the items.
+            if not resources.loaded:
+                await resources.async_load()
+                resources.loaded = True
+
             stale_prefixes = ("/yahatl/", "/local/yahatl")
             found = False
             for r in resources.async_items():  # sync @callback -> list[dict]

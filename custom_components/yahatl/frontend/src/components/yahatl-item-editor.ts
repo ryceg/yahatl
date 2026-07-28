@@ -671,6 +671,7 @@ export class YahtlItemEditor extends LitElement {
           project: null,
           assigned_to: this.hass?.user ? [this.hass.user.id] : [],
           needs_detail: false,
+          private: false,
         };
         this._allItems = allItems;
         this._existingTags = tags.map((t) => t.name);
@@ -925,6 +926,16 @@ export class YahtlItemEditor extends LitElement {
             this._set("needs_detail", (e.target as HTMLInputElement).checked)}
         />
         Needs more detail
+      </label>
+      <label class="check-row">
+        <input
+          type="checkbox"
+          .checked=${!!item.private}
+          @change=${(e: Event) =>
+            this._set("private", (e.target as HTMLInputElement).checked)}
+        />
+        <ha-icon icon="mdi:lock-outline" style="--mdc-icon-size: 16px"></ha-icon>
+        Private — only visible to you and assignees
       </label>
 
       ${this._itemId
@@ -1896,7 +1907,7 @@ export class YahtlItemEditor extends LitElement {
       const ALLOWED_FIELDS = [
         "title", "description", "traits", "tags", "assigned_to",
         "priority", "due", "time_estimate", "buffer_before", "buffer_after",
-        "needs_detail", "recurrence", "blockers", "requirements",
+        "needs_detail", "private", "recurrence", "blockers", "requirements",
         "condition_triggers", "time_blockers", "deferred_until",
         "lead_override_days",
       ] as const;

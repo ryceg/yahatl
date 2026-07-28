@@ -66,6 +66,13 @@ add_item:
       default: false
       selector:
         boolean:
+    private:
+      name: Private
+      description: Only the creator and assignees can see this item (best effort).
+      required: false
+      default: false
+      selector:
+        boolean:
     project:
       name: Project
       description: Project this item belongs to (any outcome requiring 2+ actions).
@@ -198,6 +205,12 @@ update_item:
           max: 90
           unit_of_measurement: days
           mode: box
+    private:
+      name: Private
+      description: Only the creator and assignees can see this item (best effort).
+      required: false
+      selector:
+        boolean:
     project:
       name: Project
       description: Project this item belongs to. Set to null to remove from project.

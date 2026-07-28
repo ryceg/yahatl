@@ -11,7 +11,7 @@ from homeassistant.util import dt as dt_util
 from .blockers import BlockerResolver, check_requirements_met
 from .recurrence import is_streak_at_risk, get_frequency_progress
 
-from .models import YahtlList
+from .models import YahtlList, item_visible_to
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -213,6 +213,7 @@ class QueueEngine:
         context: dict[str, Any] | None = None,
         available_time: int | None = None,
         user_id: str | None = None,
+        viewer_user_id: str | None = None,
     ) -> QueueResult:
         """Generate prioritized queue with aggregates in a single pass."""
         if context is None:
@@ -241,6 +242,12 @@ class QueueEngine:
 
         for yahatl_list in visible_lists:
             for item in yahatl_list.items:
+                # Private items only surface for their creator/assignees.
+                # viewer_user_id is the AUTHENTICATED requester; callers with
+                # no user context (coordinator snapshot, services) pass None
+                # and never see private items.
+                if not item_visible_to(item, viewer_user_id):
+                    continue
                 if "actionable" not in item.traits:
                     continue
                 if item.status in ["completed", "missed"]:

@@ -99,6 +99,11 @@ class YahtlTodoListEntity(CoordinatorEntity[YahtlCoordinator], TodoListEntity):
             if TRAIT_ACTIONABLE not in yahtl_item.traits:
                 continue
 
+            # The native todo entity is a shared surface (todo panel, Assist,
+            # todo.get_items) with no viewer context — hide private items.
+            if yahtl_item.private:
+                continue
+
             status = (
                 TodoItemStatus.COMPLETED
                 if yahtl_item.status == STATUS_COMPLETED

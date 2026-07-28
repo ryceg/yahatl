@@ -83,9 +83,13 @@ class _YahtlBaseSensor(CoordinatorEntity[YahtlCoordinator], SensorEntity):
             self._data = data
         self.async_write_ha_state()
 
+    def _visible_items(self):
+        """Items shown on this shared surface — private ones never appear."""
+        return [i for i in self._data.items if not i.private]
+
     def _actionable_items(self):
         return [
-            i for i in self._data.items
+            i for i in self._visible_items()
             if TRAIT_ACTIONABLE in i.traits and i.status != STATUS_COMPLETED
         ]
 
@@ -225,7 +229,7 @@ class YahtlNotesCountSensor(_YahtlBaseSensor):
 
     @property
     def native_value(self) -> int:
-        return sum(1 for i in self._data.items if TRAIT_NOTE in i.traits)
+        return sum(1 for i in self._visible_items() if TRAIT_NOTE in i.traits)
 
 
 class YahtlActiveProjectsSensor(_YahtlBaseSensor):
@@ -239,7 +243,7 @@ class YahtlActiveProjectsSensor(_YahtlBaseSensor):
 
     def _active_projects(self) -> set[str]:
         projects: set[str] = set()
-        for i in self._data.items:
+        for i in self._visible_items():
             if i.project and i.status in ("pending", "in_progress"):
                 projects.add(i.project)
         return projects
@@ -265,7 +269,7 @@ class YahtlSomedayCountSensor(_YahtlBaseSensor):
     @property
     def native_value(self) -> int:
         from .const import TRAIT_SOMEDAY
-        return sum(1 for i in self._data.items if TRAIT_SOMEDAY in i.traits)
+        return sum(1 for i in self._visible_items() if TRAIT_SOMEDAY in i.traits)
 
 
 class YahtlStreakRiskSensor(_YahtlBaseSensor):
@@ -280,6 +284,6 @@ class YahtlStreakRiskSensor(_YahtlBaseSensor):
     @property
     def native_value(self) -> int:
         return sum(
-            1 for i in self._data.items
+            1 for i in self._visible_items()
             if TRAIT_HABIT in i.traits and is_streak_at_risk(i)
         )

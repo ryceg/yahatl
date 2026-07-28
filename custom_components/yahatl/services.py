@@ -53,6 +53,7 @@ ATTR_TIME_ESTIMATE = "time_estimate"
 ATTR_BUFFER_BEFORE = "buffer_before"
 ATTR_BUFFER_AFTER = "buffer_after"
 ATTR_NEEDS_DETAIL = "needs_detail"
+ATTR_PRIVATE = "private"
 ATTR_USER_ID = "user_id"
 ATTR_VISIBILITY = "visibility"
 ATTR_SHARED_WITH = "shared_with"
@@ -130,6 +131,7 @@ SERVICE_ADD_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DUE): cv.datetime,
         vol.Optional(ATTR_TIME_ESTIMATE): cv.positive_int,
         vol.Optional(ATTR_NEEDS_DETAIL, default=False): cv.boolean,
+        vol.Optional(ATTR_PRIVATE): cv.boolean,
         vol.Optional(ATTR_ASSIGNED_TO): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_PROJECT): vol.Any(cv.string, None),
     }
@@ -158,6 +160,7 @@ SERVICE_UPDATE_ITEM_SCHEMA = vol.Schema(
         vol.Optional(ATTR_LEAD_OVERRIDE_DAYS): vol.Any(cv.positive_int, None),
         vol.Optional(ATTR_ASSIGNED_TO): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_PROJECT): vol.Any(cv.string, None),
+        vol.Optional(ATTR_PRIVATE): cv.boolean,
     }
 )
 
@@ -369,6 +372,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.time_estimate = call.data[ATTR_TIME_ESTIMATE]
         if ATTR_NEEDS_DETAIL in call.data:
             item.needs_detail = call.data[ATTR_NEEDS_DETAIL]
+        if ATTR_PRIVATE in call.data:
+            item.private = call.data[ATTR_PRIVATE]
         if ATTR_ASSIGNED_TO in call.data:
             item.assigned_to = call.data[ATTR_ASSIGNED_TO]
         if ATTR_PROJECT in call.data:
@@ -450,6 +455,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.project = call.data[ATTR_PROJECT]
         if ATTR_ASSIGNED_TO in call.data:
             item.assigned_to = call.data[ATTR_ASSIGNED_TO]
+        if ATTR_PRIVATE in call.data:
+            item.private = call.data[ATTR_PRIVATE]
 
         await _save_and_refresh(hass, entry_id, store, list_data, "service:update_item")
 

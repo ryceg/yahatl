@@ -284,11 +284,11 @@ V.elementStyles = [], V.shadowRootOptions = { mode: "open" }, V[dt("elementPrope
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ht = globalThis, Ut = (e) => e, ft = ht.trustedTypes, Yt = ft ? ft.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, se = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, ae = "?" + P, ye = `<${ae}>`, U = document, pt = () => U.createComment(""), ut = (e) => e === null || typeof e != "object" && typeof e != "function", Ot = Array.isArray, ve = (e) => Ot(e) || typeof (e == null ? void 0 : e[Symbol.iterator]) == "function", At = `[ 	
+const ht = globalThis, Ut = (e) => e, ft = ht.trustedTypes, Yt = ft ? ft.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, se = "$lit$", O = `lit$${Math.random().toFixed(9).slice(2)}$`, ae = "?" + O, ye = `<${ae}>`, U = document, pt = () => U.createComment(""), ut = (e) => e === null || typeof e != "object" && typeof e != "function", Pt = Array.isArray, ve = (e) => Pt(e) || typeof (e == null ? void 0 : e[Symbol.iterator]) == "function", At = `[ 	
 \f\r]`, ot = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Bt = /-->/g, Ft = />/g, M = RegExp(`>|${At}(?:([^\\s"'>=/]+)(${At}*=${At}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), Wt = /'/g, Qt = /"/g, re = /^(?:script|style|textarea|title)$/i, xe = (e) => (t, ...i) => ({ _$litType$: e, strings: t, values: i }), n = xe(1), Y = Symbol.for("lit-noChange"), d = Symbol.for("lit-nothing"), Vt = /* @__PURE__ */ new WeakMap(), j = U.createTreeWalker(U, 129);
 function oe(e, t) {
-  if (!Ot(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  if (!Pt(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return Yt !== void 0 ? Yt.createHTML(t) : t;
 }
 const $e = (e, t) => {
@@ -299,7 +299,7 @@ const $e = (e, t) => {
     let p, h, m = -1, _ = 0;
     for (; _ < c.length && (r.lastIndex = _, h = r.exec(c), h !== null); ) _ = r.lastIndex, r === ot ? h[1] === "!--" ? r = Bt : h[1] !== void 0 ? r = Ft : h[2] !== void 0 ? (re.test(h[2]) && (a = RegExp("</" + h[2], "g")), r = M) : h[3] !== void 0 && (r = M) : r === M ? h[0] === ">" ? (r = a ?? ot, m = -1) : h[1] === void 0 ? m = -2 : (m = r.lastIndex - h[2].length, p = h[1], r = h[3] === void 0 ? M : h[3] === '"' ? Qt : Wt) : r === Qt || r === Wt ? r = M : r === Bt || r === Ft ? r = ot : (r = M, a = void 0);
     const b = r === M && e[l + 1].startsWith("/>") ? " " : "";
-    o += r === ot ? c + ye : m >= 0 ? (s.push(p), c.slice(0, m) + se + c.slice(m) + P + b) : c + P + (m === -2 ? l : b);
+    o += r === ot ? c + ye : m >= 0 ? (s.push(p), c.slice(0, m) + se + c.slice(m) + O + b) : c + O + (m === -2 ? l : b);
   }
   return [oe(e, o + (e[i] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), s];
 };
@@ -316,11 +316,11 @@ class gt {
     for (; (a = j.nextNode()) !== null && c.length < l; ) {
       if (a.nodeType === 1) {
         if (a.hasAttributes()) for (const m of a.getAttributeNames()) if (m.endsWith(se)) {
-          const _ = h[r++], b = a.getAttribute(m).split(P), v = /([.?@])?(.*)/.exec(_);
+          const _ = h[r++], b = a.getAttribute(m).split(O), v = /([.?@])?(.*)/.exec(_);
           c.push({ type: 1, index: o, name: v[2], strings: b, ctor: v[1] === "." ? ke : v[1] === "?" ? Ce : v[1] === "@" ? Ae : xt }), a.removeAttribute(m);
-        } else m.startsWith(P) && (c.push({ type: 6, index: o }), a.removeAttribute(m));
+        } else m.startsWith(O) && (c.push({ type: 6, index: o }), a.removeAttribute(m));
         if (re.test(a.tagName)) {
-          const m = a.textContent.split(P), _ = m.length - 1;
+          const m = a.textContent.split(O), _ = m.length - 1;
           if (_ > 0) {
             a.textContent = ft ? ft.emptyScript : "";
             for (let b = 0; b < _; b++) a.append(m[b], pt()), j.nextNode(), c.push({ type: 2, index: ++o });
@@ -330,7 +330,7 @@ class gt {
       } else if (a.nodeType === 8) if (a.data === ae) c.push({ type: 2, index: o });
       else {
         let m = -1;
-        for (; (m = a.data.indexOf(P, m + 1)) !== -1; ) c.push({ type: 7, index: o }), m += P.length - 1;
+        for (; (m = a.data.indexOf(O, m + 1)) !== -1; ) c.push({ type: 7, index: o }), m += O.length - 1;
       }
       o++;
     }
@@ -420,7 +420,7 @@ class rt {
     return i === void 0 && Vt.set(t.strings, i = new gt(t)), i;
   }
   k(t) {
-    Ot(this._$AH) || (this._$AH = [], this._$AR());
+    Pt(this._$AH) || (this._$AH = [], this._$AR());
     const i = this._$AH;
     let s, a = 0;
     for (const o of t) a === i.length ? i.push(s = new rt(this.O(pt()), this.O(pt()), this, this.options)) : s = i[a], s._$AI(o), a++;
@@ -607,7 +607,7 @@ function g(e) {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 const De = { CHILD: 2 }, Le = (e) => (...t) => ({ _$litDirective$: e, values: t });
-let Oe = class {
+let Pe = class {
   constructor(t) {
   }
   get _$AU() {
@@ -628,12 +628,12 @@ let Oe = class {
  * Copyright 2020 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { I: Pe } = Ie, Gt = (e) => e, Zt = () => document.createComment(""), nt = (e, t, i) => {
+const { I: Oe } = Ie, Gt = (e) => e, Zt = () => document.createComment(""), nt = (e, t, i) => {
   var o;
   const s = e._$AA.parentNode, a = t === void 0 ? e._$AB : t._$AA;
   if (i === void 0) {
     const r = s.insertBefore(Zt(), a), l = s.insertBefore(Zt(), a);
-    i = new Pe(r, l, e, e.options);
+    i = new Oe(r, l, e, e.options);
   } else {
     const r = i._$AB.nextSibling, l = i._$AM, c = l !== e;
     if (c) {
@@ -661,7 +661,7 @@ const Kt = (e, t, i) => {
   const s = /* @__PURE__ */ new Map();
   for (let a = t; a <= i; a++) s.set(e[a], a);
   return s;
-}, Re = Le(class extends Oe {
+}, Re = Le(class extends Pe {
   constructor(e) {
     if (super(e), e.type !== De.CHILD) throw Error("repeat() can only be used in text expressions");
   }
@@ -732,7 +732,7 @@ function $t(e) {
     if (t in B) return t;
   return null;
 }
-const O = I`
+const P = I`
   :host {
     /* Mushroom RGB palette fallbacks — HA themes provide these;
        we define fallbacks so cards render correctly outside a theme. */
@@ -1705,7 +1705,7 @@ class W {
     return u.state;
   }
 }
-function Pt(e) {
+function Ot(e) {
   if (!e) return null;
   const t = new Date(e);
   if (isNaN(t.getTime())) return null;
@@ -1992,7 +1992,7 @@ let C = class extends f {
     ` : d;
   }
   _renderItem(e, t, i) {
-    const s = e.item, a = $t(s.traits), o = a ? K[a] : "var(--yahatl-rgb-primary)", r = a ? B[a] : "mdi:checkbox-marked-circle-outline", l = Pt(s.due), c = e.list_id ? `todo.${e.list_id}` : i;
+    const s = e.item, a = $t(s.traits), o = a ? K[a] : "var(--yahatl-rgb-primary)", r = a ? B[a] : "mdi:checkbox-marked-circle-outline", l = Ot(s.due), c = e.list_id ? `todo.${e.list_id}` : i;
     return n`
       <div class="queue-item">
         <div class="swipe-hint swipe-hint--done">
@@ -2193,7 +2193,7 @@ let C = class extends f {
 C.SWIPE_THRESHOLD = 80;
 C.SWIPE_MAX = 140;
 C.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -2644,7 +2644,7 @@ let E = class extends f {
     `;
   }
   _renderItem(e, t) {
-    const i = e.status === "completed", s = $t(e.traits), a = s ? K[s] : "var(--yahatl-rgb-primary)", o = s ? B[s] : "", r = Pt(e.due), l = this._isDeferred(e);
+    const i = e.status === "completed", s = $t(e.traits), a = s ? K[s] : "var(--yahatl-rgb-primary)", o = s ? B[s] : "", r = Ot(e.due), l = this._isDeferred(e);
     return n`
       <div
         class="item-row"
@@ -2683,6 +2683,7 @@ let E = class extends f {
             ${e.has_recurrence ? n`<span>repeats</span>` : d}
             ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : d}
             ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : d}
+            ${e.private ? n`<span>private</span>` : d}
             ${l ? n`<span class="deferred">deferred</span>` : d}
             ${e.block_reason && !l ? n`<span class="deferred">${e.block_reason}</span>` : d}
           </div>
@@ -2720,7 +2721,7 @@ let E = class extends f {
   }
 };
 E.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -3146,7 +3147,7 @@ let T = class extends f {
     return !!e.deferred_until && new Date(e.deferred_until) > /* @__PURE__ */ new Date();
   }
   _renderItem(e) {
-    const t = e.status === "completed", i = $t(e.traits), s = i ? K[i] : "var(--yahatl-rgb-primary)", a = i ? B[i] : "", o = Pt(e.due), r = this._isDeferred(e);
+    const t = e.status === "completed", i = $t(e.traits), s = i ? K[i] : "var(--yahatl-rgb-primary)", a = i ? B[i] : "", o = Ot(e.due), r = this._isDeferred(e);
     return n`
       <div
         class="item-row"
@@ -3219,7 +3220,7 @@ let T = class extends f {
   }
 };
 T.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -3645,7 +3646,8 @@ let y = class extends f {
           priority: null,
           project: null,
           assigned_to: (s = this.hass) != null && s.user ? [this.hass.user.id] : [],
-          needs_detail: !1
+          needs_detail: !1,
+          private: !1
         }, this._allItems = r, this._existingTags = l.map((c) => c.name), this._existingProjects = [...new Set(r.map((c) => c.project).filter((c) => !!c))];
       }
     } catch (a) {
@@ -3840,6 +3842,15 @@ let y = class extends f {
           @change=${(i) => this._set("needs_detail", i.target.checked)}
         />
         Needs more detail
+      </label>
+      <label class="check-row">
+        <input
+          type="checkbox"
+          .checked=${!!e.private}
+          @change=${(i) => this._set("private", i.target.checked)}
+        />
+        <ha-icon icon="mdi:lock-outline" style="--mdc-icon-size: 16px"></ha-icon>
+        Private — only visible to you and assignees
       </label>
 
       ${this._itemId ? n`
@@ -4661,6 +4672,7 @@ let y = class extends f {
         "buffer_before",
         "buffer_after",
         "needs_detail",
+        "private",
         "recurrence",
         "blockers",
         "requirements",
@@ -4800,7 +4812,7 @@ let y = class extends f {
   }
 };
 y.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -5410,7 +5422,7 @@ let yt = class extends f {
   }
 };
 yt.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -5536,7 +5548,7 @@ let vt = class extends f {
   }
 };
 vt.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -5637,7 +5649,7 @@ let F = class extends f {
   }
 };
 F.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -5816,7 +5828,7 @@ let it = class extends f {
   }
 };
 it.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;
@@ -6303,7 +6315,7 @@ let A = class extends f {
   }
 };
 A.styles = [
-  O,
+  P,
   I`
       :host {
         display: block;

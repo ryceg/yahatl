@@ -36,6 +36,7 @@ from .models import (
     RequirementsConfig,
     TimeBlockerConfig,
     YahtlItem,
+    item_visible_to,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -109,6 +110,9 @@ async def websocket_lists(hass, connection, msg):
                     continue
                 if list_data.shared_with and user_id not in list_data.shared_with:
                     continue
+        # Private items are invisible to this viewer, so don't count them.
+        # Privacy is keyed to the AUTHENTICATED user, not the user_id override.
+        viewer = _connection_user_id(connection)
         result.append({
             # Registry lookup survives entity_id renames; fall back to convention.
             "entity_id": todo_entity_id(hass, list_data.list_id) or f"todo.{list_data.list_id}",
@@ -118,7 +122,9 @@ async def websocket_lists(hass, connection, msg):
             "visibility": list_data.visibility,
             "shared_with": list_data.shared_with,
             "is_inbox": list_data.is_inbox,
-            "item_count": len(list_data.items),
+            "item_count": sum(
+                1 for i in list_data.items if item_visible_to(i, viewer)
+            ),
         })
     connection.send_result(msg["id"], result)
 
@@ -131,7 +137,10 @@ async def websocket_items_list(hass, connection, msg):
         connection.send_error(msg["id"], "list_not_found", "List not found")
         return
 
-    items = list_data.items
+    # Privacy filter first: private items only show to their creator/assignees,
+    # keyed to the AUTHENTICATED connection user (not spoofable via params).
+    viewer = _connection_user_id(connection)
+    items = [i for i in list_data.items if item_visible_to(i, viewer)]
 
     # Apply filters
     status = msg.get("status")
@@ -180,6 +189,7 @@ async def websocket_items_list(hass, connection, msg):
             "has_blockers": item.blockers is not None,
             "current_streak": item.current_streak,
             "project": item.project,
+            "private": item.private,
             "block_reason": _block_reason(item),
         }
         for item in items
@@ -191,7 +201,8 @@ async def websocket_items_list(hass, connection, msg):
 async def websocket_item_details(hass, connection, msg):
     """Return full item data for the editor."""
     _, _, _, item = _resolve_item(hass, msg["entity_id"], msg["item_id"])
-    if item is None:
+    # A private item is indistinguishable from a missing one for non-viewers.
+    if item is None or not item_visible_to(item, _connection_user_id(connection)):
         connection.send_error(msg["id"], "item_not_found", "Item not found")
         return
     connection.send_result(msg["id"], item.to_dict())
@@ -210,7 +221,7 @@ async def websocket_item_create(hass, connection, msg):
     item = YahtlItem.create(title=msg["title"], created_by=actor_user_id)
 
     # Simple fields
-    for field in ("description", "priority", "needs_detail",
+    for field in ("description", "priority", "needs_detail", "private",
                   "time_estimate", "buffer_before", "buffer_after", "project",
                   "lead_override_days"):
         if field in msg:
@@ -276,7 +287,7 @@ async def websocket_item_save(hass, connection, msg):
     prior_assigned = list(item.assigned_to)
 
     # Simple scalar fields
-    for field in ("title", "description", "priority", "needs_detail",
+    for field in ("title", "description", "priority", "needs_detail", "private",
                   "time_estimate", "buffer_before", "buffer_after", "project",
                   "lead_override_days"):
         if field in msg:
@@ -492,6 +503,9 @@ async def websocket_queue(hass, connection, msg):
         context=context or None,
         available_time=available_time,
         user_id=user_id,
+        # Privacy is keyed to the AUTHENTICATED user, not the user_id override,
+        # so a shared-tablet account can't surface someone's private items.
+        viewer_user_id=_connection_user_id(connection) or None,
     )
 
     connection.send_result(msg["id"], {
@@ -641,9 +655,12 @@ async def websocket_meta_set(hass, connection, msg):
 async def websocket_tags_list(hass, connection, msg):
     """Scan all items and return deduplicated tags with usage counts."""
     tag_counts: dict[str, int] = {}
+    viewer = _connection_user_id(connection)
     all_lists = _get_all_lists(hass)
     for yahatl_list in all_lists:
         for item in yahatl_list.items:
+            if not item_visible_to(item, viewer):
+                continue
             for tag in item.tags:
                 tag_counts[tag] = tag_counts.get(tag, 0) + 1
 
@@ -758,6 +775,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("buffer_before"): int,
             vol.Optional("buffer_after"): int,
             vol.Optional("needs_detail"): bool,
+            vol.Optional("private"): bool,
             vol.Optional("deferred_until"): vol.Any(str, None),
             vol.Optional("recurrence"): vol.Any(dict, None),
             vol.Optional("blockers"): vol.Any(dict, None),
@@ -789,6 +807,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Optional("buffer_after"): int,
             vol.Optional("priority"): vol.Any(vol.In(["low", "medium", "high"]), None),
             vol.Optional("needs_detail"): bool,
+            vol.Optional("private"): bool,
             vol.Optional("recurrence"): vol.Any(dict, None),
             vol.Optional("blockers"): vol.Any(dict, None),
             vol.Optional("requirements"): vol.Any(dict, None),

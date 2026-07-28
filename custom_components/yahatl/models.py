@@ -331,6 +331,11 @@ class YahtlItem:
     # Assignment
     assigned_to: list[str] = field(default_factory=list)  # HA user IDs
 
+    # Privacy: only the creator and assignees may see this item. Best-effort —
+    # enforced on the WS API and on shared surfaces (todo entity, calendar,
+    # sensors, queue snapshot); raw storage remains readable by admins.
+    private: bool = False
+
     # Tracking
     completion_history: list[CompletionRecord] = field(default_factory=list)
     current_streak: int = 0
@@ -373,6 +378,7 @@ class YahtlItem:
             "priority": self.priority,
             "project": self.project,
             "assigned_to": self.assigned_to,
+            "private": self.private,
             "completion_history": [r.to_dict() for r in self.completion_history],
             "current_streak": self.current_streak,
             "last_completed": self.last_completed.isoformat() if self.last_completed else None,
@@ -412,6 +418,7 @@ class YahtlItem:
             priority=data.get("priority"),
             project=data.get("project"),
             assigned_to=data.get("assigned_to", []),
+            private=data.get("private", False),
             completion_history=[
                 CompletionRecord.from_dict(r)
                 for r in data.get("completion_history", [])
@@ -421,6 +428,20 @@ class YahtlItem:
             created_at=parse_stored_datetime(data["created_at"]) if data.get("created_at") else dt_util.now(),
             created_by=data.get("created_by", ""),
         )
+
+
+def item_visible_to(item: YahtlItem, user_id: str | None) -> bool:
+    """Whether a user may see this item.
+
+    Non-private items are visible to everyone. Private items are visible only
+    to their creator and assignees; surfaces with no user context (sensors,
+    calendar, coordinator snapshot) pass None and see no private items.
+    """
+    if not item.private:
+        return True
+    if not user_id:
+        return False
+    return user_id == item.created_by or user_id in item.assigned_to
 
 
 def apply_trait_rules(item: YahtlItem | None, new_traits: list[str]) -> list[str]:

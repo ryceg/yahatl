@@ -519,6 +519,7 @@ export class YahtlListCard extends LitElement {
             ${item.needs_detail
               ? html`<span class="needs-detail">needs detail</span>`
               : nothing}
+            ${item.private ? html`<span>private</span>` : nothing}
             ${isDeferred
               ? html`<span class="deferred">deferred</span>`
               : nothing}

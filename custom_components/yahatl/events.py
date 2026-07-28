@@ -43,6 +43,9 @@ def fire_item_created(
             "assigned_to": list(item.assigned_to),
             "created_by": item.created_by,
             "actor_user_id": actor_user_id,
+            # Bus events are visible to admins/automations; flag private items
+            # so broadcast-style automations can skip them.
+            "private": item.private,
         },
     )
 
@@ -76,5 +79,6 @@ def fire_item_assigned(
             "assigned_to": list(item.assigned_to),
             "actor_user_id": actor_user_id,
             "due": item.due.isoformat() if item.due else None,
+            "private": item.private,
         },
     )

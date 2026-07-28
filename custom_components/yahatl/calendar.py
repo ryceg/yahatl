@@ -129,6 +129,9 @@ class YahtlCalendar(CalendarEntity):
         for item in self._data.items:
             if item.status in (STATUS_COMPLETED, STATUS_MISSED):
                 continue
+            # Calendar entities are shared surfaces — never show private items.
+            if item.private:
+                continue
             seen: set[datetime] = set()
             for start in self._occurrences(item, range_start, range_end):
                 if start in seen:

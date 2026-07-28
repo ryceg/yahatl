@@ -75,6 +75,8 @@ export interface YahtlItem {
   priority: string | null;
   project: string | null;
   assigned_to: string[];
+  /** Only the creator and assignees can see this item (server-enforced). */
+  private: boolean;
   completion_history: CompletionRecord[];
   current_streak: number;
   last_completed: string | null;
@@ -98,6 +100,8 @@ export interface YahtlItemSummary {
   has_blockers: boolean;
   current_streak: number;
   project: string | null;
+  /** Only visible to you (creator/assignee) — flagged so cards can badge it. */
+  private?: boolean;
   // Why this item is held out of the queue (lead-time / deferral / time
   // window / dependency), or null if it would surface now.
   block_reason: string | null;

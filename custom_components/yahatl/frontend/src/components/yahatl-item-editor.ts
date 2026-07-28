@@ -111,6 +111,7 @@ export class YahtlItemEditor extends LitElement {
   @state() private _contexts: MetaEntry[] = [];
   @state() private _entityFilter = "";
   @state() private _entityDropdownOpen: string | null = null; // tracks which combobox is open
+  @state() private _confirmDelete = false; // two-step delete confirmation
 
   static styles = [
     sharedStyles,
@@ -240,8 +241,8 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .tab.is-active {
-        color: rgb(var(--rgb-primary-color));
-        border-color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Content */
@@ -309,7 +310,7 @@ export class YahtlItemEditor extends LitElement {
 
       .tag-input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Recurrence presets */
@@ -334,8 +335,8 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .preset-btn.active {
-        border-color: rgb(var(--rgb-primary-color));
-        background: rgba(var(--rgb-primary-color), 0.08);
+        border-color: rgb(var(--yahatl-rgb-primary));
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .preset-label {
@@ -371,8 +372,8 @@ export class YahtlItemEditor extends LitElement {
       }
 
       .day-btn.active {
-        background: rgb(var(--rgb-primary-color));
-        border-color: rgb(var(--rgb-primary-color));
+        background: rgb(var(--yahatl-rgb-primary));
+        border-color: rgb(var(--yahatl-rgb-primary));
         color: white;
       }
 
@@ -434,12 +435,12 @@ export class YahtlItemEditor extends LitElement {
         gap: 4px;
         padding: 5px 10px;
         border-radius: 999px;
-        background: rgba(var(--rgb-primary-color), 0.10);
+        background: rgba(var(--yahatl-rgb-primary), 0.10);
       }
 
       .assign-current ha-icon {
         --mdc-icon-size: 16px;
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Delete */
@@ -447,6 +448,24 @@ export class YahtlItemEditor extends LitElement {
         margin-top: 8px;
         padding-top: 16px;
         border-top: 1px solid var(--yahatl-divider);
+      }
+
+      /* Two-step delete confirmation (same pattern as the manage card) */
+      .confirm-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: rgba(var(--rgb-danger), 0.08);
+        border-radius: 10px;
+        flex-wrap: wrap;
+      }
+
+      .confirm-bar__msg {
+        flex: 1;
+        min-width: 140px;
+        font-size: 13px;
+        color: rgb(var(--rgb-danger));
       }
 
       .inline-wrapper {
@@ -527,7 +546,7 @@ export class YahtlItemEditor extends LitElement {
 
       .entity-combo__input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .entity-combo__dropdown {
@@ -557,7 +576,7 @@ export class YahtlItemEditor extends LitElement {
 
       .entity-combo__option:hover,
       .entity-combo__option.is-focused {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .entity-combo__option-name {
@@ -574,61 +593,105 @@ export class YahtlItemEditor extends LitElement {
 
   // --- Public API ---
 
+  // Generation counter for open(): two quick taps on different rows can leave
+  // the first (slower) fetch resolving AFTER _itemId already points at the
+  // second row — Save would then write A's data under B's id. Every open()
+  // bumps the generation; awaits belonging to a superseded open are discarded.
+  private _openGen = 0;
+
   async open(detail: {
     entityId: string;
     itemId?: string;
     hass?: HomeAssistant;
   }) {
+    const gen = ++this._openGen;
     this._entityId = detail.entityId;
     this._itemId = detail.itemId || null;
     if (detail.hass) this.hass = detail.hass;
+    this._confirmDelete = false;
+
+    // The store may not have been wired yet (e.g. editor opened before any
+    // card's updated() ran). Never use a non-null assertion here — wire it
+    // from the hass we were handed, and fail visibly if that's not possible.
+    if (!store.api && this.hass) store.setHass(this.hass);
+    const api = store.api;
+    if (!api) {
+      this._item = {};
+      this._section = 0;
+      this._error = "Not connected to Home Assistant yet — close and try again.";
+      this._show();
+      return;
+    }
 
     // Load contexts for the Requirements tab (kept in sync with the context bar).
     this._contexts = FALLBACK_CONTEXTS;
-    store.api!
+    api
       .getMeta()
       .then((m) => {
+        if (gen !== this._openGen) return; // superseded by a newer open
         if (m.contexts?.length) this._contexts = m.contexts;
       })
       .catch(() => {});
 
-    // Load tags and all items for suggestions
-    const allItemsPromise = store.api!.getItems(this._entityId);
-    const tagsPromise = store.api!.getTags().catch(() => [] as { name: string }[]);
+    try {
+      // Load tags and all items for suggestions
+      const allItemsPromise = api.getItems(this._entityId);
+      const tagsPromise = api.getTags().catch(() => [] as { name: string }[]);
 
-    if (this._itemId) {
-      const [item, allItems, tags] = await Promise.all([
-        store.getItemDetails(this._entityId, this._itemId),
-        allItemsPromise,
-        tagsPromise,
-      ]);
-      if (!item) return;
-      this._item = { ...item };
-      this._allItems = allItems.filter((i) => i.uid !== this._itemId);
-      this._existingTags = tags.map((t) => t.name);
-      this._existingProjects = [...new Set(allItems.map((i) => i.project).filter((p): p is string => !!p))];
-    } else {
-      const [allItems, tags] = await Promise.all([
-        allItemsPromise,
-        tagsPromise,
-      ]);
-      this._item = {
-        title: "",
-        description: "",
-        traits: ["actionable"],
-        tags: [],
-        priority: null,
-        project: null,
-        assigned_to: this.hass?.user ? [this.hass.user.id] : [],
-        needs_detail: false,
-      };
-      this._allItems = allItems;
-      this._existingTags = tags.map((t) => t.name);
-      this._existingProjects = [...new Set(allItems.map((i) => i.project).filter((p): p is string => !!p))];
+      if (this._itemId) {
+        const itemId = this._itemId;
+        const [item, allItems, tags] = await Promise.all([
+          store.getItemDetails(this._entityId, itemId),
+          allItemsPromise,
+          tagsPromise,
+        ]);
+        if (gen !== this._openGen) return; // superseded by a newer open
+        if (!item) {
+          this._item = {};
+          this._error = "Item not found";
+          this._show();
+          return;
+        }
+        this._item = { ...item };
+        this._allItems = allItems.filter((i) => i.uid !== itemId);
+        this._existingTags = tags.map((t) => t.name);
+        this._existingProjects = [...new Set(allItems.map((i) => i.project).filter((p): p is string => !!p))];
+      } else {
+        const [allItems, tags] = await Promise.all([
+          allItemsPromise,
+          tagsPromise,
+        ]);
+        if (gen !== this._openGen) return; // superseded by a newer open
+        this._item = {
+          title: "",
+          description: "",
+          traits: ["actionable"],
+          tags: [],
+          priority: null,
+          project: null,
+          assigned_to: this.hass?.user ? [this.hass.user.id] : [],
+          needs_detail: false,
+        };
+        this._allItems = allItems;
+        this._existingTags = tags.map((t) => t.name);
+        this._existingProjects = [...new Set(allItems.map((i) => i.project).filter((p): p is string => !!p))];
+      }
+    } catch (err: unknown) {
+      if (gen !== this._openGen) return;
+      // Show the editor WITH the error rather than silently never appearing.
+      this._item = {};
+      this._section = 0;
+      this._error = `Failed to load: ${(err as Error).message || String(err)}`;
+      this._show();
+      return;
     }
 
     this._section = 0;
     this._error = "";
+    this._show();
+  }
+
+  private _show() {
     this._visible = true;
     document.addEventListener("keydown", this._boundKey);
     document.body.style.overflow = "hidden";
@@ -691,7 +754,7 @@ export class YahtlItemEditor extends LitElement {
             ? html`<div class="modal__sub">${this._entityId} · ${this._itemId.slice(0, 8)}…</div>`
             : nothing}
         </div>
-        <button class="close-btn" @click=${this.close}>&times;</button>
+        <button class="close-btn" aria-label="Close editor" @click=${this.close}>&times;</button>
       </div>
       <div class="tabs">
         ${sectionNames.map(
@@ -843,7 +906,7 @@ export class YahtlItemEditor extends LitElement {
                 return html`
                   <button
                     class="trait-toggle ${on ? "is-on" : ""}"
-                    style="--rgb-state: var(--rgb-primary-color)"
+                    style="--rgb-state: var(--yahatl-rgb-primary)"
                     @click=${() => this._toggleAssign(u.id)}
                   >
                     <ha-icon icon="mdi:account"></ha-icon>
@@ -867,13 +930,37 @@ export class YahtlItemEditor extends LitElement {
       ${this._itemId
         ? html`
             <div class="delete-area">
-              <button
-                class="btn btn--danger"
-                @click=${this._delete}
-                ?disabled=${this._busy}
-              >
-                Delete this item
-              </button>
+              ${this._confirmDelete
+                ? html`
+                    <div class="confirm-bar">
+                      <span class="confirm-bar__msg">
+                        Delete "${item.title || "this item"}"? This can't be undone.
+                      </span>
+                      <button
+                        class="btn btn--ghost"
+                        @click=${() => (this._confirmDelete = false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        class="btn btn--danger"
+                        style="background: rgba(var(--rgb-danger), 0.15)"
+                        @click=${this._delete}
+                        ?disabled=${this._busy}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  `
+                : html`
+                    <button
+                      class="btn btn--danger"
+                      @click=${() => (this._confirmDelete = true)}
+                      ?disabled=${this._busy}
+                    >
+                      Delete this item
+                    </button>
+                  `}
             </div>
           `
         : nothing}
@@ -910,7 +997,7 @@ export class YahtlItemEditor extends LitElement {
             (tag, i) => html`
               <span class="tag-chip">
                 #${tag}
-                <button class="tag-chip__remove" @click=${() => this._removeTag(i)}>&times;</button>
+                <button class="tag-chip__remove" aria-label="Remove tag ${tag}" @click=${() => this._removeTag(i)}>&times;</button>
               </span>
             `
           )}
@@ -995,7 +1082,7 @@ export class YahtlItemEditor extends LitElement {
           (p) => html`
             <button
               class="mush-chip ${preset === p ? "mush-chip--filled" : ""}"
-              style="--rgb-state: var(--rgb-primary-color)"
+              style="--rgb-state: var(--yahatl-rgb-primary)"
               @click=${() => this._setCalendarPreset(preset === p ? null : p)}
             >
               ${p}
@@ -1004,7 +1091,7 @@ export class YahtlItemEditor extends LitElement {
         )}
         <button
           class="mush-chip ${showDayPicker && !showMonthPicker ? "mush-chip--filled" : ""}"
-          style="--rgb-state: var(--rgb-primary-color)"
+          style="--rgb-state: var(--yahatl-rgb-primary)"
           @click=${() => this._setCalendarPreset(null)}
         >
           Custom days
@@ -1220,7 +1307,7 @@ export class YahtlItemEditor extends LitElement {
                   ${entityName(this.hass, eid)}
                   <div class="entity-row__id">${eid}</div>
                 </div>
-                <button class="entity-row__remove" @click=${() => {
+                <button class="entity-row__remove" aria-label="Remove entity" @click=${() => {
                   const sensors = [...(b.sensors || [])];
                   sensors.splice(i, 1);
                   this._setBlockers({ ...b, sensors });
@@ -1271,7 +1358,7 @@ export class YahtlItemEditor extends LitElement {
             ([zoneId, name]) => html`
               <button
                 class="mush-chip ${(r.location || []).includes(zoneId) ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: var(--rgb-primary-color)"
+                style="--rgb-state: var(--yahatl-rgb-primary)"
                 @click=${() => this._toggleLocation(zoneId)}
               >
                 <span class="mush-chip__icon">
@@ -1290,7 +1377,7 @@ export class YahtlItemEditor extends LitElement {
             (c) => html`
               <button
                 class="mush-chip ${(r.context || []).includes(c.id) ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: var(--rgb-primary-color)"
+                style="--rgb-state: var(--yahatl-rgb-primary)"
                 @click=${() => this._toggleContext(c.id)}
               >
                 <span class="mush-chip__icon">
@@ -1316,7 +1403,7 @@ export class YahtlItemEditor extends LitElement {
                   ${entityName(this.hass, eid)}
                   <div class="entity-row__id">${eid}</div>
                 </div>
-                <button class="entity-row__remove" @click=${() => {
+                <button class="entity-row__remove" aria-label="Remove entity" @click=${() => {
                   const sensors = [...(r.sensors || [])];
                   sensors.splice(i, 1);
                   this._setRequirements({ ...r, sensors });
@@ -1355,7 +1442,7 @@ export class YahtlItemEditor extends LitElement {
             return html`
               <button
                 class="mush-chip ${on ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: ${isNot ? "var(--rgb-danger)" : "var(--rgb-primary-color)"}"
+                style="--rgb-state: ${isNot ? "var(--rgb-danger)" : "var(--yahatl-rgb-primary)"}"
                 title="Click to cycle: only during → not during → off"
                 @click=${() => this._cyclePreset(preset)}
               >
@@ -1455,7 +1542,7 @@ export class YahtlItemEditor extends LitElement {
                         ${entityName(this.hass, ct.entity_id)}
                         <div class="entity-row__id">${ct.entity_id}</div>
                       </div>
-                      <button class="entity-row__remove" @click=${() =>
+                      <button class="entity-row__remove" aria-label="Remove entity" @click=${() =>
                         this._updateConditionTrigger(i, { entity_id: "" })
                       }>&times;</button>
                     </div>
@@ -1693,27 +1780,17 @@ export class YahtlItemEditor extends LitElement {
   }
 
   private _toggleLocation(zoneId: string) {
-    try {
-      const r = this._item.requirements || this._emptyRequirements();
-      const loc = r.location || [];
-      const next = loc.includes(zoneId) ? loc.filter((x) => x !== zoneId) : [...loc, zoneId];
-      this._setRequirements({ ...r, location: next });
-      this._error = `✓ loc ${zoneId} → [${next.join(", ")}]`;
-    } catch (err) {
-      this._error = `✗ loc ${zoneId}: ${String(err)}`;
-    }
+    const r = this._item.requirements || this._emptyRequirements();
+    const loc = r.location || [];
+    const next = loc.includes(zoneId) ? loc.filter((x) => x !== zoneId) : [...loc, zoneId];
+    this._setRequirements({ ...r, location: next });
   }
 
   private _toggleContext(id: string) {
-    try {
-      const r = this._item.requirements || this._emptyRequirements();
-      const ctx = r.context || [];
-      const next = ctx.includes(id) ? ctx.filter((x) => x !== id) : [...ctx, id];
-      this._setRequirements({ ...r, context: next });
-      this._error = `✓ ctx ${id} → [${next.join(", ")}]`;
-    } catch (err) {
-      this._error = `✗ ctx ${id}: ${String(err)}`;
-    }
+    const r = this._item.requirements || this._emptyRequirements();
+    const ctx = r.context || [];
+    const next = ctx.includes(id) ? ctx.filter((x) => x !== id) : [...ctx, id];
+    this._setRequirements({ ...r, context: next });
   }
 
   // Time blocker helpers
@@ -1854,12 +1931,16 @@ export class YahtlItemEditor extends LitElement {
         delete data.condition_triggers;
       }
 
-      if (this._itemId) {
-        await store.saveItem(this._entityId, this._itemId, data as Partial<YahtlItem>);
+      // Store mutations report failure via their return value (and record the
+      // detail in store.state.lastError) instead of throwing.
+      const ok = this._itemId
+        ? await store.saveItem(this._entityId, this._itemId, data as Partial<YahtlItem>)
+        : await store.createItem(this._entityId, data as { title: string } & Partial<YahtlItem>);
+      if (ok) {
+        this.close();
       } else {
-        await store.createItem(this._entityId, data as { title: string } & Partial<YahtlItem>);
+        this._error = store.state.lastError?.message || "Failed to save";
       }
-      this.close();
     } catch (err: unknown) {
       this._error = (err as Error).message || "Failed to save";
     } finally {
@@ -1871,10 +1952,13 @@ export class YahtlItemEditor extends LitElement {
     if (!this._itemId) return;
     this._busy = true;
     try {
-      await store.deleteItem(this._entityId, this._itemId);
-      this.close();
-    } catch (err: unknown) {
-      this._error = (err as Error).message || "Failed to delete";
+      const ok = await store.deleteItem(this._entityId, this._itemId);
+      if (ok) {
+        this.close();
+      } else {
+        this._confirmDelete = false;
+        this._error = store.state.lastError?.message || "Failed to delete";
+      }
     } finally {
       this._busy = false;
     }

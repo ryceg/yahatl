@@ -67,8 +67,11 @@ export const sharedStyles = css`
     --yahatl-divider: var(--divider-color, rgba(0, 0, 0, 0.08));
     --yahatl-text: var(--primary-text-color, rgb(33, 33, 33));
     --yahatl-text-secondary: var(--secondary-text-color, rgb(114, 114, 114));
-    --rgb-primary-color: var(--rgb-primary-color, 3, 169, 244);
-    --rgb-accent-color: var(--rgb-accent-color, 255, 152, 0);
+    /* Distinct internal names for the HA-provided RGB tokens: a custom
+       property must not reference itself (self-referencing var() is a cycle,
+       invalid at computed-value time), so we alias instead of shadowing. */
+    --yahatl-rgb-primary: var(--rgb-primary-color, 3, 169, 244);
+    --yahatl-rgb-accent: var(--rgb-accent-color, 255, 152, 0);
     color: var(--yahatl-text);
 
     /* Semantic action colors */
@@ -136,8 +139,8 @@ export const sharedStyles = css`
     width: var(--icon-size);
     height: var(--icon-size);
     border-radius: var(--icon-border-radius);
-    background: rgba(var(--rgb-state, var(--rgb-primary-color)), 0.20);
-    color: rgb(var(--rgb-state, var(--rgb-primary-color)));
+    background: rgba(var(--rgb-state, var(--yahatl-rgb-primary)), 0.20);
+    color: rgb(var(--rgb-state, var(--yahatl-rgb-primary)));
     display: grid;
     place-items: center;
     font-size: 18px;
@@ -295,8 +298,8 @@ export const sharedStyles = css`
   .queue-score {
     font-size: 11px;
     font-weight: 700;
-    background: rgba(var(--rgb-primary-color), 0.10);
-    color: rgb(var(--rgb-primary-color));
+    background: rgba(var(--yahatl-rgb-primary), 0.10);
+    color: rgb(var(--yahatl-rgb-primary));
     padding: 3px 8px;
     border-radius: 999px;
     flex-shrink: 0;
@@ -307,8 +310,8 @@ export const sharedStyles = css`
     border: 0;
     border-radius: 8px;
     padding: 8px 14px;
-    background: rgba(var(--rgb-primary-color), 0.20);
-    color: rgb(var(--rgb-primary-color));
+    background: rgba(var(--yahatl-rgb-primary), 0.20);
+    color: rgb(var(--yahatl-rgb-primary));
     font-weight: 500;
     font-size: 13px;
     cursor: pointer;
@@ -405,7 +408,7 @@ export const sharedStyles = css`
   .textarea:focus,
   .select:focus {
     outline: none;
-    border-color: rgb(var(--rgb-primary-color));
+    border-color: rgb(var(--yahatl-rgb-primary));
   }
 
   .textarea {
@@ -487,7 +490,7 @@ export const sharedStyles = css`
   }
 
   .btn--primary {
-    background: rgb(var(--rgb-primary-color));
+    background: rgb(var(--yahatl-rgb-primary));
     color: white;
   }
 
@@ -505,12 +508,58 @@ export const sharedStyles = css`
     opacity: 0.8;
   }
 
+  /* ── Store error banner (dismissible, rendered via renderStoreError) ── */
+  .store-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 16px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(var(--rgb-danger), 0.12);
+    color: rgb(var(--rgb-danger));
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .store-error ha-icon {
+    --mdc-icon-size: 18px;
+    flex: none;
+  }
+
+  .store-error__msg {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .store-error__dismiss {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    flex: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* ── Empty state ── */
   .empty-state {
     padding: 24px 16px;
     text-align: center;
     color: var(--yahatl-text-secondary);
     font-size: 15px;
+  }
+
+  /* ── Keyboard focus ── */
+  /* Divs promoted to role="button" (and real buttons) get a visible focus
+     ring for keyboard users without flashing outlines on taps/clicks. */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid rgb(var(--yahatl-rgb-primary));
+    outline-offset: -2px;
   }
 
   /* ── Screen-reader only ── */

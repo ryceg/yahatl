@@ -2,17 +2,21 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.util import dt as dt_util
 
-from .const import ALL_TRAITS, CONF_LIST_NAME, DOMAIN, SIGNAL_YAHATL_UPDATED
+from .completion import complete_item
+from .const import ALL_TRAITS, CONF_LIST_NAME, DOMAIN, SIGNAL_YAHATL_UPDATED, STATUS_COMPLETED
 from .entry_data import all_lists as entry_all_lists, resolve_entity
+from .events import fire_item_assigned, fire_item_created
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -331,6 +335,13 @@ def _get_all_lists(hass: HomeAssistant) -> list:
     return entry_all_lists(hass)
 
 
+def _aware(value: datetime | None) -> datetime | None:
+    """Attach HA's local timezone to a naive datetime (cv.datetime allows naive)."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return value
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def handle_add_item(call: ServiceCall) -> None:
@@ -338,10 +349,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if list_data is None:
             return
 
-        # Create new item
+        # Create new item, credited to the calling user.
+        actor_user_id = call.context.user_id or ""
         from .models import YahtlItem, apply_trait_rules
         item = YahtlItem.create(
             title=call.data[ATTR_TITLE],
+            created_by=actor_user_id,
         )
 
         if ATTR_DESCRIPTION in call.data:
@@ -351,7 +364,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if ATTR_TAGS in call.data:
             item.tags = call.data[ATTR_TAGS]
         if ATTR_DUE in call.data:
-            item.due = call.data[ATTR_DUE]
+            item.due = _aware(call.data[ATTR_DUE])
         if ATTR_TIME_ESTIMATE in call.data:
             item.time_estimate = call.data[ATTR_TIME_ESTIMATE]
         if ATTR_NEEDS_DETAIL in call.data:
@@ -364,58 +377,33 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         list_data.add_item(item)
         await _save_and_refresh(hass, entry_id, store, list_data, "service:add_item")
 
+        entity_id = call.data[ATTR_ENTITY_ID]
+        fire_item_created(
+            hass,
+            item=item,
+            list_data=list_data,
+            entity_id=entity_id,
+            actor_user_id=actor_user_id,
+        )
+        fire_item_assigned(
+            hass,
+            item=item,
+            list_data=list_data,
+            entity_id=entity_id,
+            actor_user_id=actor_user_id,
+            added=list(item.assigned_to),
+        )
+
     async def handle_complete_item(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
         list_data, store, item, entry_id = _resolve_item(hass, call)
         if item is None:
             return
-        user_id = call.data.get(ATTR_USER_ID, "")
+        # Attribute to the calling user when not passed explicitly, so
+        # completions from scripts/UI are credited automatically.
+        user_id = call.data.get(ATTR_USER_ID) or call.context.user_id or ""
 
-        # Mark as completed with history
-        from homeassistant.util import dt as dt_util
-        from .models import CompletionRecord
-        from .const import COMPLETION_HISTORY_CAP, STATUS_COMPLETED, STATUS_PENDING
-        from .recurrence import calculate_next_due, calculate_streak
-
-        now = dt_util.now()
-
-        item.status = STATUS_COMPLETED
-        item.deferred_until = None
-        item.last_completed = now
-
-        record = CompletionRecord(
-            user_id=user_id,
-            timestamp=now,
-        )
-        item.completion_history.append(record)
-
-        # Cap history
-        if len(item.completion_history) > COMPLETION_HISTORY_CAP:
-            item.completion_history = item.completion_history[-COMPLETION_HISTORY_CAP:]
-
-        # Update streak if habit
-        if "habit" in item.traits:
-            item.current_streak = calculate_streak(item)
-
-        # Handle recurrence
-        if item.recurrence:
-            next_due = calculate_next_due(item, now)
-            if next_due:
-                # Reset status and update due date for next occurrence
-                item.status = STATUS_PENDING
-                item.due = next_due
-            # For frequency goals, status stays completed but streak updates
-
-        # Fire completion event
-        hass.bus.async_fire(
-            f"{DOMAIN}_item_completed",
-            {
-                "entity_id": entity_id,
-                "item_id": item.uid,
-                "item_title": item.title,
-                "user_id": user_id,
-            },
-        )
+        complete_item(hass, list_data, item, user_id=user_id, entity_id=entity_id)
         await _save_and_refresh(hass, entry_id, store, list_data, "service:complete_item")
 
     async def handle_update_item(call: ServiceCall) -> None:
@@ -423,15 +411,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if item is None:
             return
 
+        # Snapshot assignees BEFORE any overwrite so newly added ones can be
+        # announced (yahatl_item_assigned) after the save.
+        prior_assigned = list(item.assigned_to)
+
         # Update fields if provided
         if ATTR_TITLE in call.data:
             item.title = call.data[ATTR_TITLE]
         if ATTR_DESCRIPTION in call.data:
             item.description = call.data[ATTR_DESCRIPTION]
         if ATTR_STATUS in call.data:
-            item.status = call.data[ATTR_STATUS]
+            new_status = call.data[ATTR_STATUS]
+            if new_status == STATUS_COMPLETED and item.status != STATUS_COMPLETED:
+                # Completing via a status update goes through the full
+                # completion path (history, streaks, recurrence, event).
+                complete_item(
+                    hass,
+                    list_data,
+                    item,
+                    user_id=call.context.user_id or "",
+                    entity_id=call.data[ATTR_ENTITY_ID],
+                )
+            else:
+                item.status = new_status
         if ATTR_DUE in call.data:
-            item.due = call.data[ATTR_DUE]
+            item.due = _aware(call.data[ATTR_DUE])
         if ATTR_TIME_ESTIMATE in call.data:
             item.time_estimate = call.data[ATTR_TIME_ESTIMATE]
         if ATTR_BUFFER_BEFORE in call.data:
@@ -439,7 +443,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if ATTR_BUFFER_AFTER in call.data:
             item.buffer_after = call.data[ATTR_BUFFER_AFTER]
         if ATTR_DEFERRED_UNTIL in call.data:
-            item.deferred_until = call.data[ATTR_DEFERRED_UNTIL]
+            item.deferred_until = _aware(call.data[ATTR_DEFERRED_UNTIL])
         if ATTR_LEAD_OVERRIDE_DAYS in call.data:
             item.lead_override_days = call.data[ATTR_LEAD_OVERRIDE_DAYS]
         if ATTR_PROJECT in call.data:
@@ -448,6 +452,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             item.assigned_to = call.data[ATTR_ASSIGNED_TO]
 
         await _save_and_refresh(hass, entry_id, store, list_data, "service:update_item")
+
+        fire_item_assigned(
+            hass,
+            item=item,
+            list_data=list_data,
+            entity_id=call.data[ATTR_ENTITY_ID],
+            actor_user_id=call.context.user_id or "",
+            added=[u for u in item.assigned_to if u not in prior_assigned],
+        )
 
     async def handle_set_traits(call: ServiceCall) -> None:
         list_data, store, item, entry_id = _resolve_item(hass, call)
@@ -591,7 +604,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         await _save_and_refresh(hass, entry_id, store, list_data, "service:set_requirements")
 
-    async def handle_get_queue(call: ServiceCall) -> None:
+    async def handle_get_queue(call: ServiceCall) -> dict[str, Any]:
         from .queue import QueueEngine
         from .models import ContextOverride
 
@@ -624,12 +637,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             available_time=available_time,
         )
 
+        # Keep the event payload slim (counts + top titles only): the full
+        # queue belongs in the service response, not on the bus, where it
+        # would bloat the recorder DB.
         hass.bus.async_fire(
             f"{DOMAIN}_queue_updated",
             {
-                "queue": result.items,
-                "context": result.context,
                 "count": len(result.items),
+                "top": [
+                    {
+                        "uid": entry["item"]["uid"],
+                        "title": entry["item"]["title"],
+                    }
+                    for entry in result.items[:5]
+                ],
             }
         )
         _LOGGER.info("Generated queue with %d items", len(result.items))
@@ -695,7 +716,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if item is None:
             return
 
-        item.deferred_until = call.data.get(ATTR_DEFERRED_UNTIL)
+        item.deferred_until = _aware(call.data.get(ATTR_DEFERRED_UNTIL))
 
         await _save_and_refresh(hass, entry_id, store, list_data, "service:defer_item")
 
@@ -786,6 +807,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_GET_QUEUE,
         handle_get_queue,
         schema=SERVICE_GET_QUEUE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(
         DOMAIN,

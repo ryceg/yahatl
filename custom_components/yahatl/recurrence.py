@@ -26,9 +26,11 @@ def _get_calendar_period_days(recurrence: RecurrenceConfig) -> int | None:
             return 1
         elif preset in ("weekdays", "weekends"):
             return 1  # checked daily, filtered by day
-    if recurrence.calendar_days is not None:
+    # Truthiness, not `is not None`: the frontend can save an empty list
+    # alongside a populated sibling field, and [] must read as "absent".
+    if recurrence.calendar_days:
         return 7  # weekly cycle
-    if recurrence.calendar_days_of_month is not None:
+    if recurrence.calendar_days_of_month:
         return 30  # monthly cycle
     return None
 
@@ -50,12 +52,13 @@ def _next_matching_day(from_time: datetime, recurrence: RecurrenceConfig) -> dat
                 candidate += timedelta(days=1)
             return candidate
 
-    if recurrence.calendar_days is not None:
+    # Truthiness: an empty list must fall through to the next field, not
+    # short-circuit generation (a frontend save can produce e.g.
+    # calendar_days=[] next to calendar_days_of_month=[1]).
+    if recurrence.calendar_days:
         # Find next day-of-week that matches
         # calendar_days uses ISO: 0=Mon..6=Sun
         target_days = sorted(recurrence.calendar_days)
-        if not target_days:
-            return None
         candidate = from_time + timedelta(days=1)
         for _ in range(8):  # at most 7 days ahead
             if candidate.weekday() in target_days:
@@ -63,10 +66,8 @@ def _next_matching_day(from_time: datetime, recurrence: RecurrenceConfig) -> dat
             candidate += timedelta(days=1)
         return None
 
-    if recurrence.calendar_days_of_month is not None:
+    if recurrence.calendar_days_of_month:
         target_days = sorted(recurrence.calendar_days_of_month)
-        if not target_days:
-            return None
         candidate = from_time + timedelta(days=1)
         for _ in range(62):  # at most ~2 months ahead
             if candidate.day in target_days:
@@ -88,10 +89,11 @@ def _is_matching_day(dt: datetime, recurrence: RecurrenceConfig) -> bool:
         elif preset == "weekends":
             return dt.weekday() >= 5
 
-    if recurrence.calendar_days is not None:
+    # Truthiness: an empty list is "absent", fall through (see _next_matching_day).
+    if recurrence.calendar_days:
         return dt.weekday() in recurrence.calendar_days
 
-    if recurrence.calendar_days_of_month is not None:
+    if recurrence.calendar_days_of_month:
         return dt.day in recurrence.calendar_days_of_month
 
     return False
@@ -266,7 +268,9 @@ def is_streak_at_risk(item: YahtlItem) -> bool:
         period_days = _get_calendar_period_days(recurrence)
         if period_days:
             days_since = (now - item.last_completed).days
-            return days_since >= period_days
+            # Only at risk on a day the schedule actually matches — e.g. a
+            # weekdays habit can't be at risk over the weekend.
+            return days_since >= period_days and _is_matching_day(now, recurrence)
 
     elif recurrence.type == "elapsed":
         interval = recurrence.elapsed_interval or 1
@@ -279,6 +283,15 @@ def is_streak_at_risk(item: YahtlItem) -> bool:
 
 
 def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
+    """Progress of a frequency goal over its rolling window ending now.
+
+    ``count`` is the completions inside the window; ``complete`` is whether the
+    target is met. ``days_remaining`` is the number of days until the in-window
+    count drops below target: if the target is met, that happens when the
+    target-th most recent completion ages out of the window (its timestamp +
+    period_days); if the target is not met, it is 0 — already behind, so the
+    most urgent threshold applies.
+    """
     if not item.recurrence or item.recurrence.type != "frequency":
         return {}
 
@@ -291,15 +304,18 @@ def get_frequency_progress(item: YahtlItem) -> dict[str, Any]:
     now = dt_util.now()
     period_start = now - timedelta(days=period_days)
 
-    count = sum(
-        1 for c in item.completion_history
-        if c.timestamp >= period_start
+    in_window = sorted(
+        (c.timestamp for c in item.completion_history if c.timestamp >= period_start),
+        reverse=True,
     )
+    count = len(in_window)
 
-    days_remaining = period_days
-    if item.last_completed:
-        days_since_start = (now - period_start).days
-        days_remaining = period_days - days_since_start
+    if count >= target_count:
+        # Deadline: when the target-th most recent completion leaves the window.
+        deadline = in_window[target_count - 1] + timedelta(days=period_days)
+        days_remaining = max(0, (deadline - now).days)
+    else:
+        days_remaining = 0
 
     priority = None
     for threshold in sorted(recurrence.thresholds, key=lambda t: t.at_days_remaining, reverse=True):

@@ -42,15 +42,15 @@ export class YahtlQuickAdd extends LitElement {
 
       .capture-row input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .capture-row button {
         padding: 0 18px;
         border: none;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         font-weight: 500;
         font-size: 14px;
@@ -94,8 +94,9 @@ export class YahtlQuickAdd extends LitElement {
     if (!title || !this.entityId) return;
     this._busy = true;
     try {
-      await store.createItem(this.entityId, { title });
-      this._value = "";
+      // Keep the draft in the input if the create failed (flaky wifi etc).
+      const ok = await store.createItem(this.entityId, { title });
+      if (ok) this._value = "";
     } finally {
       this._busy = false;
     }

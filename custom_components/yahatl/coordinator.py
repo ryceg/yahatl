@@ -21,12 +21,17 @@ from homeassistant.util import dt as dt_util
 
 from .conditions import evaluate_condition
 from .const import (
+    CONF_RETENTION_DAYS,
     CONF_STORAGE_KEY,
+    DEFAULT_RETENTION_DAYS,
     DOMAIN,
     STATUS_COMPLETED,
     STATUS_MISSED,
     TRAIT_ACTIONABLE,
+    TRAIT_NOTE,
+    TRAIT_SOMEDAY,
 )
+from .entry_data import todo_entity_id
 from .models import YahtlList
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,7 +109,8 @@ class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
             # List, not a generator — must normalize every item, not stop at the first.
             changed = [ensure_recurring_due(item) for item in data.items]
             notified = self._notify_due_items(data)
-            if any(changed) or notified:
+            purged = self._purge_completed_one_offs(data)
+            if any(changed) or notified or purged:
                 await self._store.async_save(data)
 
         # Keep the condition-trigger subscriptions in sync with current items.
@@ -123,6 +129,62 @@ class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
         )
 
     @callback
+    def _purge_completed_one_offs(self, data: YahtlList) -> bool:
+        """Drop completed one-off items older than the retention window.
+
+        Only items that are status=completed AND have no recurrence are
+        candidates — recurring items keep their history for streaks, and
+        notes/someday items are never touched even if somehow completed.
+        The completion timestamp is ``last_completed``, falling back to the
+        newest completion_history record; an item with neither is kept (we
+        can't prove it's old). ``retention_days`` comes from the entry's
+        options (0 = keep forever). Returns True if anything was removed,
+        so the caller persists.
+        """
+        retention_days = self.config_entry.options.get(
+            CONF_RETENTION_DAYS, DEFAULT_RETENTION_DAYS
+        )
+        if not retention_days:
+            return False
+        cutoff = dt_util.now() - timedelta(days=retention_days)
+        keep: list = []
+        purged: list[str] = []
+        for item in data.items:
+            if (
+                item.status != STATUS_COMPLETED
+                or item.recurrence is not None
+                or TRAIT_NOTE in item.traits
+                or TRAIT_SOMEDAY in item.traits
+            ):
+                keep.append(item)
+                continue
+            completed_at = item.last_completed
+            if completed_at is None and item.completion_history:
+                completed_at = max(r.timestamp for r in item.completion_history)
+            if completed_at is None:
+                # No completion timestamp at all — can't age it, keep it.
+                keep.append(item)
+                continue
+            if completed_at.tzinfo is None:
+                # Legacy naive timestamp; normalize for the aware comparison.
+                completed_at = completed_at.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+            if completed_at < cutoff:
+                purged.append(item.title)
+            else:
+                keep.append(item)
+        if not purged:
+            return False
+        data.items = keep
+        _LOGGER.info(
+            "Purged %d completed one-off item(s) from '%s' older than %d days: %s",
+            len(purged),
+            data.name,
+            retention_days,
+            ", ".join(purged),
+        )
+        return True
+
+    @callback
     def _notify_due_items(self, data: YahtlList) -> bool:
         """Fire ``yahatl_item_due`` for each assigned item whose due just passed.
 
@@ -136,7 +198,10 @@ class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
         """
         now = dt_util.now()
         storage_key = self.config_entry.data.get(CONF_STORAGE_KEY)
-        entity_id = f"todo.{storage_key}" if storage_key else None
+        # Registry lookup survives entity_id renames; fall back to convention.
+        entity_id = todo_entity_id(self.hass, storage_key) or (
+            f"todo.{storage_key}" if storage_key else None
+        )
         changed = False
         for item in data.items:
             due = item.due
@@ -234,11 +299,21 @@ class YahtlCoordinator(DataUpdateCoordinator[YahtlSnapshot]):
                 if not evaluate_condition(actual, trigger.operator, trigger.value):
                     continue
                 if trigger.on_match == "set_due":
+                    # Only open, actionable items may have their due pulled
+                    # forward; a trigger must not yank a completed item's due.
+                    if TRAIT_ACTIONABLE not in item.traits:
+                        continue
+                    if item.status in (STATUS_COMPLETED, STATUS_MISSED):
+                        continue
                     now = dt_util.now()
                     last = self._last_triggered.get(item.uid)
                     if last and (now - last).total_seconds() < _COOLDOWN_SECONDS:
                         continue
-                    item.due = min(item.due, now) if item.due else now
+                    due = item.due
+                    if due is not None and due.tzinfo is None:
+                        # Legacy naive due — normalize before the aware min().
+                        due = due.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+                    item.due = min(due, now) if due else now
                     item.deferred_until = None
                     self._last_triggered[item.uid] = now
                     changed = True

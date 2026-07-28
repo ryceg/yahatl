@@ -1,7 +1,9 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, TRAIT_ICONS, TRAIT_RGB, primaryTrait } from "../styles";
-import { store, StoreController } from "../store";
+import { store, StoreController, renderStoreError } from "../store";
+import { formatDue } from "../format";
+import { keyActivate } from "../a11y";
 import { openItemEditor } from "../dialog";
 import type { HomeAssistant, YahtlItemSummary } from "../types";
 
@@ -67,8 +69,8 @@ export class YahtlListCard extends LitElement {
       }
 
       .tab.active {
-        color: rgb(var(--rgb-primary-color));
-        border-bottom-color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
+        border-bottom-color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Filter toggle row */
@@ -89,7 +91,7 @@ export class YahtlListCard extends LitElement {
         font-size: 13px;
         background: none;
         border: none;
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         padding: 4px 8px;
         font-family: inherit;
@@ -101,8 +103,8 @@ export class YahtlListCard extends LitElement {
       .active-filter-badge {
         font-size: 11px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         border-radius: 10px;
         padding: 2px 7px;
         margin-left: 4px;
@@ -141,11 +143,11 @@ export class YahtlListCard extends LitElement {
       }
 
       .item-row:hover {
-        background: rgba(var(--rgb-primary-color), 0.04);
+        background: rgba(var(--yahatl-rgb-primary), 0.04);
       }
 
       .item-row:active {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .item-info {
@@ -226,11 +228,11 @@ export class YahtlListCard extends LitElement {
       }
 
       .group-header:hover {
-        background: rgba(var(--rgb-primary-color), 0.04);
+        background: rgba(var(--yahatl-rgb-primary), 0.04);
       }
 
       .group-header:active {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .group-header__icon {
@@ -250,7 +252,7 @@ export class YahtlListCard extends LitElement {
       .group-header__count {
         font-size: 12px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.12);
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
         color: var(--yahatl-text-secondary);
         border-radius: 10px;
         padding: 1px 8px;
@@ -271,6 +273,10 @@ export class YahtlListCard extends LitElement {
     this._config = config;
   }
 
+  static getConfigElement(): HTMLElement {
+    return document.createElement("yahatl-list-card-editor");
+  }
+
   static getStubConfig(): Record<string, unknown> {
     return {};
   }
@@ -279,11 +285,18 @@ export class YahtlListCard extends LitElement {
     if (changed.has("hass") && this.hass && !this._initialized) {
       this._initialized = true;
       store.setHass(this.hass);
-      store.loadLists();
-      this._loadActiveList();
+      void this._initialLoad();
     } else if (changed.has("hass") && this.hass) {
       store.setHass(this.hass);
     }
+  }
+
+  /** Load lists first, THEN the active list's items — _loadActiveList reads
+   *  state.lists, so firing both un-awaited left the first tab empty until
+   *  the user tapped around. */
+  private async _initialLoad() {
+    await store.loadLists();
+    await this._loadActiveList();
   }
 
   render() {
@@ -327,6 +340,7 @@ export class YahtlListCard extends LitElement {
               </div>
             `
           : nothing}
+        ${renderStoreError()}
 
         <div class="filter-toggle">
           <span class="filter-toggle__count">${active.length} items</span>
@@ -416,7 +430,7 @@ export class YahtlListCard extends LitElement {
             (s) => html`
               <button
                 class="mush-chip ${this._filters.status === s ? "mush-chip--filled" : ""}"
-                style="--rgb-state: var(--rgb-primary-color)"
+                style="--rgb-state: var(--yahatl-rgb-primary)"
                 @click=${() => this._toggleFilter("status", s)}
               >
                 ${s.replace("_", " ")}
@@ -448,16 +462,19 @@ export class YahtlListCard extends LitElement {
   private _renderItem(item: YahtlItemSummary, entityId: string) {
     const isCompleted = item.status === "completed";
     const trait = primaryTrait(item.traits);
-    const traitRgb = trait ? TRAIT_RGB[trait] : "var(--rgb-primary-color)";
+    const traitRgb = trait ? TRAIT_RGB[trait] : "var(--yahatl-rgb-primary)";
     const traitIcon = trait ? TRAIT_ICONS[trait] : "";
-    const due = this._formatDue(item.due);
+    const due = formatDue(item.due);
     const isDeferred = this._isDeferred(item);
 
     return html`
       <div
         class="item-row"
         style="--rgb-state: ${traitRgb}"
+        role="button"
+        tabindex="0"
         @click=${() => this._openEditor(entityId, item.uid)}
+        @keydown=${keyActivate(() => this._openEditor(entityId, item.uid))}
       >
         ${item.priority
           ? html`<div class="priority-rail priority-rail--${item.priority}"></div>`
@@ -465,10 +482,17 @@ export class YahtlListCard extends LitElement {
 
         <div
           class="item-check ${isCompleted ? "item-check--done" : ""}"
+          role="button"
+          tabindex="0"
+          aria-label="Complete ${item.title}"
           @click=${(e: Event) => {
             e.stopPropagation();
             if (!isCompleted) this._complete(entityId, item.uid);
           }}
+          @keydown=${keyActivate((e: Event) => {
+            e.stopPropagation();
+            if (!isCompleted) this._complete(entityId, item.uid);
+          })}
         ></div>
 
         ${traitIcon
@@ -553,27 +577,25 @@ export class YahtlListCard extends LitElement {
     openItemEditor(this, { entityId, itemId, hass: this.hass });
   }
 
-  private _formatDue(
-    due: string | null
-  ): { label: string; className: string } | null {
-    if (!due) return null;
-    const d = new Date(due);
-    const now = new Date();
-    if (d < now) {
-      const days = Math.ceil((now.getTime() - d.getTime()) / 86400000);
-      return { label: `Overdue ${days}d`, className: "overdue" };
-    }
-    if (d.toDateString() === now.toDateString())
-      return { label: "Today", className: "due-today" };
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (d.toDateString() === tomorrow.toDateString())
-      return { label: "Tomorrow", className: "" };
-    return { label: d.toLocaleDateString(), className: "" };
-  }
-
   getCardSize() {
     return 6;
+  }
+}
+
+/** Config editor: the list card is honestly zero-config (it discovers every
+ *  yahatl list and tabs between them), so the editor just says so instead of
+ *  inventing dead fields. */
+@customElement("yahatl-list-card-editor")
+export class YahtlListCardEditor extends LitElement {
+  setConfig(_config: Record<string, unknown>) {}
+
+  render() {
+    return html`
+      <p style="color: var(--secondary-text-color); font-size: 14px">
+        No options — this card automatically shows all your yahatl lists as
+        tabs, with filters built in.
+      </p>
+    `;
   }
 }
 

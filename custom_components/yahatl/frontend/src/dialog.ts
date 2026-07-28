@@ -51,5 +51,9 @@ export function openItemEditor(_source: HTMLElement, params: ItemEditorParams): 
     editorEl = document.createElement("yahatl-item-editor") as EditorElement;
     document.body.appendChild(editorEl);
   }
-  void editorEl.open(params);
+  // open() surfaces its own load failures inside the dialog; this catch is a
+  // safety net so a rejected open never silently leaves the editor unopened.
+  Promise.resolve(editorEl.open(params)).catch((err) => {
+    console.error("yahatl: failed to open item editor", err);
+  });
 }

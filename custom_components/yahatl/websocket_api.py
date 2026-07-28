@@ -10,26 +10,27 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components import websocket_api
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
+from .completion import complete_item, uncomplete_item
 from .const import (
+    ALL_STATUSES,
     ALL_TRAITS,
-    COMPLETION_HISTORY_CAP,
     DOMAIN,
     SIGNAL_YAHATL_UPDATED,
     STATUS_COMPLETED,
-    STATUS_PENDING,
 )
 from .entry_data import (
     all_lists as entry_all_lists,
     iter_runtime,
     resolve_entity,
     runtime_for_list,
+    todo_entity_id,
 )
+from .events import fire_item_assigned, fire_item_created
 from .models import (
     BlockerConfig,
-    CompletionRecord,
     ConditionTriggerConfig,
     RecurrenceConfig,
     RequirementsConfig,
@@ -74,12 +75,30 @@ def _get_all_lists(hass: HomeAssistant) -> list:
     return entry_all_lists(hass)
 
 
+def _parse_aware(value: str | None) -> datetime | None:
+    """Parse an ISO datetime string, attaching HA's local tz if it was naive."""
+    if not value:
+        return None
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return parsed
+
+
+def _connection_user_id(connection) -> str:
+    """The HA user id behind this websocket connection ("" if unavailable)."""
+    user = getattr(connection, "user", None)
+    return user.id if user else ""
+
+
 # --- Handlers ---
 
 @websocket_api.async_response
 async def websocket_lists(hass, connection, msg):
     """Return all yahatl lists with metadata."""
-    user_id = msg.get("user_id")
+    # Server-side identity: default to the connected user; an explicit
+    # user_id stays supported as an override (viewing another's lists).
+    user_id = msg.get("user_id") or _connection_user_id(connection)
     result = []
     for _entry, runtime in iter_runtime(hass):
         list_data = runtime.data
@@ -91,7 +110,8 @@ async def websocket_lists(hass, connection, msg):
                 if list_data.shared_with and user_id not in list_data.shared_with:
                     continue
         result.append({
-            "entity_id": f"todo.{list_data.list_id}",
+            # Registry lookup survives entity_id renames; fall back to convention.
+            "entity_id": todo_entity_id(hass, list_data.list_id) or f"todo.{list_data.list_id}",
             "list_id": list_data.list_id,
             "name": list_data.name,
             "owner": list_data.owner,
@@ -185,7 +205,9 @@ async def websocket_item_create(hass, connection, msg):
         connection.send_error(msg["id"], "list_not_found", "List not found")
         return
 
-    item = YahtlItem.create(title=msg["title"])
+    # Credit creation to the connected user.
+    actor_user_id = _connection_user_id(connection)
+    item = YahtlItem.create(title=msg["title"], created_by=actor_user_id)
 
     # Simple fields
     for field in ("description", "priority", "needs_detail",
@@ -202,9 +224,9 @@ async def websocket_item_create(hass, connection, msg):
     if "assigned_to" in msg:
         item.assigned_to = msg["assigned_to"]
     if "due" in msg:
-        item.due = datetime.fromisoformat(msg["due"]) if msg["due"] else None
+        item.due = _parse_aware(msg["due"])
     if "deferred_until" in msg:
-        item.deferred_until = datetime.fromisoformat(msg["deferred_until"]) if msg["deferred_until"] else None
+        item.deferred_until = _parse_aware(msg["deferred_until"])
 
     # Complex nested objects
     if "recurrence" in msg and msg["recurrence"]:
@@ -220,6 +242,23 @@ async def websocket_item_create(hass, connection, msg):
 
     list_data.add_item(item)
     await _save_and_notify(hass, entry_id, store, list_data, msg["entity_id"])
+
+    fire_item_created(
+        hass,
+        item=item,
+        list_data=list_data,
+        entity_id=msg["entity_id"],
+        actor_user_id=actor_user_id,
+    )
+    fire_item_assigned(
+        hass,
+        item=item,
+        list_data=list_data,
+        entity_id=msg["entity_id"],
+        actor_user_id=actor_user_id,
+        added=list(item.assigned_to),
+    )
+
     connection.send_result(msg["id"], item.to_dict())
 
 
@@ -231,6 +270,10 @@ async def websocket_item_save(hass, connection, msg):
     if item is None:
         connection.send_error(msg["id"], "item_not_found", "Item not found")
         return
+
+    # Snapshot assignees BEFORE any overwrite so newly added ones can be
+    # announced (yahatl_item_assigned) after the save.
+    prior_assigned = list(item.assigned_to)
 
     # Simple scalar fields
     for field in ("title", "description", "priority", "needs_detail",
@@ -247,10 +290,24 @@ async def websocket_item_save(hass, connection, msg):
     if "assigned_to" in msg:
         item.assigned_to = msg["assigned_to"]
 
+    if "status" in msg:
+        if msg["status"] == STATUS_COMPLETED and item.status != STATUS_COMPLETED:
+            # Completing via a save goes through the full completion path
+            # (history, streaks, recurrence, event).
+            complete_item(
+                hass,
+                list_data,
+                item,
+                user_id=_connection_user_id(connection),
+                entity_id=entity_id,
+            )
+        else:
+            item.status = msg["status"]
+
     if "due" in msg:
-        item.due = datetime.fromisoformat(msg["due"]) if msg["due"] else None
+        item.due = _parse_aware(msg["due"])
     if "deferred_until" in msg:
-        item.deferred_until = datetime.fromisoformat(msg["deferred_until"]) if msg["deferred_until"] else None
+        item.deferred_until = _parse_aware(msg["deferred_until"])
 
     # Complex nested objects
     if "recurrence" in msg:
@@ -265,6 +322,16 @@ async def websocket_item_save(hass, connection, msg):
         item.time_blockers = [TimeBlockerConfig.from_dict(tb) for tb in msg["time_blockers"]] if msg["time_blockers"] else []
 
     await _save_and_notify(hass, entry_id, store, list_data, entity_id)
+
+    fire_item_assigned(
+        hass,
+        item=item,
+        list_data=list_data,
+        entity_id=entity_id,
+        actor_user_id=_connection_user_id(connection),
+        added=[u for u in item.assigned_to if u not in prior_assigned],
+    )
+
     connection.send_result(msg["id"], item.to_dict())
 
 
@@ -295,41 +362,62 @@ async def websocket_item_complete(hass, connection, msg):
         connection.send_error(msg["id"], "item_not_found", "Item not found")
         return
 
-    from .recurrence import calculate_next_due, calculate_streak
+    # Server-side identity: default to the connected user, explicit override allowed.
+    user_id = msg.get("user_id") or _connection_user_id(connection)
+    complete_item(hass, list_data, item, user_id=user_id, entity_id=entity_id)
 
-    user_id = msg.get("user_id", "")
-    now = dt_util.now()
+    await _save_and_notify(hass, entry_id, store, list_data, entity_id)
+    connection.send_result(msg["id"], item.to_dict())
 
-    item.status = STATUS_COMPLETED
-    item.deferred_until = None
-    item.last_completed = now
 
-    record = CompletionRecord(user_id=user_id, timestamp=now)
-    item.completion_history.append(record)
-    if len(item.completion_history) > COMPLETION_HISTORY_CAP:
-        item.completion_history = item.completion_history[-COMPLETION_HISTORY_CAP:]
+@websocket_api.async_response
+async def websocket_item_uncomplete(hass, connection, msg):
+    """Undo a just-made completion (frontend undo snackbar).
 
-    if "habit" in item.traits:
-        item.current_streak = calculate_streak(item)
+    ``prior`` carries the pre-completion status/due/deferred_until the client
+    captured before completing, so recurrence regeneration can be rolled back.
+    """
+    entity_id = msg["entity_id"]
+    entry_id, list_data, store, item = _resolve_item(hass, entity_id, msg["item_id"])
+    if item is None:
+        connection.send_error(msg["id"], "item_not_found", "Item not found")
+        return
 
-    if item.recurrence:
-        next_due = calculate_next_due(item, now)
-        if next_due:
-            item.status = STATUS_PENDING
-            item.due = next_due
-
-    hass.bus.async_fire(
-        f"{DOMAIN}_item_completed",
-        {
-            "entity_id": entity_id,
-            "item_id": item.uid,
-            "item_title": item.title,
-            "user_id": user_id,
-        },
+    prior = msg.get("prior") or {}
+    uncomplete_item(
+        hass,
+        list_data,
+        item,
+        prior_status=prior.get("status") or "pending",
+        prior_due=prior.get("due"),
+        prior_deferred_until=prior.get("deferred_until"),
+        user_id=_connection_user_id(connection),
+        entity_id=entity_id,
     )
 
     await _save_and_notify(hass, entry_id, store, list_data, entity_id)
     connection.send_result(msg["id"], item.to_dict())
+
+
+@callback
+def websocket_subscribe(hass, connection, msg):
+    """Subscribe to live list updates.
+
+    Forwards every SIGNAL_YAHATL_UPDATED dispatch (payload: the changed
+    list_id, or "meta" for meta-config saves) as an event message so cards
+    can refresh without polling.
+    """
+
+    @callback
+    def forward(list_id: str) -> None:
+        connection.send_message(
+            websocket_api.event_message(msg["id"], {"list_id": list_id})
+        )
+
+    connection.subscriptions[msg["id"]] = async_dispatcher_connect(
+        hass, SIGNAL_YAHATL_UPDATED, forward
+    )
+    connection.send_result(msg["id"])
 
 
 @websocket_api.async_response
@@ -341,7 +429,7 @@ async def websocket_item_defer(hass, connection, msg):
         connection.send_error(msg["id"], "item_not_found", "Item not found")
         return
 
-    item.deferred_until = datetime.fromisoformat(msg["deferred_until"]) if msg.get("deferred_until") else None
+    item.deferred_until = _parse_aware(msg.get("deferred_until"))
     await _save_and_notify(hass, entry_id, store, list_data, entity_id)
     connection.send_result(msg["id"], item.to_dict())
 
@@ -394,7 +482,8 @@ async def websocket_queue(hass, connection, msg):
         context["contexts"] = msg["contexts"]
 
     available_time = msg.get("available_time")
-    user_id = msg.get("user_id")
+    # Server-side identity: default to the connected user, explicit override allowed.
+    user_id = msg.get("user_id") or _connection_user_id(connection) or None
     all_lists = _get_all_lists(hass)
 
     engine = QueueEngine(hass)
@@ -495,12 +584,17 @@ async def websocket_meta_set(hass, connection, msg):
     new_ctx_ids = {c.id for c in new_data.contexts}
     removed_ctx_ids = old_ctx_ids - new_ctx_ids
 
-    # Detect renamed contexts
+    # Detect deleted locations
+    old_loc_ids = {l.id for l in old_data.locations}
+    new_loc_ids = {l.id for l in new_data.locations}
+    removed_loc_ids = old_loc_ids - new_loc_ids
+
+    # Detect renames (contexts and locations alike)
     # We track renames via the "renames" field in the message
     renames = msg.get("renames", {})  # { old_id: new_id }
 
-    # Cascade: strip removed contexts from items, apply renames
-    if removed_ctx_ids or renames:
+    # Cascade: strip removed contexts/locations from items, apply renames
+    if removed_ctx_ids or removed_loc_ids or renames:
         all_lists = _get_all_lists(hass)
         for yahatl_list in all_lists:
             dirty = False
@@ -517,6 +611,19 @@ async def websocket_meta_set(hass, connection, msg):
                         if c not in removed_ctx_ids
                     ]
                     if item.requirements.context != original:
+                        dirty = True
+                if item.requirements and item.requirements.location:
+                    original = list(item.requirements.location)
+                    # Apply renames
+                    item.requirements.location = [
+                        renames.get(l, l) for l in item.requirements.location
+                    ]
+                    # Remove deleted
+                    item.requirements.location = [
+                        l for l in item.requirements.location
+                        if l not in removed_loc_ids
+                    ]
+                    if item.requirements.location != original:
                         dirty = True
             if dirty:
                 # Persist the list this item belongs to.
@@ -669,6 +776,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Required("type"): "yahatl/item_save",
             vol.Required("entity_id"): str,
             vol.Required("item_id"): str,
+            vol.Optional("status"): vol.In(ALL_STATUSES),
             vol.Optional("title"): str,
             vol.Optional("description"): str,
             vol.Optional("traits"): [str],
@@ -711,6 +819,27 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
             vol.Required("entity_id"): str,
             vol.Required("item_id"): str,
             vol.Optional("user_id"): str,
+        }),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/item_uncomplete",
+        websocket_item_uncomplete,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/item_uncomplete",
+            vol.Required("entity_id"): str,
+            vol.Required("item_id"): str,
+            vol.Optional("prior"): dict,
+        }),
+    )
+
+    websocket_api.async_register_command(
+        hass,
+        "yahatl/subscribe",
+        websocket_subscribe,
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+            vol.Required("type"): "yahatl/subscribe",
         }),
     )
 

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -38,36 +39,39 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the yahatl calendar entity for this list."""
-    entry_data = hass.data[DOMAIN].get(config_entry.entry_id)
-    if entry_data is None:
-        return
-
+    runtime = config_entry.runtime_data
     storage_key = config_entry.data[CONF_STORAGE_KEY]
-    data = entry_data["data"]
-    store = entry_data["store"]
-
-    async_add_entities([YahtlCalendar(hass, data, store, storage_key)])
+    async_add_entities([YahtlCalendar(hass, config_entry, runtime.data, storage_key)])
 
 
 class YahtlCalendar(CalendarEntity):
     """A calendar view over a yahatl list's scheduled items."""
 
     _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_name = "Schedule"
     _attr_icon = "mdi:calendar-check"
 
     def __init__(
         self,
         hass: HomeAssistant,
+        config_entry: ConfigEntry,
         data: YahtlList,
-        store,
         storage_key: str,
     ) -> None:
         self._hass = hass
+        self._config_entry = config_entry
         self._data = data
-        self._store = store
         self._storage_key = storage_key
         self._attr_unique_id = f"yahatl_calendar_{storage_key}"
-        self._attr_name = f"{data.name} Schedule"
+        # Group with this list's todo entity and sensors under one device.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, storage_key)},
+            name=data.name,
+            manufacturer="yahatl",
+            model="Todo list",
+            entry_type=DeviceEntryType.SERVICE,
+        )
         self._event: CalendarEvent | None = None
 
     async def async_added_to_hass(self) -> None:
@@ -80,7 +84,15 @@ class YahtlCalendar(CalendarEntity):
         )
 
     @callback
-    def _handle_update(self, *_args) -> None:
+    def _handle_update(self, list_id: str) -> None:
+        """Refresh when THIS list is saved (signal payload is the list_id)."""
+        if list_id != self._storage_key:
+            return
+        # Re-bind from runtime_data in case the list object was replaced
+        # (mirrors the CoordinatorEntity rebind pattern in todo.py/sensor.py).
+        runtime = getattr(self._config_entry, "runtime_data", None)
+        if runtime is not None and runtime.data is not None:
+            self._data = runtime.data
         self._recompute()
         self.async_write_ha_state()
 
@@ -135,7 +147,13 @@ class YahtlCalendar(CalendarEntity):
             starts.append(item.due)
 
         if item.recurrence and item.recurrence.type in ("calendar", "elapsed"):
-            nxt = calculate_next_due(item, dt_util.now())
+            # Anchor expansion on the concrete due when there is one (the
+            # coordinator backfills one on every calendar/elapsed item), so
+            # the projected occurrences line up with the real next-due rather
+            # than duplicating it at a different time-of-day. Frequency goals
+            # have no next-due (calculate_next_due returns None) and
+            # empty calendar day-lists read as absent, ending the loop.
+            nxt = calculate_next_due(item, item.due or dt_util.now())
             count = 0
             while nxt and nxt <= range_end and count < MAX_OCCURRENCES:
                 if nxt >= range_start:

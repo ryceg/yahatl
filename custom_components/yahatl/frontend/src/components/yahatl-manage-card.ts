@@ -1,12 +1,13 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles } from "../styles";
-import { store, StoreController } from "../store";
+import { store, StoreController, renderStoreError } from "../store";
 import type { HomeAssistant, MetaEntry, TagInfo } from "../types";
 
 @customElement("yahatl-manage-card")
 export class YahtlManageCard extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
+  @state() private _config: Record<string, unknown> = {};
   private _store = new StoreController(this);
   private _initialized = false;
 
@@ -70,8 +71,8 @@ export class YahtlManageCard extends LitElement {
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.10);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.10);
+        color: rgb(var(--yahatl-rgb-primary));
         display: grid;
         place-items: center;
         flex: none;
@@ -180,7 +181,7 @@ export class YahtlManageCard extends LitElement {
 
       .edit-field input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .edit-buttons {
@@ -193,7 +194,7 @@ export class YahtlManageCard extends LitElement {
       /* Tag rename inline */
       .tag-rename-input {
         padding: 4px 8px;
-        border: 1px solid rgb(var(--rgb-primary-color));
+        border: 1px solid rgb(var(--yahatl-rgb-primary));
         border-radius: 6px;
         font-size: 14px;
         font-family: inherit;
@@ -242,8 +243,8 @@ export class YahtlManageCard extends LitElement {
       }
 
       .add-btn:hover {
-        border-color: rgb(var(--rgb-primary-color));
-        color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
+        color: rgb(var(--yahatl-rgb-primary));
       }
 
       .add-btn ha-icon {
@@ -252,10 +253,16 @@ export class YahtlManageCard extends LitElement {
     `,
   ];
 
-  setConfig(config: Record<string, unknown>) {}
+  setConfig(config: Record<string, unknown>) {
+    this._config = config;
+  }
+
+  static getConfigElement(): HTMLElement {
+    return document.createElement("yahatl-manage-card-editor");
+  }
 
   static getStubConfig(): Record<string, unknown> {
-    return {};
+    return { title: "Manage" };
   }
 
   updated(changed: Map<string, unknown>) {
@@ -278,7 +285,8 @@ export class YahtlManageCard extends LitElement {
 
     return html`
       <ha-card>
-        <div class="card-header">Manage</div>
+        <div class="card-header">${String(this._config.title || "Manage")}</div>
+        ${renderStoreError()}
 
         <!-- Contexts -->
         <div class="section">
@@ -354,19 +362,19 @@ export class YahtlManageCard extends LitElement {
         <span class="entry-name">${c.name}</span>
         <div class="entry-actions">
           ${index > 0
-            ? html`<button class="icon-btn" @click=${() => this._moveContext(index, -1)} title="Move up">
+            ? html`<button class="icon-btn" @click=${() => this._moveContext(index, -1)} title="Move up" aria-label="Move ${c.name} up">
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
               </button>`
             : nothing}
           ${index < total - 1
-            ? html`<button class="icon-btn" @click=${() => this._moveContext(index, 1)} title="Move down">
+            ? html`<button class="icon-btn" @click=${() => this._moveContext(index, 1)} title="Move down" aria-label="Move ${c.name} down">
                 <ha-icon icon="mdi:arrow-down"></ha-icon>
               </button>`
             : nothing}
-          <button class="icon-btn" @click=${() => this._startEditContext(c)} title="Edit">
+          <button class="icon-btn" @click=${() => this._startEditContext(c)} title="Edit" aria-label="Edit ${c.name}">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </button>
-          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("context", c.id)} title="Delete">
+          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("context", c.id)} title="Delete" aria-label="Delete ${c.name}">
             <ha-icon icon="mdi:delete"></ha-icon>
           </button>
         </div>
@@ -425,19 +433,19 @@ export class YahtlManageCard extends LitElement {
         <span class="entry-name">${l.name}</span>
         <div class="entry-actions">
           ${index > 0
-            ? html`<button class="icon-btn" @click=${() => this._moveLocation(index, -1)} title="Move up">
+            ? html`<button class="icon-btn" @click=${() => this._moveLocation(index, -1)} title="Move up" aria-label="Move ${l.name} up">
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
               </button>`
             : nothing}
           ${index < total - 1
-            ? html`<button class="icon-btn" @click=${() => this._moveLocation(index, 1)} title="Move down">
+            ? html`<button class="icon-btn" @click=${() => this._moveLocation(index, 1)} title="Move down" aria-label="Move ${l.name} down">
                 <ha-icon icon="mdi:arrow-down"></ha-icon>
               </button>`
             : nothing}
-          <button class="icon-btn" @click=${() => this._startEditLocation(l)} title="Edit">
+          <button class="icon-btn" @click=${() => this._startEditLocation(l)} title="Edit" aria-label="Edit ${l.name}">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </button>
-          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("location", l.id)} title="Delete">
+          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("location", l.id)} title="Delete" aria-label="Delete ${l.name}">
             <ha-icon icon="mdi:delete"></ha-icon>
           </button>
         </div>
@@ -515,10 +523,10 @@ export class YahtlManageCard extends LitElement {
               <span class="entry-name">#${t.name}</span>
               <span class="entry-badge">${t.count} item${t.count !== 1 ? "s" : ""}</span>
               <div class="entry-actions">
-                <button class="icon-btn" @click=${() => this._startRenameTag(t)} title="Rename">
+                <button class="icon-btn" @click=${() => this._startRenameTag(t)} title="Rename" aria-label="Rename tag ${t.name}">
                   <ha-icon icon="mdi:pencil"></ha-icon>
                 </button>
-                <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("tag", t.name)} title="Delete">
+                <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("tag", t.name)} title="Delete" aria-label="Delete tag ${t.name}">
                   <ha-icon icon="mdi:delete"></ha-icon>
                 </button>
               </div>
@@ -579,25 +587,23 @@ export class YahtlManageCard extends LitElement {
     const name = this._editName.trim();
     if (!name) return;
 
-    const newId = existing?.id || name.toLowerCase().replace(/\s+/g, "_");
     const icon = this._editIcon || "mdi:label";
-    const renames: Record<string, string> = {};
 
+    // The id is the entry's identity and stays stable on rename — items
+    // reference contexts by id, so only the display name (and icon) change.
+    // New entries get a slug derived from the name.
     let contexts: MetaEntry[];
     if (existing) {
-      // If id changed (because name changed and id is derived), track rename
-      if (existing.id !== newId) {
-        renames[existing.id] = newId;
-      }
       contexts = meta.contexts.map((c) =>
         c.id === existing.id ? { id: existing.id, name, icon } : c
       );
     } else {
+      const newId = name.toLowerCase().replace(/\s+/g, "_");
       contexts = [...meta.contexts, { id: newId, name, icon }];
     }
 
-    await store.saveMeta({ ...meta, contexts }, renames);
-    this._editingContext = null;
+    const ok = await store.saveMeta({ ...meta, contexts });
+    if (ok) this._editingContext = null;
   }
 
   private async _moveContext(index: number, direction: number) {
@@ -649,8 +655,8 @@ export class YahtlManageCard extends LitElement {
       locations = [...meta.locations, { id: newId, name, icon }];
     }
 
-    await store.saveMeta({ ...meta, locations });
-    this._editingLocation = null;
+    const ok = await store.saveMeta({ ...meta, locations });
+    if (ok) this._editingLocation = null;
   }
 
   private async _moveLocation(index: number, direction: number) {
@@ -675,8 +681,8 @@ export class YahtlManageCard extends LitElement {
   private async _confirmRenameTag(oldName: string) {
     const newName = this._renameValue.trim();
     if (!newName || newName === oldName) return;
-    await store.renameTag(oldName, newName);
-    this._renamingTag = null;
+    const ok = await store.renameTag(oldName, newName);
+    if (ok) this._renamingTag = null;
   }
 
   // --- Delete flow ---
@@ -725,6 +731,46 @@ export class YahtlManageCard extends LitElement {
 
   getCardSize() {
     return 6;
+  }
+}
+
+/** Config editor: the manage card only reads `title` (contexts/tags/locations
+ *  all come from the yahatl meta store, not card config). */
+@customElement("yahatl-manage-card-editor")
+export class YahtlManageCardEditor extends LitElement {
+  @property({ attribute: false }) hass!: HomeAssistant;
+  @state() private _config: Record<string, unknown> = {};
+
+  private static readonly _schema = [
+    { name: "title", selector: { text: {} } },
+  ];
+
+  setConfig(config: Record<string, unknown>) {
+    this._config = config;
+  }
+
+  render() {
+    if (!this.hass) return nothing;
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${YahtlManageCardEditor._schema}
+        .computeLabel=${(s: { name: string }) =>
+          s.name === "title" ? "Card title" : s.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent) {
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: ev.detail.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 }
 

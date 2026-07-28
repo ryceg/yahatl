@@ -12,6 +12,7 @@ function label(s: string): string {
 export class YahtlContextBar extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   private _store = new StoreController(this);
+  private _initialized = false;
 
   setConfig(_config: Record<string, unknown>) {}
 
@@ -48,10 +49,18 @@ export class YahtlContextBar extends LitElement {
     `,
   ];
 
-  connectedCallback() {
-    super.connectedCallback();
-    store.loadContext();
-    store.loadMeta();
+  // Wired like the other cards: wait for hass so the store has an API before
+  // loading. connectedCallback fired before hass was set, so if this element
+  // rendered first the loads were silently dropped and no chips appeared.
+  updated(changed: Map<string, unknown>) {
+    if (changed.has("hass") && this.hass && !this._initialized) {
+      this._initialized = true;
+      store.setHass(this.hass);
+      store.loadContext();
+      store.loadMeta();
+    } else if (changed.has("hass") && this.hass) {
+      store.setHass(this.hass);
+    }
   }
 
   private _getZones(): { id: string; name: string; icon: string }[] {
@@ -82,7 +91,7 @@ export class YahtlContextBar extends LitElement {
           (z) => html`
             <button
               class="mush-chip ${loc === z.id ? "mush-chip--filled" : "mush-chip--state"}"
-              style="--rgb-state: var(--rgb-primary-color)"
+              style="--rgb-state: var(--yahatl-rgb-primary)"
               @click=${() => this._setLocation(loc === z.id ? null : z.id)}
             >
               <span class="mush-chip__icon">
@@ -97,7 +106,7 @@ export class YahtlContextBar extends LitElement {
           (c) => html`
             <button
               class="mush-chip ${ctxs.includes(c.id) ? "mush-chip--filled" : "mush-chip--state"}"
-              style="--rgb-state: var(--rgb-primary-color)"
+              style="--rgb-state: var(--yahatl-rgb-primary)"
               @click=${() => this._toggleContext(c.id, ctxs)}
             >
               <span class="mush-chip__icon">

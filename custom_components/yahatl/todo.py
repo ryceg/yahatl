@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, time
 
 from homeassistant.util import dt as dt_util
 from typing import Any, Callable
@@ -19,8 +19,8 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .completion import complete_item
 from .const import (
-    COMPLETION_HISTORY_CAP,
     CONF_STORAGE_KEY,
     DOMAIN,
     STATUS_COMPLETED,
@@ -28,7 +28,7 @@ from .const import (
     TRAIT_ACTIONABLE,
 )
 from .coordinator import YahtlCoordinator
-from .models import CompletionRecord, YahtlItem, YahtlList
+from .models import YahtlItem, YahtlList
 from .store import YahtlStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -124,7 +124,9 @@ class YahtlTodoListEntity(CoordinatorEntity[YahtlCoordinator], TodoListEntity):
         if item.description:
             yahtl_item.description = item.description
         if item.due:
-            yahtl_item.due = item.due if isinstance(item.due, datetime) else datetime.combine(item.due, datetime.min.time())
+            # Date-only dues become midnight LOCAL (tz-aware); the coordinator
+            # treats midnight dues as date-only for the 8am notification shift.
+            yahtl_item.due = item.due if isinstance(item.due, datetime) else datetime.combine(item.due, time.min, tzinfo=dt_util.DEFAULT_TIME_ZONE)
 
         self._data.add_item(yahtl_item)
         await self._async_save()
@@ -139,14 +141,24 @@ class YahtlTodoListEntity(CoordinatorEntity[YahtlCoordinator], TodoListEntity):
         if item.description is not None:
             yahtl_item.description = item.description
         if item.due is not None:
-            yahtl_item.due = item.due if isinstance(item.due, datetime) else datetime.combine(item.due, datetime.min.time())
+            # Date-only dues become midnight LOCAL (tz-aware); see create above.
+            yahtl_item.due = item.due if isinstance(item.due, datetime) else datetime.combine(item.due, time.min, tzinfo=dt_util.DEFAULT_TIME_ZONE)
         elif hasattr(item, 'due') and item.due is None:
             # Explicitly cleared
             yahtl_item.due = None
 
         if item.status is not None:
             if item.status == TodoItemStatus.COMPLETED:
-                await self._complete_item(yahtl_item)
+                if yahtl_item.status != STATUS_COMPLETED:
+                    # Full completion path: history, streaks, recurrence, event
+                    # — so completing from the native card or Assist behaves
+                    # the same as the yahatl UI/services.
+                    complete_item(
+                        self.hass,
+                        self._data,
+                        yahtl_item,
+                        entity_id=self.entity_id,
+                    )
             else:
                 yahtl_item.status = STATUS_PENDING
 
@@ -190,22 +202,6 @@ class YahtlTodoListEntity(CoordinatorEntity[YahtlCoordinator], TodoListEntity):
                 self._data.items.append(item_to_move)
 
         await self._async_save()
-
-    async def _complete_item(self, item: YahtlItem, user_id: str = "") -> None:
-        """Mark an item as completed and record history."""
-        item.status = STATUS_COMPLETED
-        item.deferred_until = None
-
-        # Add completion record
-        record = CompletionRecord(
-            user_id=user_id,
-            timestamp=dt_util.now(),
-        )
-        item.completion_history.append(record)
-
-        # Cap history
-        if len(item.completion_history) > COMPLETION_HISTORY_CAP:
-            item.completion_history = item.completion_history[-COMPLETION_HISTORY_CAP:]
 
     async def _async_save(self) -> None:
         await self._store.async_save(self._data)

@@ -159,8 +159,26 @@ export interface TagInfo {
 }
 
 // Home Assistant types (minimal subset)
+export interface HassConnection {
+  /** Subscribe to a WS event stream; resolves to an unsubscribe fn.
+   *  hass.connection re-subscribes automatically after a reconnect. */
+  subscribeMessage: <T>(
+    callback: (msg: T) => void,
+    subscribeMessage: Record<string, unknown>
+  ) => Promise<() => Promise<void>>;
+}
+
 export interface HomeAssistant {
   callWS: <T>(msg: Record<string, unknown>) => Promise<T>;
+  connection?: HassConnection;
   user: { id: string; name: string; is_admin: boolean };
   states: Record<string, { state: string; attributes: Record<string, unknown> }>;
+}
+
+/** Fields captured from an item before completing it, so UNDO can restore
+ *  exactly the pre-completion state (status/due/deferred_until). */
+export interface UncompletePrior {
+  status?: string;
+  due?: string | null;
+  deferred_until?: string | null;
 }

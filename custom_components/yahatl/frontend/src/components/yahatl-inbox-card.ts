@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sharedStyles, primaryTrait, TRAIT_ICONS, TRAIT_RGB } from "../styles";
-import { store, StoreController } from "../store";
+import { store, StoreController, renderStoreError } from "../store";
 import { openItemEditor } from "../dialog";
 import type { HomeAssistant, YahtlItemSummary } from "../types";
 
@@ -83,8 +83,12 @@ export class YahtlInboxCard extends LitElement {
     this._config = config;
   }
 
+  static getConfigElement(): HTMLElement {
+    return document.createElement("yahatl-inbox-card-editor");
+  }
+
   static getStubConfig(): Record<string, unknown> {
-    return {};
+    return { title: "Inbox" };
   }
 
   updated(changed: Map<string, unknown>) {
@@ -107,10 +111,13 @@ export class YahtlInboxCard extends LitElement {
 
   private _getInboxItems(): { entityId: string; item: YahtlItemSummary }[] {
     const result: { entityId: string; item: YahtlItemSummary }[] = [];
-    for (const [entityId, items] of this._store.state.items) {
+    // Filtered fetches live in the store's separate filtered cache (keyed by
+    // entity + filter signature), so read them back with the same filters.
+    for (const list of this._store.state.lists) {
+      const items = store.getCachedItems(list.entity_id, { needs_detail: true });
       for (const item of items) {
         if (item.needs_detail) {
-          result.push({ entityId, item });
+          result.push({ entityId: list.entity_id, item });
         }
       }
     }
@@ -118,13 +125,15 @@ export class YahtlInboxCard extends LitElement {
   }
 
   render() {
+    const title = String(this._config.title || "Inbox");
     const inbox = this._getInboxItems();
     const count = inbox.length;
 
     if (count === 0) {
       return html`
         <ha-card>
-          <div class="card-header">Inbox</div>
+          <div class="card-header">${title}</div>
+          ${renderStoreError()}
           <div class="empty-state">All caught up — nothing needs detail</div>
         </ha-card>
       `;
@@ -133,15 +142,16 @@ export class YahtlInboxCard extends LitElement {
     const idx = Math.min(this._currentIdx, count - 1);
     const current = inbox[idx];
     const trait = primaryTrait(current.item.traits);
-    const traitRgb = trait ? TRAIT_RGB[trait] : "var(--rgb-primary-color)";
+    const traitRgb = trait ? TRAIT_RGB[trait] : "var(--yahatl-rgb-primary)";
     const traitIcon = trait ? TRAIT_ICONS[trait] : "mdi:tray-full";
 
     return html`
       <ha-card>
         <div class="inbox-header">
-          <span class="inbox-header__title">Inbox</span>
+          <span class="inbox-header__title">${title}</span>
           <span class="inbox-count">${idx + 1} of ${count}</span>
         </div>
+        ${renderStoreError()}
 
         <div class="inbox-item">
           <div class="inbox-title-row">
@@ -204,12 +214,52 @@ export class YahtlInboxCard extends LitElement {
   }
 
   private async _markDone(entityId: string, itemId: string) {
-    await store.saveItem(entityId, itemId, { needs_detail: false });
-    await this._loadInbox();
+    const ok = await store.saveItem(entityId, itemId, { needs_detail: false });
+    if (ok) await this._loadInbox();
   }
 
   getCardSize() {
     return 3;
+  }
+}
+
+/** Config editor: the inbox card only reads `title` (it scans every yahatl
+ *  list for needs-detail items on its own). */
+@customElement("yahatl-inbox-card-editor")
+export class YahtlInboxCardEditor extends LitElement {
+  @property({ attribute: false }) hass!: HomeAssistant;
+  @state() private _config: Record<string, unknown> = {};
+
+  private static readonly _schema = [
+    { name: "title", selector: { text: {} } },
+  ];
+
+  setConfig(config: Record<string, unknown>) {
+    this._config = config;
+  }
+
+  render() {
+    if (!this.hass) return nothing;
+    return html`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${YahtlInboxCardEditor._schema}
+        .computeLabel=${(s: { name: string }) =>
+          s.name === "title" ? "Card title" : s.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    `;
+  }
+
+  private _valueChanged(ev: CustomEvent) {
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: ev.detail.value },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 }
 

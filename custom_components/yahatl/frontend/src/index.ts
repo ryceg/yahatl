@@ -8,3 +8,4 @@ export { YahtlStatsCard } from "./components/yahatl-stats-card";
 export { YahtlQuickAdd } from "./components/yahatl-quick-add";
 export { YahtlInboxCard } from "./components/yahatl-inbox-card";
 export { YahtlManageCard } from "./components/yahatl-manage-card";
+export { YahtlSnackbar } from "./components/yahatl-snackbar";

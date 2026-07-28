@@ -7,6 +7,7 @@ import type {
   ContextOverride,
   MetaConfig,
   TagInfo,
+  UncompletePrior,
 } from "./types";
 
 export class YahtlApi {
@@ -96,6 +97,21 @@ export class YahtlApi {
       entity_id: entityId,
       item_id: itemId,
       user_id: this.userId,
+    });
+  }
+
+  /** Undo a completion: restore the item to its pre-completion state.
+   *  `prior` holds the status/due/deferred_until captured BEFORE completing. */
+  async uncompleteItem(
+    entityId: string,
+    itemId: string,
+    prior: UncompletePrior
+  ): Promise<YahtlItem> {
+    return this.hass.callWS({
+      type: "yahatl/item_uncomplete",
+      entity_id: entityId,
+      item_id: itemId,
+      prior,
     });
   }
 

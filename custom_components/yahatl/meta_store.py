@@ -8,9 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN
+from .const import DOMAIN, SIGNAL_YAHATL_UPDATED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,6 +97,9 @@ class MetaStore:
     async def async_save(self, data: MetaConfig) -> None:
         self._data = data
         await self._store.async_save(data.to_dict())
+        # Same choke-point dispatch as YahtlStore; "meta" is the agreed
+        # payload for meta-config (contexts/locations) changes.
+        async_dispatcher_send(self._hass, SIGNAL_YAHATL_UPDATED, "meta")
 
     async def _async_migrate_legacy(self) -> dict | None:
         """Import the old ``.storage/yahatl_meta.json`` file exactly once."""

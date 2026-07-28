@@ -10,17 +10,19 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError, HomeAssistantError
+from homeassistant.loader import async_get_integration
 
 from .const import CONF_LIST_NAME, CONF_STORAGE_KEY, DOMAIN
 from .coordinator import YahtlCoordinator
 from .meta_store import MetaStore
 from .models import YahtlList
-from .services import async_setup_services, async_unload_services
+from .services import async_setup_services
 from .store import YahtlStore
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.TODO, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.TODO, Platform.SENSOR, Platform.CALENDAR]
 
 FRONTEND_BUNDLE = "yahatl.js"
 FRONTEND_URL = f"/{DOMAIN}/{FRONTEND_BUNDLE}"
@@ -55,14 +57,12 @@ async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
     the file on disk changed.
 
     The cache-buster is the bundle's content hash: every rebuild busts
-    browser caches even when manifest VERSION is unchanged, and an
+    browser caches even when the manifest version is unchanged, and an
     unchanged rebuild keeps the same URL so the cache stays warm.
 
     A lock serialises the entry setups HA runs concurrently, and a cached
     last-synced URL makes repeat calls for the same hash a no-op.
     """
-    from .const import VERSION
-
     bundle_path = hass.config.path(
         f"custom_components/{DOMAIN}/www/{FRONTEND_BUNDLE}"
     )
@@ -71,7 +71,9 @@ async def _async_sync_lovelace_resource(hass: HomeAssistant) -> None:
             await hass.async_add_executor_job(_read_bytes, bundle_path)
         ).hexdigest()[:8]
     except OSError:
-        digest = VERSION
+        # Bundle unreadable: fall back to the manifest version (loader has it
+        # cached; no blocking file I/O at import time).
+        digest = (await async_get_integration(hass, DOMAIN)).version
     resource_url = f"{FRONTEND_URL}?v={digest}"
 
     lock: asyncio.Lock = hass.data[DOMAIN].setdefault(
@@ -155,13 +157,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: YahtlConfigEntry) -> boo
     list_name = entry.data[CONF_LIST_NAME]
     store = YahtlStore(hass, storage_key)
 
-    data = await store.async_load()
+    try:
+        data = await store.async_load()
+    except HomeAssistantError as err:
+        # A store (or legacy) file exists but can't be parsed. Fail setup
+        # permanently and visibly rather than overwriting a recoverable file.
+        raise ConfigEntryError(str(err)) from err
     if data is None:
+        # Genuinely no store file and no legacy file: start a fresh list.
         data = YahtlList(list_id=storage_key, name=list_name)
         await store.async_save(data)
 
     coordinator = YahtlCoordinator(hass, entry, store)
     entry.runtime_data = YahtlRuntimeData(store=store, data=data, coordinator=coordinator)
+
+    # Reload on options changes (e.g. retention_days) so they take effect.
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     # Compute the first snapshot before entities are added so sensors render
     # populated immediately (and the entry retries if the queue engine fails).
@@ -174,6 +185,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: YahtlConfigEntry) -> boo
     # this per-entry call is what makes a no-restart rebuild reach the browser.
     await _async_sync_lovelace_resource(hass)
     return True
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: YahtlConfigEntry) -> None:
+    """Reload the entry when its options (or reconfigured data) change."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: YahtlConfigEntry) -> bool:

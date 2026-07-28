@@ -172,6 +172,9 @@ class YahtlQueueSensor(_YahtlBaseSensor):
     """
 
     _attr_icon = "mdi:format-list-numbered"
+    # Keep the heavy queue/upcoming payloads out of the recorder DB — the live
+    # attributes still work for cards; only history recording excludes them.
+    _unrecorded_attributes = frozenset({"queue", "upcoming"})
 
     def __init__(self, coordinator, data, storage_key):
         super().__init__(coordinator, data, storage_key, "queue")

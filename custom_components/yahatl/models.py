@@ -6,6 +6,21 @@ from datetime import datetime, timedelta
 from typing import Any
 import uuid
 
+from homeassistant.util import dt as dt_util
+
+
+def parse_stored_datetime(value: str) -> datetime:
+    """Parse an ISO datetime string, attaching HA's local tz if it was naive.
+
+    Storage should only ever hold tz-aware values, but legacy items (or an
+    external writer) may carry naive strings; a naive datetime crashes the
+    aware/naive comparisons in queue.py/lead.py, so normalize at the boundary.
+    """
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return parsed
+
 
 @dataclass
 class CompletionRecord:
@@ -26,7 +41,7 @@ class CompletionRecord:
         """Create from dictionary."""
         return cls(
             user_id=data["user_id"],
-            timestamp=datetime.fromisoformat(data["timestamp"]),
+            timestamp=parse_stored_datetime(data["timestamp"]),
         )
 
 
@@ -320,7 +335,7 @@ class YahtlItem:
     completion_history: list[CompletionRecord] = field(default_factory=list)
     current_streak: int = 0
     last_completed: datetime | None = None  # For streak and elapsed tracking
-    created_at: datetime = field(default_factory=datetime.now)
+    created_at: datetime = field(default_factory=dt_util.now)
     created_by: str = ""
 
     @classmethod
@@ -330,7 +345,7 @@ class YahtlItem:
             uid=str(uuid.uuid4()),
             title=title,
             created_by=created_by,
-            created_at=datetime.now(),
+            created_at=dt_util.now(),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -376,7 +391,7 @@ class YahtlItem:
             tags=data.get("tags", []),
             status=data.get("status", "pending"),
             needs_detail=data.get("needs_detail", False),
-            due=datetime.fromisoformat(data["due"]) if data.get("due") else None,
+            due=parse_stored_datetime(data["due"]) if data.get("due") else None,
             time_estimate=data.get("time_estimate"),
             buffer_before=data.get("buffer_before", 0),
             buffer_after=data.get("buffer_after", 0),
@@ -392,8 +407,8 @@ class YahtlItem:
                 TimeBlockerConfig.from_dict(tb)
                 for tb in data.get("time_blockers", [])
             ],
-            deferred_until=datetime.fromisoformat(data["deferred_until"]) if data.get("deferred_until") else None,
-            notified_due=datetime.fromisoformat(data["notified_due"]) if data.get("notified_due") else None,
+            deferred_until=parse_stored_datetime(data["deferred_until"]) if data.get("deferred_until") else None,
+            notified_due=parse_stored_datetime(data["notified_due"]) if data.get("notified_due") else None,
             priority=data.get("priority"),
             project=data.get("project"),
             assigned_to=data.get("assigned_to", []),
@@ -402,8 +417,8 @@ class YahtlItem:
                 for r in data.get("completion_history", [])
             ],
             current_streak=data.get("current_streak", 0),
-            last_completed=datetime.fromisoformat(data["last_completed"]) if data.get("last_completed") else None,
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
+            last_completed=parse_stored_datetime(data["last_completed"]) if data.get("last_completed") else None,
+            created_at=parse_stored_datetime(data["created_at"]) if data.get("created_at") else dt_util.now(),
             created_by=data.get("created_by", ""),
         )
 
@@ -506,7 +521,7 @@ class ContextOverride:
     location: str | None = None
     people: list[str] = field(default_factory=list)
     contexts: list[str] = field(default_factory=list)
-    updated_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=dt_util.now)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -524,5 +539,5 @@ class ContextOverride:
             location=data.get("location"),
             people=data.get("people", []),
             contexts=data.get("contexts", []),
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.now(),
+            updated_at=parse_stored_datetime(data["updated_at"]) if data.get("updated_at") else dt_util.now(),
         )

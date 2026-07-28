@@ -3,18 +3,18 @@
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const rt = globalThis, yt = rt.ShadowRoot && (rt.ShadyCSS === void 0 || rt.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, ft = Symbol(), wt = /* @__PURE__ */ new WeakMap();
-let Ot = class {
+const _t = globalThis, zt = _t.ShadowRoot && (_t.ShadyCSS === void 0 || _t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Dt = Symbol(), Mt = /* @__PURE__ */ new WeakMap();
+let ie = class {
   constructor(t, i, s) {
-    if (this._$cssResult$ = !0, s !== ft) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, s !== Dt) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = t, this.t = i;
   }
   get styleSheet() {
     let t = this.o;
     const i = this.t;
-    if (yt && t === void 0) {
+    if (zt && t === void 0) {
       const s = i !== void 0 && i.length === 1;
-      s && (t = wt.get(i)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && wt.set(i, t));
+      s && (t = Mt.get(i)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && Mt.set(i, t));
     }
     return t;
   }
@@ -22,33 +22,33 @@ let Ot = class {
     return this.cssText;
   }
 };
-const Ut = (e) => new Ot(typeof e == "string" ? e : e + "", void 0, ft), C = (e, ...t) => {
+const de = (e) => new ie(typeof e == "string" ? e : e + "", void 0, Dt), I = (e, ...t) => {
   const i = e.length === 1 ? e[0] : t.reduce((s, a, o) => s + ((r) => {
     if (r._$cssResult$ === !0) return r.cssText;
     if (typeof r == "number") return r;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + r + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(a) + e[o + 1], e[0]);
-  return new Ot(i, e, ft);
-}, Bt = (e, t) => {
-  if (yt) e.adoptedStyleSheets = t.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
+  return new ie(i, e, Dt);
+}, he = (e, t) => {
+  if (zt) e.adoptedStyleSheets = t.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
   else for (const i of t) {
-    const s = document.createElement("style"), a = rt.litNonce;
+    const s = document.createElement("style"), a = _t.litNonce;
     a !== void 0 && s.setAttribute("nonce", a), s.textContent = i.cssText, e.appendChild(s);
   }
-}, $t = yt ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
+}, Rt = zt ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let i = "";
   for (const s of t.cssRules) i += s.cssText;
-  return Ut(i);
+  return de(i);
 })(e) : e;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: Yt, defineProperty: Wt, getOwnPropertyDescriptor: Ft, getOwnPropertyNames: Vt, getOwnPropertySymbols: Qt, getPrototypeOf: Zt } = Object, L = globalThis, kt = L.trustedTypes, Gt = kt ? kt.emptyScript : "", ut = L.reactiveElementPolyfillSupport, G = (e, t) => e, ot = { toAttribute(e, t) {
+const { is: pe, defineProperty: ue, getOwnPropertyDescriptor: ge, getOwnPropertyNames: me, getOwnPropertySymbols: _e, getPrototypeOf: be } = Object, q = globalThis, jt = q.trustedTypes, fe = jt ? jt.emptyScript : "", Ct = q.reactiveElementPolyfillSupport, dt = (e, t) => e, bt = { toAttribute(e, t) {
   switch (t) {
     case Boolean:
-      e = e ? Gt : null;
+      e = e ? fe : null;
       break;
     case Object:
     case Array:
@@ -73,23 +73,23 @@ const { is: Yt, defineProperty: Wt, getOwnPropertyDescriptor: Ft, getOwnProperty
       }
   }
   return i;
-} }, vt = (e, t) => !Yt(e, t), Ct = { attribute: !0, type: String, converter: ot, reflect: !1, useDefault: !1, hasChanged: vt };
-Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), L.litPropertyMetadata ?? (L.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
-let B = class extends HTMLElement {
+} }, Lt = (e, t) => !pe(e, t), Ht = { attribute: !0, type: String, converter: bt, reflect: !1, useDefault: !1, hasChanged: Lt };
+Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), q.litPropertyMetadata ?? (q.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
+let V = class extends HTMLElement {
   static addInitializer(t) {
     this._$Ei(), (this.l ?? (this.l = [])).push(t);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(t, i = Ct) {
+  static createProperty(t, i = Ht) {
     if (i.state && (i.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(t) && ((i = Object.create(i)).wrapped = !0), this.elementProperties.set(t, i), !i.noAccessor) {
       const s = Symbol(), a = this.getPropertyDescriptor(t, s, i);
-      a !== void 0 && Wt(this.prototype, t, a);
+      a !== void 0 && ue(this.prototype, t, a);
     }
   }
   static getPropertyDescriptor(t, i, s) {
-    const { get: a, set: o } = Ft(this.prototype, t) ?? { get() {
+    const { get: a, set: o } = ge(this.prototype, t) ?? { get() {
       return this[i];
     }, set(r) {
       this[i] = r;
@@ -100,17 +100,17 @@ let B = class extends HTMLElement {
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(t) {
-    return this.elementProperties.get(t) ?? Ct;
+    return this.elementProperties.get(t) ?? Ht;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(G("elementProperties"))) return;
-    const t = Zt(this);
+    if (this.hasOwnProperty(dt("elementProperties"))) return;
+    const t = be(this);
     t.finalize(), t.l !== void 0 && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(G("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(G("properties"))) {
-      const i = this.properties, s = [...Vt(i), ...Qt(i)];
+    if (this.hasOwnProperty(dt("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(dt("properties"))) {
+      const i = this.properties, s = [...me(i), ..._e(i)];
       for (const a of s) this.createProperty(a, i[a]);
     }
     const t = this[Symbol.metadata];
@@ -129,8 +129,8 @@ let B = class extends HTMLElement {
     const i = [];
     if (Array.isArray(t)) {
       const s = new Set(t.flat(1 / 0).reverse());
-      for (const a of s) i.unshift($t(a));
-    } else t !== void 0 && i.push($t(t));
+      for (const a of s) i.unshift(Rt(a));
+    } else t !== void 0 && i.push(Rt(t));
     return i;
   }
   static _$Eu(t, i) {
@@ -159,7 +159,7 @@ let B = class extends HTMLElement {
   }
   createRenderRoot() {
     const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Bt(t, this.constructor.elementStyles), t;
+    return he(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
     var t;
@@ -184,7 +184,7 @@ let B = class extends HTMLElement {
     var o;
     const s = this.constructor.elementProperties.get(t), a = this.constructor._$Eu(t, s);
     if (a !== void 0 && s.reflect === !0) {
-      const r = (((o = s.converter) == null ? void 0 : o.toAttribute) !== void 0 ? s.converter : ot).toAttribute(i, s.type);
+      const r = (((o = s.converter) == null ? void 0 : o.toAttribute) !== void 0 ? s.converter : bt).toAttribute(i, s.type);
       this._$Em = t, r == null ? this.removeAttribute(a) : this.setAttribute(a, r), this._$Em = null;
     }
   }
@@ -192,9 +192,9 @@ let B = class extends HTMLElement {
     var o, r;
     const s = this.constructor, a = s._$Eh.get(t);
     if (a !== void 0 && this._$Em !== a) {
-      const l = s.getPropertyOptions(a), d = typeof l.converter == "function" ? { fromAttribute: l.converter } : ((o = l.converter) == null ? void 0 : o.fromAttribute) !== void 0 ? l.converter : ot;
+      const l = s.getPropertyOptions(a), c = typeof l.converter == "function" ? { fromAttribute: l.converter } : ((o = l.converter) == null ? void 0 : o.fromAttribute) !== void 0 ? l.converter : bt;
       this._$Em = a;
-      const p = d.fromAttribute(i, l.type);
+      const p = c.fromAttribute(i, l.type);
       this[a] = p ?? ((r = this._$Ej) == null ? void 0 : r.get(a)) ?? p, this._$Em = null;
     }
   }
@@ -202,7 +202,7 @@ let B = class extends HTMLElement {
     var r;
     if (t !== void 0) {
       const l = this.constructor;
-      if (a === !1 && (o = this[t]), s ?? (s = l.getPropertyOptions(t)), !((s.hasChanged ?? vt)(o, i) || s.useDefault && s.reflect && o === ((r = this._$Ej) == null ? void 0 : r.get(t)) && !this.hasAttribute(l._$Eu(t, s)))) return;
+      if (a === !1 && (o = this[t]), s ?? (s = l.getPropertyOptions(t)), !((s.hasChanged ?? Lt)(o, i) || s.useDefault && s.reflect && o === ((r = this._$Ej) == null ? void 0 : r.get(t)) && !this.hasAttribute(l._$Eu(t, s)))) return;
       this.C(t, i, s);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
@@ -233,8 +233,8 @@ let B = class extends HTMLElement {
       }
       const a = this.constructor.elementProperties;
       if (a.size > 0) for (const [o, r] of a) {
-        const { wrapped: l } = r, d = this[o];
-        l !== !0 || this._$AL.has(o) || d === void 0 || this.C(o, void 0, r, d);
+        const { wrapped: l } = r, c = this[o];
+        l !== !0 || this._$AL.has(o) || c === void 0 || this.C(o, void 0, r, c);
       }
     }
     let t = !1;
@@ -278,76 +278,76 @@ let B = class extends HTMLElement {
   firstUpdated(t) {
   }
 };
-B.elementStyles = [], B.shadowRootOptions = { mode: "open" }, B[G("elementProperties")] = /* @__PURE__ */ new Map(), B[G("finalized")] = /* @__PURE__ */ new Map(), ut == null || ut({ ReactiveElement: B }), (L.reactiveElementVersions ?? (L.reactiveElementVersions = [])).push("2.1.2");
+V.elementStyles = [], V.shadowRootOptions = { mode: "open" }, V[dt("elementProperties")] = /* @__PURE__ */ new Map(), V[dt("finalized")] = /* @__PURE__ */ new Map(), Ct == null || Ct({ ReactiveElement: V }), (q.reactiveElementVersions ?? (q.reactiveElementVersions = [])).push("2.1.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const X = globalThis, At = (e) => e, nt = X.trustedTypes, St = nt ? nt.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Nt = "$lit$", z = `lit$${Math.random().toFixed(9).slice(2)}$`, Pt = "?" + z, Xt = `<${Pt}>`, R = document, K = () => R.createComment(""), J = (e) => e === null || typeof e != "object" && typeof e != "function", xt = Array.isArray, Kt = (e) => xt(e) || typeof (e == null ? void 0 : e[Symbol.iterator]) == "function", gt = `[ 	
-\f\r]`, Q = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Tt = /-->/g, Et = />/g, N = RegExp(`>|${gt}(?:([^\\s"'>=/]+)(${gt}*=${gt}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), It = /'/g, Dt = /"/g, Mt = /^(?:script|style|textarea|title)$/i, Jt = (e) => (t, ...i) => ({ _$litType$: e, strings: t, values: i }), n = Jt(1), Y = Symbol.for("lit-noChange"), c = Symbol.for("lit-nothing"), zt = /* @__PURE__ */ new WeakMap(), P = R.createTreeWalker(R, 129);
-function Rt(e, t) {
-  if (!xt(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return St !== void 0 ? St.createHTML(t) : t;
+const ht = globalThis, Ut = (e) => e, ft = ht.trustedTypes, Yt = ft ? ft.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, se = "$lit$", P = `lit$${Math.random().toFixed(9).slice(2)}$`, ae = "?" + P, ye = `<${ae}>`, U = document, pt = () => U.createComment(""), ut = (e) => e === null || typeof e != "object" && typeof e != "function", Ot = Array.isArray, ve = (e) => Ot(e) || typeof (e == null ? void 0 : e[Symbol.iterator]) == "function", At = `[ 	
+\f\r]`, ot = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Bt = /-->/g, Ft = />/g, M = RegExp(`>|${At}(?:([^\\s"'>=/]+)(${At}*=${At}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), Wt = /'/g, Qt = /"/g, re = /^(?:script|style|textarea|title)$/i, xe = (e) => (t, ...i) => ({ _$litType$: e, strings: t, values: i }), n = xe(1), Y = Symbol.for("lit-noChange"), d = Symbol.for("lit-nothing"), Vt = /* @__PURE__ */ new WeakMap(), j = U.createTreeWalker(U, 129);
+function oe(e, t) {
+  if (!Ot(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return Yt !== void 0 ? Yt.createHTML(t) : t;
 }
-const te = (e, t) => {
+const $e = (e, t) => {
   const i = e.length - 1, s = [];
-  let a, o = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", r = Q;
+  let a, o = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", r = ot;
   for (let l = 0; l < i; l++) {
-    const d = e[l];
-    let p, h, m = -1, T = 0;
-    for (; T < d.length && (r.lastIndex = T, h = r.exec(d), h !== null); ) T = r.lastIndex, r === Q ? h[1] === "!--" ? r = Tt : h[1] !== void 0 ? r = Et : h[2] !== void 0 ? (Mt.test(h[2]) && (a = RegExp("</" + h[2], "g")), r = N) : h[3] !== void 0 && (r = N) : r === N ? h[0] === ">" ? (r = a ?? Q, m = -1) : h[1] === void 0 ? m = -2 : (m = r.lastIndex - h[2].length, p = h[1], r = h[3] === void 0 ? N : h[3] === '"' ? Dt : It) : r === Dt || r === It ? r = N : r === Tt || r === Et ? r = Q : (r = N, a = void 0);
-    const D = r === N && e[l + 1].startsWith("/>") ? " " : "";
-    o += r === Q ? d + Xt : m >= 0 ? (s.push(p), d.slice(0, m) + Nt + d.slice(m) + z + D) : d + z + (m === -2 ? l : D);
+    const c = e[l];
+    let p, h, m = -1, _ = 0;
+    for (; _ < c.length && (r.lastIndex = _, h = r.exec(c), h !== null); ) _ = r.lastIndex, r === ot ? h[1] === "!--" ? r = Bt : h[1] !== void 0 ? r = Ft : h[2] !== void 0 ? (re.test(h[2]) && (a = RegExp("</" + h[2], "g")), r = M) : h[3] !== void 0 && (r = M) : r === M ? h[0] === ">" ? (r = a ?? ot, m = -1) : h[1] === void 0 ? m = -2 : (m = r.lastIndex - h[2].length, p = h[1], r = h[3] === void 0 ? M : h[3] === '"' ? Qt : Wt) : r === Qt || r === Wt ? r = M : r === Bt || r === Ft ? r = ot : (r = M, a = void 0);
+    const b = r === M && e[l + 1].startsWith("/>") ? " " : "";
+    o += r === ot ? c + ye : m >= 0 ? (s.push(p), c.slice(0, m) + se + c.slice(m) + P + b) : c + P + (m === -2 ? l : b);
   }
-  return [Rt(e, o + (e[i] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), s];
+  return [oe(e, o + (e[i] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), s];
 };
-class tt {
+class gt {
   constructor({ strings: t, _$litType$: i }, s) {
     let a;
     this.parts = [];
     let o = 0, r = 0;
-    const l = t.length - 1, d = this.parts, [p, h] = te(t, i);
-    if (this.el = tt.createElement(p, s), P.currentNode = this.el.content, i === 2 || i === 3) {
+    const l = t.length - 1, c = this.parts, [p, h] = $e(t, i);
+    if (this.el = gt.createElement(p, s), j.currentNode = this.el.content, i === 2 || i === 3) {
       const m = this.el.content.firstChild;
       m.replaceWith(...m.childNodes);
     }
-    for (; (a = P.nextNode()) !== null && d.length < l; ) {
+    for (; (a = j.nextNode()) !== null && c.length < l; ) {
       if (a.nodeType === 1) {
-        if (a.hasAttributes()) for (const m of a.getAttributeNames()) if (m.endsWith(Nt)) {
-          const T = h[r++], D = a.getAttribute(m).split(z), at = /([.?@])?(.*)/.exec(T);
-          d.push({ type: 1, index: o, name: at[2], strings: D, ctor: at[1] === "." ? ie : at[1] === "?" ? se : at[1] === "@" ? ae : dt }), a.removeAttribute(m);
-        } else m.startsWith(z) && (d.push({ type: 6, index: o }), a.removeAttribute(m));
-        if (Mt.test(a.tagName)) {
-          const m = a.textContent.split(z), T = m.length - 1;
-          if (T > 0) {
-            a.textContent = nt ? nt.emptyScript : "";
-            for (let D = 0; D < T; D++) a.append(m[D], K()), P.nextNode(), d.push({ type: 2, index: ++o });
-            a.append(m[T], K());
+        if (a.hasAttributes()) for (const m of a.getAttributeNames()) if (m.endsWith(se)) {
+          const _ = h[r++], b = a.getAttribute(m).split(P), v = /([.?@])?(.*)/.exec(_);
+          c.push({ type: 1, index: o, name: v[2], strings: b, ctor: v[1] === "." ? ke : v[1] === "?" ? Ce : v[1] === "@" ? Ae : xt }), a.removeAttribute(m);
+        } else m.startsWith(P) && (c.push({ type: 6, index: o }), a.removeAttribute(m));
+        if (re.test(a.tagName)) {
+          const m = a.textContent.split(P), _ = m.length - 1;
+          if (_ > 0) {
+            a.textContent = ft ? ft.emptyScript : "";
+            for (let b = 0; b < _; b++) a.append(m[b], pt()), j.nextNode(), c.push({ type: 2, index: ++o });
+            a.append(m[_], pt());
           }
         }
-      } else if (a.nodeType === 8) if (a.data === Pt) d.push({ type: 2, index: o });
+      } else if (a.nodeType === 8) if (a.data === ae) c.push({ type: 2, index: o });
       else {
         let m = -1;
-        for (; (m = a.data.indexOf(z, m + 1)) !== -1; ) d.push({ type: 7, index: o }), m += z.length - 1;
+        for (; (m = a.data.indexOf(P, m + 1)) !== -1; ) c.push({ type: 7, index: o }), m += P.length - 1;
       }
       o++;
     }
   }
   static createElement(t, i) {
-    const s = R.createElement("template");
+    const s = U.createElement("template");
     return s.innerHTML = t, s;
   }
 }
-function W(e, t, i = e, s) {
+function Z(e, t, i = e, s) {
   var r, l;
   if (t === Y) return t;
   let a = s !== void 0 ? (r = i._$Co) == null ? void 0 : r[s] : i._$Cl;
-  const o = J(t) ? void 0 : t._$litDirective$;
-  return (a == null ? void 0 : a.constructor) !== o && ((l = a == null ? void 0 : a._$AO) == null || l.call(a, !1), o === void 0 ? a = void 0 : (a = new o(e), a._$AT(e, i, s)), s !== void 0 ? (i._$Co ?? (i._$Co = []))[s] = a : i._$Cl = a), a !== void 0 && (t = W(e, a._$AS(e, t.values), a, s)), t;
+  const o = ut(t) ? void 0 : t._$litDirective$;
+  return (a == null ? void 0 : a.constructor) !== o && ((l = a == null ? void 0 : a._$AO) == null || l.call(a, !1), o === void 0 ? a = void 0 : (a = new o(e), a._$AT(e, i, s)), s !== void 0 ? (i._$Co ?? (i._$Co = []))[s] = a : i._$Cl = a), a !== void 0 && (t = Z(e, a._$AS(e, t.values), a, s)), t;
 }
-class ee {
+class we {
   constructor(t, i) {
     this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = i;
   }
@@ -358,30 +358,30 @@ class ee {
     return this._$AM._$AU;
   }
   u(t) {
-    const { el: { content: i }, parts: s } = this._$AD, a = ((t == null ? void 0 : t.creationScope) ?? R).importNode(i, !0);
-    P.currentNode = a;
-    let o = P.nextNode(), r = 0, l = 0, d = s[0];
-    for (; d !== void 0; ) {
-      if (r === d.index) {
+    const { el: { content: i }, parts: s } = this._$AD, a = ((t == null ? void 0 : t.creationScope) ?? U).importNode(i, !0);
+    j.currentNode = a;
+    let o = j.nextNode(), r = 0, l = 0, c = s[0];
+    for (; c !== void 0; ) {
+      if (r === c.index) {
         let p;
-        d.type === 2 ? p = new it(o, o.nextSibling, this, t) : d.type === 1 ? p = new d.ctor(o, d.name, d.strings, this, t) : d.type === 6 && (p = new re(o, this, t)), this._$AV.push(p), d = s[++l];
+        c.type === 2 ? p = new rt(o, o.nextSibling, this, t) : c.type === 1 ? p = new c.ctor(o, c.name, c.strings, this, t) : c.type === 6 && (p = new Ee(o, this, t)), this._$AV.push(p), c = s[++l];
       }
-      r !== (d == null ? void 0 : d.index) && (o = P.nextNode(), r++);
+      r !== (c == null ? void 0 : c.index) && (o = j.nextNode(), r++);
     }
-    return P.currentNode = R, a;
+    return j.currentNode = U, a;
   }
   p(t) {
     let i = 0;
     for (const s of this._$AV) s !== void 0 && (s.strings !== void 0 ? (s._$AI(t, s, i), i += s.strings.length - 2) : s._$AI(t[i])), i++;
   }
 }
-class it {
+class rt {
   get _$AU() {
     var t;
     return ((t = this._$AM) == null ? void 0 : t._$AU) ?? this._$Cv;
   }
   constructor(t, i, s, a) {
-    this.type = 2, this._$AH = c, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = a, this._$Cv = (a == null ? void 0 : a.isConnected) ?? !0;
+    this.type = 2, this._$AH = d, this._$AN = void 0, this._$AA = t, this._$AB = i, this._$AM = s, this.options = a, this._$Cv = (a == null ? void 0 : a.isConnected) ?? !0;
   }
   get parentNode() {
     let t = this._$AA.parentNode;
@@ -395,7 +395,7 @@ class it {
     return this._$AB;
   }
   _$AI(t, i = this) {
-    t = W(this, t, i), J(t) ? t === c || t == null || t === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : t !== this._$AH && t !== Y && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Kt(t) ? this.k(t) : this._(t);
+    t = Z(this, t, i), ut(t) ? t === d || t == null || t === "" ? (this._$AH !== d && this._$AR(), this._$AH = d) : t !== this._$AH && t !== Y && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : ve(t) ? this.k(t) : this._(t);
   }
   O(t) {
     return this._$AA.parentNode.insertBefore(t, this._$AB);
@@ -404,33 +404,33 @@ class it {
     this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== c && J(this._$AH) ? this._$AA.nextSibling.data = t : this.T(R.createTextNode(t)), this._$AH = t;
+    this._$AH !== d && ut(this._$AH) ? this._$AA.nextSibling.data = t : this.T(U.createTextNode(t)), this._$AH = t;
   }
   $(t) {
     var o;
-    const { values: i, _$litType$: s } = t, a = typeof s == "number" ? this._$AC(t) : (s.el === void 0 && (s.el = tt.createElement(Rt(s.h, s.h[0]), this.options)), s);
+    const { values: i, _$litType$: s } = t, a = typeof s == "number" ? this._$AC(t) : (s.el === void 0 && (s.el = gt.createElement(oe(s.h, s.h[0]), this.options)), s);
     if (((o = this._$AH) == null ? void 0 : o._$AD) === a) this._$AH.p(i);
     else {
-      const r = new ee(a, this), l = r.u(this.options);
+      const r = new we(a, this), l = r.u(this.options);
       r.p(i), this.T(l), this._$AH = r;
     }
   }
   _$AC(t) {
-    let i = zt.get(t.strings);
-    return i === void 0 && zt.set(t.strings, i = new tt(t)), i;
+    let i = Vt.get(t.strings);
+    return i === void 0 && Vt.set(t.strings, i = new gt(t)), i;
   }
   k(t) {
-    xt(this._$AH) || (this._$AH = [], this._$AR());
+    Ot(this._$AH) || (this._$AH = [], this._$AR());
     const i = this._$AH;
     let s, a = 0;
-    for (const o of t) a === i.length ? i.push(s = new it(this.O(K()), this.O(K()), this, this.options)) : s = i[a], s._$AI(o), a++;
+    for (const o of t) a === i.length ? i.push(s = new rt(this.O(pt()), this.O(pt()), this, this.options)) : s = i[a], s._$AI(o), a++;
     a < i.length && (this._$AR(s && s._$AB.nextSibling, a), i.length = a);
   }
   _$AR(t = this._$AA.nextSibling, i) {
     var s;
     for ((s = this._$AP) == null ? void 0 : s.call(this, !1, !0, i); t !== this._$AB; ) {
-      const a = At(t).nextSibling;
-      At(t).remove(), t = a;
+      const a = Ut(t).nextSibling;
+      Ut(t).remove(), t = a;
     }
   }
   setConnected(t) {
@@ -438,7 +438,7 @@ class it {
     this._$AM === void 0 && (this._$Cv = t, (i = this._$AP) == null || i.call(this, t));
   }
 }
-class dt {
+class xt {
   get tagName() {
     return this.element.tagName;
   }
@@ -446,46 +446,46 @@ class dt {
     return this._$AM._$AU;
   }
   constructor(t, i, s, a, o) {
-    this.type = 1, this._$AH = c, this._$AN = void 0, this.element = t, this.name = i, this._$AM = a, this.options = o, s.length > 2 || s[0] !== "" || s[1] !== "" ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = c;
+    this.type = 1, this._$AH = d, this._$AN = void 0, this.element = t, this.name = i, this._$AM = a, this.options = o, s.length > 2 || s[0] !== "" || s[1] !== "" ? (this._$AH = Array(s.length - 1).fill(new String()), this.strings = s) : this._$AH = d;
   }
   _$AI(t, i = this, s, a) {
     const o = this.strings;
     let r = !1;
-    if (o === void 0) t = W(this, t, i, 0), r = !J(t) || t !== this._$AH && t !== Y, r && (this._$AH = t);
+    if (o === void 0) t = Z(this, t, i, 0), r = !ut(t) || t !== this._$AH && t !== Y, r && (this._$AH = t);
     else {
       const l = t;
-      let d, p;
-      for (t = o[0], d = 0; d < o.length - 1; d++) p = W(this, l[s + d], i, d), p === Y && (p = this._$AH[d]), r || (r = !J(p) || p !== this._$AH[d]), p === c ? t = c : t !== c && (t += (p ?? "") + o[d + 1]), this._$AH[d] = p;
+      let c, p;
+      for (t = o[0], c = 0; c < o.length - 1; c++) p = Z(this, l[s + c], i, c), p === Y && (p = this._$AH[c]), r || (r = !ut(p) || p !== this._$AH[c]), p === d ? t = d : t !== d && (t += (p ?? "") + o[c + 1]), this._$AH[c] = p;
     }
     r && !a && this.j(t);
   }
   j(t) {
-    t === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
+    t === d ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class ie extends dt {
+class ke extends xt {
   constructor() {
     super(...arguments), this.type = 3;
   }
   j(t) {
-    this.element[this.name] = t === c ? void 0 : t;
+    this.element[this.name] = t === d ? void 0 : t;
   }
 }
-class se extends dt {
+class Ce extends xt {
   constructor() {
     super(...arguments), this.type = 4;
   }
   j(t) {
-    this.element.toggleAttribute(this.name, !!t && t !== c);
+    this.element.toggleAttribute(this.name, !!t && t !== d);
   }
 }
-class ae extends dt {
+class Ae extends xt {
   constructor(t, i, s, a, o) {
     super(t, i, s, a, o), this.type = 5;
   }
   _$AI(t, i = this) {
-    if ((t = W(this, t, i, 0) ?? c) === Y) return;
-    const s = this._$AH, a = t === c && s !== c || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive, o = t !== c && (s === c || a);
+    if ((t = Z(this, t, i, 0) ?? d) === Y) return;
+    const s = this._$AH, a = t === d && s !== d || t.capture !== s.capture || t.once !== s.once || t.passive !== s.passive, o = t !== d && (s === d || a);
     a && this.element.removeEventListener(this.name, this, s), o && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
   handleEvent(t) {
@@ -493,7 +493,7 @@ class ae extends dt {
     typeof this._$AH == "function" ? this._$AH.call(((i = this.options) == null ? void 0 : i.host) ?? this.element, t) : this._$AH.handleEvent(t);
   }
 }
-class re {
+class Ee {
   constructor(t, i, s) {
     this.element = t, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
   }
@@ -501,17 +501,17 @@ class re {
     return this._$AM._$AU;
   }
   _$AI(t) {
-    W(this, t);
+    Z(this, t);
   }
 }
-const mt = X.litHtmlPolyfillSupport;
-mt == null || mt(tt, it), (X.litHtmlVersions ?? (X.litHtmlVersions = [])).push("3.3.2");
-const oe = (e, t, i) => {
+const Ie = { I: rt }, Et = ht.litHtmlPolyfillSupport;
+Et == null || Et(gt, rt), (ht.litHtmlVersions ?? (ht.litHtmlVersions = [])).push("3.3.2");
+const Se = (e, t, i) => {
   const s = (i == null ? void 0 : i.renderBefore) ?? t;
   let a = s._$litPart$;
   if (a === void 0) {
     const o = (i == null ? void 0 : i.renderBefore) ?? null;
-    s._$litPart$ = a = new it(t.insertBefore(K(), o), o, void 0, i ?? {});
+    s._$litPart$ = a = new rt(t.insertBefore(pt(), o), o, void 0, i ?? {});
   }
   return a._$AI(e), a;
 };
@@ -520,8 +520,8 @@ const oe = (e, t, i) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const M = globalThis;
-class y extends B {
+const H = globalThis;
+let f = class extends V {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -532,7 +532,7 @@ class y extends B {
   }
   update(t) {
     const i = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = oe(i, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = Se(i, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     var t;
@@ -545,18 +545,18 @@ class y extends B {
   render() {
     return Y;
   }
-}
-var qt;
-y._$litElement$ = !0, y.finalized = !0, (qt = M.litElementHydrateSupport) == null || qt.call(M, { LitElement: y });
-const _t = M.litElementPolyfillSupport;
-_t == null || _t({ LitElement: y });
-(M.litElementVersions ?? (M.litElementVersions = [])).push("4.2.2");
+};
+var ee;
+f._$litElement$ = !0, f.finalized = !0, (ee = H.litElementHydrateSupport) == null || ee.call(H, { LitElement: f });
+const It = H.litElementPolyfillSupport;
+It == null || It({ LitElement: f });
+(H.litElementVersions ?? (H.litElementVersions = [])).push("4.2.2");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const A = (e) => (t, i) => {
+const $ = (e) => (t, i) => {
   i !== void 0 ? i.addInitializer(() => {
     customElements.define(e, t);
   }) : customElements.define(e, t);
@@ -566,14 +566,14 @@ const A = (e) => (t, i) => {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ne = { attribute: !0, type: String, converter: ot, reflect: !1, hasChanged: vt }, le = (e = ne, t, i) => {
+const Te = { attribute: !0, type: String, converter: bt, reflect: !1, hasChanged: Lt }, ze = (e = Te, t, i) => {
   const { kind: s, metadata: a } = i;
   let o = globalThis.litPropertyMetadata.get(a);
   if (o === void 0 && globalThis.litPropertyMetadata.set(a, o = /* @__PURE__ */ new Map()), s === "setter" && ((e = Object.create(e)).wrapped = !0), o.set(i.name, e), s === "accessor") {
     const { name: r } = i;
     return { set(l) {
-      const d = t.get.call(this);
-      t.set.call(this, l), this.requestUpdate(r, d, e, !0, l);
+      const c = t.get.call(this);
+      t.set.call(this, l), this.requestUpdate(r, c, e, !0, l);
     }, init(l) {
       return l !== void 0 && this.C(r, void 0, e, l), l;
     } };
@@ -581,14 +581,14 @@ const ne = { attribute: !0, type: String, converter: ot, reflect: !1, hasChanged
   if (s === "setter") {
     const { name: r } = i;
     return function(l) {
-      const d = this[r];
-      t.call(this, l), this.requestUpdate(r, d, e, !0, l);
+      const c = this[r];
+      t.call(this, l), this.requestUpdate(r, c, e, !0, l);
     };
   }
   throw Error("Unsupported decorator location: " + s);
 };
-function x(e) {
-  return (t, i) => typeof i == "object" ? le(e, t, i) : ((s, a, o) => {
+function w(e) {
+  return (t, i) => typeof i == "object" ? ze(e, t, i) : ((s, a, o) => {
     const r = a.hasOwnProperty(o);
     return a.constructor.createProperty(o, s), r ? Object.getOwnPropertyDescriptor(a, o) : void 0;
   })(e, t, i);
@@ -599,9 +599,114 @@ function x(e) {
  * SPDX-License-Identifier: BSD-3-Clause
  */
 function g(e) {
-  return x({ ...e, state: !0, attribute: !1 });
+  return w({ ...e, state: !0, attribute: !1 });
 }
-const j = {
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const De = { CHILD: 2 }, Le = (e) => (...t) => ({ _$litDirective$: e, values: t });
+let Oe = class {
+  constructor(t) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t, i, s) {
+    this._$Ct = t, this._$AM = i, this._$Ci = s;
+  }
+  _$AS(t, i) {
+    return this.update(t, i);
+  }
+  update(t, i) {
+    return this.render(...i);
+  }
+};
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const { I: Pe } = Ie, Gt = (e) => e, Zt = () => document.createComment(""), nt = (e, t, i) => {
+  var o;
+  const s = e._$AA.parentNode, a = t === void 0 ? e._$AB : t._$AA;
+  if (i === void 0) {
+    const r = s.insertBefore(Zt(), a), l = s.insertBefore(Zt(), a);
+    i = new Pe(r, l, e, e.options);
+  } else {
+    const r = i._$AB.nextSibling, l = i._$AM, c = l !== e;
+    if (c) {
+      let p;
+      (o = i._$AQ) == null || o.call(i, e), i._$AM = e, i._$AP !== void 0 && (p = e._$AU) !== l._$AU && i._$AP(p);
+    }
+    if (r !== a || c) {
+      let p = i._$AA;
+      for (; p !== r; ) {
+        const h = Gt(p).nextSibling;
+        Gt(s).insertBefore(p, a), p = h;
+      }
+    }
+  }
+  return i;
+}, R = (e, t, i = e) => (e._$AI(t, i), e), qe = {}, Ne = (e, t = qe) => e._$AH = t, Me = (e) => e._$AH, St = (e) => {
+  e._$AR(), e._$AA.remove();
+};
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const Kt = (e, t, i) => {
+  const s = /* @__PURE__ */ new Map();
+  for (let a = t; a <= i; a++) s.set(e[a], a);
+  return s;
+}, Re = Le(class extends Oe {
+  constructor(e) {
+    if (super(e), e.type !== De.CHILD) throw Error("repeat() can only be used in text expressions");
+  }
+  dt(e, t, i) {
+    let s;
+    i === void 0 ? i = t : t !== void 0 && (s = t);
+    const a = [], o = [];
+    let r = 0;
+    for (const l of e) a[r] = s ? s(l, r) : r, o[r] = i(l, r), r++;
+    return { values: o, keys: a };
+  }
+  render(e, t, i) {
+    return this.dt(e, t, i).values;
+  }
+  update(e, [t, i, s]) {
+    const a = Me(e), { values: o, keys: r } = this.dt(t, i, s);
+    if (!Array.isArray(a)) return this.ut = r, o;
+    const l = this.ut ?? (this.ut = []), c = [];
+    let p, h, m = 0, _ = a.length - 1, b = 0, v = o.length - 1;
+    for (; m <= _ && b <= v; ) if (a[m] === null) m++;
+    else if (a[_] === null) _--;
+    else if (l[m] === r[b]) c[b] = R(a[m], o[b]), m++, b++;
+    else if (l[_] === r[v]) c[v] = R(a[_], o[v]), _--, v--;
+    else if (l[m] === r[v]) c[v] = R(a[m], o[v]), nt(e, c[v + 1], a[m]), m++, v--;
+    else if (l[_] === r[b]) c[b] = R(a[_], o[b]), nt(e, a[m], a[_]), _--, b++;
+    else if (p === void 0 && (p = Kt(r, b, v), h = Kt(l, m, _)), p.has(l[m])) if (p.has(l[_])) {
+      const L = h.get(r[b]), kt = L !== void 0 ? a[L] : null;
+      if (kt === null) {
+        const Nt = nt(e, a[m]);
+        R(Nt, o[b]), c[b] = Nt;
+      } else c[b] = R(kt, o[b]), nt(e, a[m], kt), a[L] = null;
+      b++;
+    } else St(a[_]), _--;
+    else St(a[m]), m++;
+    for (; b <= v; ) {
+      const L = nt(e, c[v + 1]);
+      R(L, o[b]), c[b++] = L;
+    }
+    for (; m <= _; ) {
+      const L = a[m++];
+      L !== null && St(L);
+    }
+    return this.ut = r, Ne(e, c), Y;
+  }
+}), B = {
   actionable: "mdi:play",
   recurring: "mdi:refresh",
   habit: "mdi:star-four-points",
@@ -611,7 +716,7 @@ const j = {
   someday: "mdi:clock-outline",
   shopping: "mdi:cart",
   gift: "mdi:gift"
-}, F = {
+}, K = {
   actionable: "var(--rgb-blue, 33, 150, 243)",
   recurring: "var(--rgb-deep-purple, 110, 65, 171)",
   habit: "var(--rgb-green, 76, 175, 80)",
@@ -622,12 +727,12 @@ const j = {
   shopping: "var(--rgb-teal, 0, 150, 136)",
   gift: "var(--rgb-amber, 255, 179, 0)"
 };
-function pt(e) {
+function $t(e) {
   for (const t of e)
-    if (t in j) return t;
+    if (t in B) return t;
   return null;
 }
-const E = C`
+const O = I`
   :host {
     /* Mushroom RGB palette fallbacks — HA themes provide these;
        we define fallbacks so cards render correctly outside a theme. */
@@ -653,8 +758,11 @@ const E = C`
     --yahatl-divider: var(--divider-color, rgba(0, 0, 0, 0.08));
     --yahatl-text: var(--primary-text-color, rgb(33, 33, 33));
     --yahatl-text-secondary: var(--secondary-text-color, rgb(114, 114, 114));
-    --rgb-primary-color: var(--rgb-primary-color, 3, 169, 244);
-    --rgb-accent-color: var(--rgb-accent-color, 255, 152, 0);
+    /* Distinct internal names for the HA-provided RGB tokens: a custom
+       property must not reference itself (self-referencing var() is a cycle,
+       invalid at computed-value time), so we alias instead of shadowing. */
+    --yahatl-rgb-primary: var(--rgb-primary-color, 3, 169, 244);
+    --yahatl-rgb-accent: var(--rgb-accent-color, 255, 152, 0);
     color: var(--yahatl-text);
 
     /* Semantic action colors */
@@ -722,8 +830,8 @@ const E = C`
     width: var(--icon-size);
     height: var(--icon-size);
     border-radius: var(--icon-border-radius);
-    background: rgba(var(--rgb-state, var(--rgb-primary-color)), 0.20);
-    color: rgb(var(--rgb-state, var(--rgb-primary-color)));
+    background: rgba(var(--rgb-state, var(--yahatl-rgb-primary)), 0.20);
+    color: rgb(var(--rgb-state, var(--yahatl-rgb-primary)));
     display: grid;
     place-items: center;
     font-size: 18px;
@@ -881,8 +989,8 @@ const E = C`
   .queue-score {
     font-size: 11px;
     font-weight: 700;
-    background: rgba(var(--rgb-primary-color), 0.10);
-    color: rgb(var(--rgb-primary-color));
+    background: rgba(var(--yahatl-rgb-primary), 0.10);
+    color: rgb(var(--yahatl-rgb-primary));
     padding: 3px 8px;
     border-radius: 999px;
     flex-shrink: 0;
@@ -893,8 +1001,8 @@ const E = C`
     border: 0;
     border-radius: 8px;
     padding: 8px 14px;
-    background: rgba(var(--rgb-primary-color), 0.20);
-    color: rgb(var(--rgb-primary-color));
+    background: rgba(var(--yahatl-rgb-primary), 0.20);
+    color: rgb(var(--yahatl-rgb-primary));
     font-weight: 500;
     font-size: 13px;
     cursor: pointer;
@@ -991,7 +1099,7 @@ const E = C`
   .textarea:focus,
   .select:focus {
     outline: none;
-    border-color: rgb(var(--rgb-primary-color));
+    border-color: rgb(var(--yahatl-rgb-primary));
   }
 
   .textarea {
@@ -1073,7 +1181,7 @@ const E = C`
   }
 
   .btn--primary {
-    background: rgb(var(--rgb-primary-color));
+    background: rgb(var(--yahatl-rgb-primary));
     color: white;
   }
 
@@ -1091,12 +1199,58 @@ const E = C`
     opacity: 0.8;
   }
 
+  /* ── Store error banner (dismissible, rendered via renderStoreError) ── */
+  .store-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 16px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(var(--rgb-danger), 0.12);
+    color: rgb(var(--rgb-danger));
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .store-error ha-icon {
+    --mdc-icon-size: 18px;
+    flex: none;
+  }
+
+  .store-error__msg {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .store-error__dismiss {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 4px;
+    flex: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* ── Empty state ── */
   .empty-state {
     padding: 24px 16px;
     text-align: center;
     color: var(--yahatl-text-secondary);
     font-size: 15px;
+  }
+
+  /* ── Keyboard focus ── */
+  /* Divs promoted to role="button" (and real buttons) get a visible focus
+     ring for keyboard users without flashing outlines on taps/clicks. */
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid rgb(var(--yahatl-rgb-primary));
+    outline-offset: -2px;
   }
 
   /* ── Screen-reader only ── */
@@ -1111,7 +1265,7 @@ const E = C`
     border: 0;
   }
 `;
-class ce {
+class je {
   constructor(t) {
     this.hass = t;
   }
@@ -1168,6 +1322,16 @@ class ce {
       entity_id: t,
       item_id: i,
       user_id: this.userId
+    });
+  }
+  /** Undo a completion: restore the item to its pre-completion state.
+   *  `prior` holds the status/due/deferred_until captured BEFORE completing. */
+  async uncompleteItem(t, i, s) {
+    return this.hass.callWS({
+      type: "yahatl/item_uncomplete",
+      entity_id: t,
+      item_id: i,
+      prior: s
     });
   }
   async deferItem(t, i, s) {
@@ -1234,16 +1398,18 @@ class ce {
     });
   }
 }
-class de {
+class He {
   constructor() {
-    this._api = null, this._hass = null, this._subscribers = /* @__PURE__ */ new Set(), this.state = {
+    this._api = null, this._hass = null, this._subscribers = /* @__PURE__ */ new Set(), this._queueGen = 0, this._pushConn = null, this._pushUnavailable = !1, this._pushDebounce = null, this._pushedListIds = /* @__PURE__ */ new Set(), this._pushedMeta = !1, this._filterFetches = /* @__PURE__ */ new Map(), this._tagsLoaded = !1, this.state = {
       lists: [],
       items: /* @__PURE__ */ new Map(),
+      filteredItems: /* @__PURE__ */ new Map(),
       queue: null,
       context: null,
       meta: null,
       tags: [],
-      loading: !1
+      loading: !1,
+      lastError: null
     };
   }
   get api() {
@@ -1253,7 +1419,45 @@ class de {
     return this._hass;
   }
   setHass(t) {
-    this._hass = t, this._api = new ce(t);
+    this._hass = t, this._api = new je(t), this._ensureSubscribed();
+  }
+  // --- Live updates (yahatl/subscribe push events) ---
+  /** Open the single push subscription, once per connection object. Safe to
+   *  call from every setHass: it no-ops unless the connection changed. */
+  _ensureSubscribed() {
+    var i;
+    const t = (i = this._hass) == null ? void 0 : i.connection;
+    !t || this._pushUnavailable || this._pushConn !== t && (this._pushConn = t, t.subscribeMessage(
+      (s) => this._onPushEvent(s),
+      { type: "yahatl/subscribe" }
+    ).catch((s) => {
+      this._pushConn = null, this._pushUnavailable = !0, console.info(
+        "yahatl: live updates unavailable (%s) — continuing without them",
+        (s == null ? void 0 : s.code) || (s == null ? void 0 : s.message) || s
+      );
+    }));
+  }
+  /** Collect pushed list ids and debounce ~400ms so save bursts coalesce
+   *  into one round of refreshes. */
+  _onPushEvent(t) {
+    t != null && t.list_id && (t.list_id === "meta" ? this._pushedMeta = !0 : this._pushedListIds.add(t.list_id), this._pushDebounce !== null && window.clearTimeout(this._pushDebounce), this._pushDebounce = window.setTimeout(() => {
+      this._pushDebounce = null, this._refreshFromPush();
+    }, 400));
+  }
+  /** Refresh only what some card has actually loaded. Individual loads carry
+   *  their own error handling and generation guards. */
+  async _refreshFromPush() {
+    const t = [...this._pushedListIds], i = this._pushedMeta;
+    this._pushedListIds.clear(), this._pushedMeta = !1;
+    const s = [];
+    i && (this.state.meta && s.push(this.loadMeta()), this.state.context && s.push(this.loadContext()));
+    for (const a of t) {
+      const o = `todo.${a}`;
+      this.state.items.has(o) && s.push(this.loadItems(o));
+      for (const r of this._filterFetches.values())
+        r.entityId === o && s.push(this.loadItems(o, r.filters));
+    }
+    t.length > 0 && (this.state.lists.length > 0 && s.push(this.loadLists()), this.state.queue && s.push(this.loadQueue()), this._tagsLoaded && s.push(this.loadTags())), await Promise.all(s);
   }
   subscribe(t) {
     return this._subscribers.add(t), () => this._subscribers.delete(t);
@@ -1261,75 +1465,232 @@ class de {
   _notify() {
     for (const t of this._subscribers) t();
   }
-  // --- Data loading ---
+  // --- Error surface ---
+  _setError(t) {
+    const i = (t == null ? void 0 : t.message) || String(t) || "Unknown error";
+    this.state.lastError = { message: i, at: Date.now() }, this._notify();
+  }
+  clearError() {
+    this.state.lastError && (this.state.lastError = null, this._notify());
+  }
+  _notReady() {
+    return this._setError(new Error("Not connected to Home Assistant yet")), !1;
+  }
+  // --- Items cache keys ---
+  _hasFilters(t) {
+    return !!t && Object.keys(t).length > 0;
+  }
+  /** Stable cache key for a filtered items fetch (sorted keys → stable sig). */
+  _filterKey(t, i) {
+    const s = i, a = Object.keys(s).sort().map((o) => `${o}=${JSON.stringify(s[o])}`).join("&");
+    return `${t}|${a}`;
+  }
+  /** Cached items for an entity. Filtered fetches live in their own map so
+   *  they never overwrite the full lists other cards render (and vice versa). */
+  getCachedItems(t, i) {
+    return (this._hasFilters(i) ? this.state.filteredItems.get(this._filterKey(t, i)) : this.state.items.get(t)) ?? [];
+  }
+  // --- Data loading (failures land in state.lastError) ---
   async loadLists() {
-    this._api && (this.state.lists = await this._api.getLists(), this._notify());
+    if (this._api)
+      try {
+        this.state.lists = await this._api.getLists(), this._notify();
+      } catch (t) {
+        this._setError(t);
+      }
   }
   async loadItems(t, i) {
-    if (!this._api) return;
-    const s = await this._api.getItems(t, i);
-    this.state.items.set(t, s), this._notify();
+    if (this._api)
+      try {
+        const s = await this._api.getItems(t, i);
+        if (this._hasFilters(i)) {
+          const a = this._filterKey(t, i);
+          this.state.filteredItems.set(a, s), this._filterFetches.set(a, { entityId: t, filters: i });
+        } else
+          this.state.items.set(t, s);
+        this._notify();
+      } catch (s) {
+        this._setError(s);
+      }
   }
   async loadQueue(t) {
-    this._api && (this.state.queue = await this._api.getQueue(t), this._notify());
+    if (!this._api) return;
+    const i = ++this._queueGen;
+    try {
+      const s = await this._api.getQueue(t);
+      if (i !== this._queueGen) return;
+      this.state.queue = s, this._notify();
+    } catch (s) {
+      if (i !== this._queueGen) return;
+      this._setError(s);
+    }
   }
   async loadContext() {
-    this._api && (this.state.context = await this._api.getContext(), this._notify());
+    if (this._api)
+      try {
+        this.state.context = await this._api.getContext(), this._notify();
+      } catch (t) {
+        this._setError(t);
+      }
   }
   async loadMeta() {
-    this._api && (this.state.meta = await this._api.getMeta(), this._notify());
+    if (this._api)
+      try {
+        this.state.meta = await this._api.getMeta(), this._notify();
+      } catch (t) {
+        this._setError(t);
+      }
   }
   async loadTags() {
-    this._api && (this.state.tags = await this._api.getTags(), this._notify());
+    if (this._api)
+      try {
+        this.state.tags = await this._api.getTags(), this._tagsLoaded = !0, this._notify();
+      } catch (t) {
+        this._setError(t);
+      }
   }
   // --- Mutations (call API then refresh) ---
+  // Each returns true on success; on failure it records state.lastError and
+  // returns false so callers can keep drafts / stay open instead of silently
+  // pretending the write happened.
   async createItem(t, i) {
-    this._api && (await this._api.createItem(t, i), await this.loadItems(t), await this.loadQueue());
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.createItem(t, i);
+    } catch (s) {
+      return this._setError(s), !1;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), !0;
   }
   async saveItem(t, i, s) {
-    this._api && (await this._api.saveItem(t, i, s), await this.loadItems(t), await this.loadQueue());
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.saveItem(t, i, s);
+    } catch (a) {
+      return this._setError(a), !1;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), !0;
   }
   async deleteItem(t, i) {
-    this._api && (await this._api.deleteItem(t, i), await this.loadItems(t), await this.loadQueue());
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.deleteItem(t, i);
+    } catch (s) {
+      return this._setError(s), !1;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), !0;
   }
   async completeItem(t, i) {
-    this._api && (this.state.queue && (this.state.queue = {
-      ...this.state.queue,
-      items: this.state.queue.items.filter((s) => s.item.uid !== i)
-    }, this._notify()), await this._api.completeItem(t, i), await this.loadItems(t), await this.loadQueue());
-  }
-  async deferItem(t, i, s) {
-    this._api && (await this._api.deferItem(t, i, s), await this.loadItems(t), await this.loadQueue());
-  }
-  /** Delay to next valid period (server-computed). Returns the new
-   *  deferred_until ISO string so the UI can confirm when it'll be back. */
-  async delayItem(t, i) {
-    if (!this._api) return null;
+    if (!this._api) return this._notReady();
+    const s = this.state.queue;
     this.state.queue && (this.state.queue = {
       ...this.state.queue,
       items: this.state.queue.items.filter((a) => a.item.uid !== i)
     }, this._notify());
-    const s = await this._api.delayItem(t, i);
-    return await this.loadItems(t), await this.loadQueue(), (s == null ? void 0 : s.deferred_until) ?? null;
+    try {
+      await this._api.completeItem(t, i);
+    } catch (a) {
+      return this.state.queue = s, this._setError(a), !1;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), !0;
+  }
+  /** Undo a completion: restore the item's pre-completion state (`prior` is
+   *  captured from the item dict before completeItem ran). */
+  async uncompleteItem(t, i, s) {
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.uncompleteItem(t, i, s);
+    } catch (a) {
+      return this._setError(a), !1;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), !0;
+  }
+  async deferItem(t, i, s) {
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.deferItem(t, i, s);
+    } catch (a) {
+      return this._setError(a), !1;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), !0;
+  }
+  /** Delay to next valid period (server-computed). Returns the new
+   *  deferred_until ISO string so the UI can confirm when it'll be back,
+   *  or null on failure (state.lastError is set, queue rolled back). */
+  async delayItem(t, i) {
+    if (!this._api)
+      return this._notReady(), null;
+    const s = this.state.queue;
+    this.state.queue && (this.state.queue = {
+      ...this.state.queue,
+      items: this.state.queue.items.filter((o) => o.item.uid !== i)
+    }, this._notify());
+    let a;
+    try {
+      a = await this._api.delayItem(t, i);
+    } catch (o) {
+      return this.state.queue = s, this._setError(o), null;
+    }
+    return this.clearError(), await this.loadItems(t), await this.loadQueue(), (a == null ? void 0 : a.deferred_until) ?? null;
   }
   async setContext(t) {
-    this._api && (this.state.context = await this._api.setContext(t), await this.loadQueue());
+    if (!this._api) return this._notReady();
+    try {
+      this.state.context = await this._api.setContext(t), this._notify();
+    } catch (i) {
+      return this._setError(i), !1;
+    }
+    return this.clearError(), await this.loadQueue(), !0;
   }
   async saveMeta(t, i) {
-    this._api && (this.state.meta = await this._api.setMeta(t, i), this._notify(), await this.loadQueue());
+    if (!this._api) return this._notReady();
+    try {
+      this.state.meta = await this._api.setMeta(t, i), this._notify();
+    } catch (s) {
+      return this._setError(s), !1;
+    }
+    return this.clearError(), await this.loadQueue(), !0;
   }
   async renameTag(t, i) {
-    this._api && (await this._api.renameTag(t, i), await this.loadTags());
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.renameTag(t, i);
+    } catch (s) {
+      return this._setError(s), !1;
+    }
+    return this.clearError(), await this.loadTags(), !0;
   }
   async deleteTag(t) {
-    this._api && (await this._api.deleteTag(t), await this.loadTags());
+    if (!this._api) return this._notReady();
+    try {
+      await this._api.deleteTag(t);
+    } catch (i) {
+      return this._setError(i), !1;
+    }
+    return this.clearError(), await this.loadTags(), !0;
   }
   async getItemDetails(t, i) {
     return this._api ? this._api.getItemDetails(t, i) : null;
   }
 }
-const u = new de();
-class U {
+const u = new He();
+function X() {
+  const e = u.state.lastError;
+  return e ? n`
+    <div class="store-error" role="alert" aria-live="polite">
+      <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
+      <span class="store-error__msg">${e.message}</span>
+      <button
+        class="store-error__dismiss"
+        aria-label="Dismiss error"
+        @click=${() => u.clearError()}
+      >
+        &times;
+      </button>
+    </div>
+  ` : d;
+}
+class W {
   constructor(t) {
     this.host = t, t.addController(this);
   }
@@ -1344,7 +1705,162 @@ class U {
     return u.state;
   }
 }
-function pe(e, t, i) {
+function Pt(e) {
+  if (!e) return null;
+  const t = new Date(e);
+  if (isNaN(t.getTime())) return null;
+  const i = /* @__PURE__ */ new Date(), s = (o) => new Date(o.getFullYear(), o.getMonth(), o.getDate()).getTime(), a = Math.round((s(t) - s(i)) / 864e5);
+  if (a < 0)
+    return { label: `Overdue ${-a}d`, className: "overdue" };
+  if (a === 0) {
+    if (t.getTime() < i.getTime()) {
+      const o = Math.floor((i.getTime() - t.getTime()) / 36e5);
+      return {
+        label: o >= 1 ? `Overdue ${o}h` : "Overdue",
+        className: "overdue"
+      };
+    }
+    return { label: "Today", className: "due-today" };
+  }
+  return a === 1 ? { label: "Tomorrow", className: "" } : { label: t.toLocaleDateString(), className: "" };
+}
+function J(e) {
+  return (t) => {
+    t.key !== "Enter" && t.key !== " " || (t.preventDefault(), e(t));
+  };
+}
+var Ue = Object.defineProperty, Ye = Object.getOwnPropertyDescriptor, wt = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Ye(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+    (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
+  return s && a && Ue(t, i, a), a;
+};
+const Be = 6e3;
+let tt = class extends f {
+  constructor() {
+    super(...arguments), this._message = "", this._action = null, this._open = !1, this._hideTimer = null;
+  }
+  show(e, t) {
+    this._message = e, this._action = t, this._open = !0, this._hideTimer !== null && window.clearTimeout(this._hideTimer), this._hideTimer = window.setTimeout(() => this._dismiss(), Be);
+  }
+  _dismiss() {
+    this._hideTimer !== null && window.clearTimeout(this._hideTimer), this._hideTimer = null, this._open = !1;
+  }
+  async _runAction() {
+    const e = this._action;
+    this._dismiss(), e && await e.run();
+  }
+  render() {
+    return n`
+      <div role="status" aria-live="polite">
+        ${this._open ? n`
+              <div class="bar">
+                <span class="bar__msg">${this._message}</span>
+                ${this._action ? n`
+                      <button class="bar__action" @click=${this._runAction}>
+                        ${this._action.label}
+                      </button>
+                    ` : d}
+              </div>
+            ` : d}
+      </div>
+    `;
+  }
+};
+tt.styles = I`
+    :host {
+      position: fixed;
+      left: 0;
+      right: 0;
+      /* Above HA's mobile bottom tab bar and the iOS home-indicator inset. */
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 999;
+      font-family: var(
+        --paper-font-body1_-_font-family,
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        sans-serif
+      );
+    }
+
+    .bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: min(480px, calc(100vw - 32px));
+      padding: 10px 8px 10px 16px;
+      border-radius: 10px;
+      background: var(--card-background-color, var(--ha-card-background, #fff));
+      color: var(--primary-text-color, #212121);
+      border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      font-size: 14px;
+      animation: rise 180ms ease-out;
+    }
+
+    @keyframes rise {
+      from {
+        transform: translateY(8px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .bar__msg {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bar__action {
+      flex: none;
+      border: none;
+      background: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--primary-color, #03a9f4);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .bar__action:active {
+      opacity: 0.7;
+    }
+
+    .bar__action:focus-visible {
+      outline: 2px solid var(--primary-color, #03a9f4);
+      outline-offset: -2px;
+    }
+  `;
+wt([
+  g()
+], tt.prototype, "_message", 2);
+wt([
+  g()
+], tt.prototype, "_action", 2);
+wt([
+  g()
+], tt.prototype, "_open", 2);
+tt = wt([
+  $("yahatl-snackbar")
+], tt);
+let lt = null;
+function ne(e, t = null) {
+  (!lt || !lt.isConnected) && (lt = document.createElement("yahatl-snackbar"), document.body.appendChild(lt)), lt.show(e, t);
+}
+function Fe(e, t, i) {
   e.dispatchEvent(
     new CustomEvent(t, {
       detail: i,
@@ -1354,18 +1870,20 @@ function pe(e, t, i) {
     })
   );
 }
-let Z = null;
-function et(e, t) {
-  (!Z || !Z.isConnected) && (Z = document.createElement("yahatl-item-editor"), document.body.appendChild(Z)), Z.open(t);
+let ct = null;
+function G(e, t) {
+  (!ct || !ct.isConnected) && (ct = document.createElement("yahatl-item-editor"), document.body.appendChild(ct)), Promise.resolve(ct.open(t)).catch((i) => {
+    console.error("yahatl: failed to open item editor", i);
+  });
 }
-var he = Object.defineProperty, ue = Object.getOwnPropertyDescriptor, S = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? ue(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+var We = Object.defineProperty, Qe = Object.getOwnPropertyDescriptor, z = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Qe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && he(t, i, a), a;
+  return s && a && We(t, i, a), a;
 };
-let f = class extends y {
+let C = class extends f {
   constructor() {
-    super(...arguments), this._config = {}, this._quickAddValue = "", this._quickAddBusy = !1, this._flash = "", this._showUpcoming = !1, this._store = new U(this), this._initialized = !1, this._drag = {
+    super(...arguments), this._config = {}, this._quickAddValue = "", this._quickAddBusy = !1, this._flash = "", this._showUpcoming = !1, this._store = new W(this), this._initialized = !1, this._drag = {
       id: "",
       entity: "",
       startX: 0,
@@ -1383,13 +1901,14 @@ let f = class extends y {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadQueue(), u.loadLists(), u.loadMeta()) : e.has("hass") && this.hass && u.setHass(this.hass);
   }
   render() {
-    var l, d, p;
-    const e = this._store.state.queue, t = this._config.max_items || 10, i = this._config.title || "Up Next", s = this._config.todo_entity || "", a = (e == null ? void 0 : e.items.slice(0, t)) || [], o = (d = (l = this.hass) == null ? void 0 : l.user) == null ? void 0 : d.name, r = this._store.state.context;
+    var l, c, p;
+    const e = this._store.state.queue, t = this._config.max_items || 10, i = this._config.title || "Up Next", s = this._config.todo_entity || "", a = (e == null ? void 0 : e.items.slice(0, t)) || [], o = (c = (l = this.hass) == null ? void 0 : l.user) == null ? void 0 : c.name, r = this._store.state.context;
     return n`
       <ha-card>
         <div class="card-header">${i}</div>
-        ${o ? n`<div class="greeting">Hello, ${o}</div>` : c}
-        ${this._flash ? n`<div class="flash">${this._flash}</div>` : c}
+        ${o ? n`<div class="greeting">Hello, ${o}</div>` : d}
+        ${X()}
+        ${this._flash ? n`<div class="flash">${this._flash}</div>` : d}
 
         <div class="queue-controls" style="padding-top: 10px">
           <select @change=${(h) => this._setLocation(h.target.value)}>
@@ -1425,7 +1944,11 @@ let f = class extends y {
           </button>
         </div>
 
-        ${a.length === 0 ? n`<div class="empty-state">Nothing in the queue</div>` : a.map((h, m) => this._renderItem(h, m, s))}
+        ${a.length === 0 ? n`<div class="empty-state">Nothing in the queue</div>` : Re(
+      a,
+      (h) => h.item.uid,
+      (h, m) => this._renderItem(h, m, s)
+    )}
         ${this._renderUpcoming(e)}
       </ha-card>
     `;
@@ -1448,21 +1971,28 @@ let f = class extends y {
       (i) => n`
               <div
                 class="upcoming-row"
-                @click=${() => et(this, {
+                role="button"
+                tabindex="0"
+                @click=${() => G(this, {
         entityId: `todo.${i.list_id}`,
         itemId: i.item.uid,
         hass: this.hass
       })}
+                @keydown=${J(() => G(this, {
+        entityId: `todo.${i.list_id}`,
+        itemId: i.item.uid,
+        hass: this.hass
+      }))}
               >
                 <span class="upcoming-row__title">${i.item.title}</span>
                 <span class="upcoming-row__reason">${i.reason || "not yet"}</span>
               </div>
             `
-    ) : c}
-    ` : c;
+    ) : d}
+    ` : d;
   }
   _renderItem(e, t, i) {
-    const s = e.item, a = pt(s.traits), o = a ? F[a] : "var(--rgb-primary-color)", r = a ? j[a] : "mdi:checkbox-marked-circle-outline", l = this._formatDue(s.due), d = e.list_id ? `todo.${e.list_id}` : i;
+    const s = e.item, a = $t(s.traits), o = a ? K[a] : "var(--yahatl-rgb-primary)", r = a ? B[a] : "mdi:checkbox-marked-circle-outline", l = Pt(s.due), c = e.list_id ? `todo.${e.list_id}` : i;
     return n`
       <div class="queue-item">
         <div class="swipe-hint swipe-hint--done">
@@ -1474,13 +2004,16 @@ let f = class extends y {
         <div
           class="queue-item__fg"
           style="--rgb-state: ${o}"
-          @click=${() => this._onItemClick(d, s.uid)}
-          @touchstart=${(p) => this._onTouchStart(p, d, s.uid)}
+          role="button"
+          tabindex="0"
+          @click=${() => this._onItemClick(c, s.uid)}
+          @keydown=${J(() => this._openEditor(c, s.uid))}
+          @touchstart=${(p) => this._onTouchStart(p, c, s.uid)}
           @touchmove=${(p) => this._onTouchMove(p)}
           @touchend=${() => this._onTouchEnd()}
           @touchcancel=${() => this._onTouchEnd()}
         >
-        ${s.priority ? n`<div class="priority-rail priority-rail--${s.priority}"></div>` : c}
+        ${s.priority ? n`<div class="priority-rail priority-rail--${s.priority}"></div>` : d}
         <div class="queue-rank">${t + 1}</div>
         <div class="mush-shape-icon">
           <ha-icon icon=${r}></ha-icon>
@@ -1488,12 +2021,12 @@ let f = class extends y {
         <div class="queue-info">
           <div class="mush-state-info__primary">${s.title}</div>
           <div class="queue-meta">
-            ${l ? n`<span class=${l.className}>${l.label}</span>` : c}
-            ${l && (s.time_estimate || s.tags.length) ? n`<span class="sep">·</span>` : c}
-            ${s.time_estimate ? n`<span>${s.time_estimate}m</span>` : c}
-            ${s.time_estimate && s.tags.length ? n`<span class="sep">·</span>` : c}
-            ${s.tags.length > 0 ? n`<span>${s.tags.map((p) => `#${p}`).join(" ")}</span>` : c}
-            ${s.current_streak > 0 ? n`<span class="sep">·</span><span>${s.current_streak} day streak</span>` : c}
+            ${l ? n`<span class=${l.className}>${l.label}</span>` : d}
+            ${l && (s.time_estimate || s.tags.length) ? n`<span class="sep">·</span>` : d}
+            ${s.time_estimate ? n`<span>${s.time_estimate}m</span>` : d}
+            ${s.time_estimate && s.tags.length ? n`<span class="sep">·</span>` : d}
+            ${s.tags.length > 0 ? n`<span>${s.tags.map((p) => `#${p}`).join(" ")}</span>` : d}
+            ${s.current_streak > 0 ? n`<span class="sep">·</span><span>${s.current_streak} day streak</span>` : d}
           </div>
         </div>
         <div class="queue-actions">
@@ -1501,7 +2034,7 @@ let f = class extends y {
             class="queue-btn queue-btn--ghost"
             title="Delay to the next time this task is schedulable"
             @click=${(p) => {
-      p.stopPropagation(), this._delay(d, s.uid);
+      p.stopPropagation(), this._delay(c, s.uid);
     }}
           >
             delay
@@ -1509,7 +2042,7 @@ let f = class extends y {
           <button
             class="queue-btn"
             @click=${(p) => {
-      p.stopPropagation(), this._complete(d, s.uid);
+      p.stopPropagation(), this._complete(c, s.uid);
     }}
           >
             done
@@ -1519,18 +2052,23 @@ let f = class extends y {
       </div>
     `;
   }
-  _formatDue(e) {
-    if (!e) return null;
-    const t = new Date(e), i = /* @__PURE__ */ new Date();
-    if (t < i)
-      return { label: `Overdue ${Math.ceil((i.getTime() - t.getTime()) / 864e5)}d`, className: "overdue" };
-    if (t.toDateString() === i.toDateString())
-      return { label: "Today", className: "due-today" };
-    const s = new Date(i);
-    return s.setDate(s.getDate() + 1), t.toDateString() === s.toDateString() ? { label: "Tomorrow", className: "" } : { label: t.toLocaleDateString(), className: "" };
-  }
   async _complete(e, t) {
-    await u.completeItem(e, t);
+    var o;
+    const i = (o = this._store.state.queue) == null ? void 0 : o.items.find(
+      (r) => r.item.uid === t
+    ), s = i == null ? void 0 : i.item;
+    if (await u.completeItem(e, t) && s) {
+      const r = {
+        status: s.status,
+        due: s.due ?? null,
+        deferred_until: s.deferred_until ?? null
+      };
+      ne(`Completed "${s.title}"`, {
+        label: "UNDO",
+        // Failures surface via the store's lastError banner.
+        run: () => u.uncompleteItem(e, t, r)
+      });
+    }
   }
   // --- Swipe gestures ---
   _onItemClick(e, t) {
@@ -1563,12 +2101,12 @@ let f = class extends y {
     }
     if (Math.abs(s) > 6 && (t.moved = !0), !t.moved) return;
     e.preventDefault(), t.dx = s;
-    const o = f.SWIPE_MAX, r = Math.max(-o, Math.min(o, s));
+    const o = C.SWIPE_MAX, r = Math.max(-o, Math.min(o, s));
     t.el.style.transform = `translateX(${r}px)`;
     const l = t.el.parentElement;
     if (l) {
-      const d = Math.min(1, Math.abs(r) / f.SWIPE_THRESHOLD), p = l.querySelector(".swipe-hint--done"), h = l.querySelector(".swipe-hint--delay");
-      p && (p.style.opacity = s > 0 ? String(d) : "0"), h && (h.style.opacity = s < 0 ? String(d) : "0");
+      const c = Math.min(1, Math.abs(r) / C.SWIPE_THRESHOLD), p = l.querySelector(".swipe-hint--done"), h = l.querySelector(".swipe-hint--delay");
+      p && (p.style.opacity = s > 0 ? String(c) : "0"), h && (h.style.opacity = s < 0 ? String(c) : "0");
     }
   }
   _onTouchEnd() {
@@ -1577,11 +2115,11 @@ let f = class extends y {
       e.active = !1;
       return;
     }
-    const t = e.el, i = t.parentElement, s = f.SWIPE_THRESHOLD, a = e.dx <= -s, o = e.dx >= s;
+    const t = e.el, i = t.parentElement, s = C.SWIPE_THRESHOLD, a = e.dx <= -s, o = e.dx >= s;
     t.style.transition = "transform 180ms ease", t.style.transform = "translateX(0)", window.setTimeout(() => {
       if (t.style.transition = "", i) {
-        const d = i.querySelector(".swipe-hint--done"), p = i.querySelector(".swipe-hint--delay");
-        d && (d.style.opacity = "0"), p && (p.style.opacity = "0");
+        const c = i.querySelector(".swipe-hint--done"), p = i.querySelector(".swipe-hint--delay");
+        c && (c.style.opacity = "0"), p && (p.style.opacity = "0");
       }
     }, 180);
     const { entity: r, id: l } = e;
@@ -1611,7 +2149,7 @@ let f = class extends y {
     if (i) {
       this._quickAddBusy = !0;
       try {
-        await u.createItem(i, { title: t, needs_detail: !0 }), this._quickAddValue = "";
+        await u.createItem(i, { title: t, needs_detail: !0 }) && (this._quickAddValue = "");
       } finally {
         this._quickAddBusy = !1;
       }
@@ -1635,7 +2173,7 @@ let f = class extends y {
     e ? await u.setContext({ contexts: [e] }) : await u.setContext({ contexts: [] });
   }
   _openEditor(e, t) {
-    et(this, { entityId: e, itemId: t, hass: this.hass });
+    G(this, { entityId: e, itemId: t, hass: this.hass });
   }
   // --- Lovelace card editor support ---
   // Makes the card fully configurable from the UI card picker rather than
@@ -1645,20 +2183,18 @@ let f = class extends y {
     return document.createElement("yahatl-queue-card-editor");
   }
   static getStubConfig(e) {
-    const t = (e == null ? void 0 : e.states) ?? {}, i = Object.keys(t).find(
-      (a) => a.startsWith("sensor.") && a.includes("yahatl") && a.endsWith("_queue")
-    ) ?? "sensor.yahatl_queue", s = Object.keys(t).find((a) => a.startsWith("todo.") && a.includes("yahatl")) ?? "todo.yahatl";
-    return { entity: i, todo_entity: s, title: "Up Next", max_items: 8 };
+    const t = (e == null ? void 0 : e.states) ?? {};
+    return { todo_entity: Object.keys(t).find((s) => s.startsWith("todo.") && s.includes("yahatl")) ?? "todo.yahatl", title: "Up Next", max_items: 8 };
   }
   getCardSize() {
     return 4;
   }
 };
-f.SWIPE_THRESHOLD = 80;
-f.SWIPE_MAX = 140;
-f.styles = [
-  E,
-  C`
+C.SWIPE_THRESHOLD = 80;
+C.SWIPE_MAX = 140;
+C.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -1700,15 +2236,15 @@ f.styles = [
 
       .capture-row input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .capture-row button {
         padding: 0 18px;
         border: none;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         font-weight: 500;
         font-size: 14px;
@@ -1741,7 +2277,7 @@ f.styles = [
       }
 
       .queue-item__fg:hover {
-        background: rgba(var(--rgb-primary-color), 0.05);
+        background: rgba(var(--yahatl-rgb-primary), 0.05);
       }
 
       /* Swipe reveal layers behind the row */
@@ -1784,7 +2320,7 @@ f.styles = [
         min-width: 22px;
         font-weight: 700;
         font-size: 15px;
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
         text-align: center;
         flex: none;
       }
@@ -1816,8 +2352,8 @@ f.styles = [
         margin: 4px 16px 0;
         padding: 8px 12px;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.12);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
+        color: rgb(var(--yahatl-rgb-primary));
         font-size: 13px;
         font-weight: 500;
       }
@@ -1851,7 +2387,7 @@ f.styles = [
       .upcoming-header__count {
         font-size: 12px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.12);
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
         color: var(--yahatl-text-secondary);
         border-radius: 10px;
         padding: 1px 8px;
@@ -1891,28 +2427,28 @@ f.styles = [
       }
     `
 ];
-S([
-  x({ attribute: !1 })
-], f.prototype, "hass", 2);
-S([
+z([
+  w({ attribute: !1 })
+], C.prototype, "hass", 2);
+z([
   g()
-], f.prototype, "_config", 2);
-S([
+], C.prototype, "_config", 2);
+z([
   g()
-], f.prototype, "_quickAddValue", 2);
-S([
+], C.prototype, "_quickAddValue", 2);
+z([
   g()
-], f.prototype, "_quickAddBusy", 2);
-S([
+], C.prototype, "_quickAddBusy", 2);
+z([
   g()
-], f.prototype, "_flash", 2);
-S([
+], C.prototype, "_flash", 2);
+z([
   g()
-], f.prototype, "_showUpcoming", 2);
-f = S([
-  A("yahatl-queue-card")
-], f);
-let q = class extends y {
+], C.prototype, "_showUpcoming", 2);
+C = z([
+  $("yahatl-queue-card")
+], C);
+let N = class extends f {
   constructor() {
     super(...arguments), this._config = {};
   }
@@ -1924,11 +2460,11 @@ let q = class extends y {
       <ha-form
         .hass=${this.hass}
         .data=${this._config}
-        .schema=${q._schema}
-        .computeLabel=${(e) => q._labels[e.name] ?? e.name}
+        .schema=${N._schema}
+        .computeLabel=${(e) => N._labels[e.name] ?? e.name}
         @value-changed=${this._valueChanged}
       ></ha-form>
-    ` : c;
+    ` : d;
   }
   _valueChanged(e) {
     this.dispatchEvent(
@@ -1940,56 +2476,63 @@ let q = class extends y {
     );
   }
 };
-q._schema = [
-  { name: "entity", required: !0, selector: { entity: { domain: "sensor" } } },
+N._schema = [
   { name: "todo_entity", required: !0, selector: { entity: { domain: "todo" } } },
   { name: "title", selector: { text: {} } },
   { name: "max_items", selector: { number: { min: 1, max: 50, mode: "box" } } }
 ];
-q._labels = {
-  entity: "Queue sensor",
-  todo_entity: "Todo list entity",
+N._labels = {
+  todo_entity: "Todo list entity (quick-add target)",
   title: "Card title",
   max_items: "Max items shown"
 };
-S([
-  x({ attribute: !1 })
-], q.prototype, "hass", 2);
-S([
+z([
+  w({ attribute: !1 })
+], N.prototype, "hass", 2);
+z([
   g()
-], q.prototype, "_config", 2);
-q = S([
-  A("yahatl-queue-card-editor")
-], q);
+], N.prototype, "_config", 2);
+N = z([
+  $("yahatl-queue-card-editor")
+], N);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-queue-card",
   name: "Yahatl Queue",
   description: "Prioritized task queue with Mushroom-style layout"
 });
-var ge = Object.defineProperty, me = Object.getOwnPropertyDescriptor, I = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? me(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+var Ve = Object.defineProperty, Ge = Object.getOwnPropertyDescriptor, D = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Ge(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && ge(t, i, a), a;
+  return s && a && Ve(t, i, a), a;
 };
-const _e = ["pending", "in_progress", "completed", "missed"], be = ["actionable", "recurring", "habit", "chore", "reminder", "note"];
-let w = class extends y {
+const Ze = ["pending", "in_progress", "completed", "missed"], Ke = ["actionable", "recurring", "habit", "chore", "reminder", "note"];
+let E = class extends f {
   constructor() {
-    super(...arguments), this._config = {}, this._activeListIdx = 0, this._filters = { status: null, trait: null, tag: null }, this._showFilters = !1, this._showNotYet = !1, this._showDeferred = !1, this._showCompleted = !1, this._store = new U(this), this._initialized = !1;
+    super(...arguments), this._config = {}, this._activeListIdx = 0, this._filters = { status: null, trait: null, tag: null }, this._showFilters = !1, this._showNotYet = !1, this._showDeferred = !1, this._showCompleted = !1, this._store = new W(this), this._initialized = !1;
   }
   setConfig(e) {
     this._config = e;
+  }
+  static getConfigElement() {
+    return document.createElement("yahatl-list-card-editor");
   }
   static getStubConfig() {
     return {};
   }
   updated(e) {
-    e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadLists(), this._loadActiveList()) : e.has("hass") && this.hass && u.setHass(this.hass);
+    e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), this._initialLoad()) : e.has("hass") && this.hass && u.setHass(this.hass);
+  }
+  /** Load lists first, THEN the active list's items — _loadActiveList reads
+   *  state.lists, so firing both un-awaited left the first tab empty until
+   *  the user tapped around. */
+  async _initialLoad() {
+    await u.loadLists(), await this._loadActiveList();
   }
   render() {
-    const e = this._store.state.lists, t = e[this._activeListIdx], i = (t == null ? void 0 : t.entity_id) || "", s = this._store.state.items.get(i) || [], a = this._applyFilters(s), o = Object.values(this._filters).filter(Boolean).length, r = [], l = [], d = [], p = [];
+    const e = this._store.state.lists, t = e[this._activeListIdx], i = (t == null ? void 0 : t.entity_id) || "", s = this._store.state.items.get(i) || [], a = this._applyFilters(s), o = Object.values(this._filters).filter(Boolean).length, r = [], l = [], c = [], p = [];
     for (const h of a)
-      h.status === "completed" ? p.push(h) : this._isDeferred(h) ? d.push(h) : h.block_reason ? l.push(h) : r.push(h);
+      h.status === "completed" ? p.push(h) : this._isDeferred(h) ? c.push(h) : h.block_reason ? l.push(h) : r.push(h);
     return n`
       <ha-card>
         ${e.length > 0 ? n`
@@ -2005,18 +2548,19 @@ let w = class extends y {
                   `
     )}
               </div>
-            ` : c}
+            ` : d}
+        ${X()}
 
         <div class="filter-toggle">
           <span class="filter-toggle__count">${r.length} items</span>
           <button class="filter-toggle__btn" @click=${() => this._showFilters = !this._showFilters}>
-            Filters${o > 0 ? n`<span class="active-filter-badge">${o}</span>` : c}
+            Filters${o > 0 ? n`<span class="active-filter-badge">${o}</span>` : d}
           </button>
         </div>
 
-        ${this._showFilters ? this._renderFilters() : c}
+        ${this._showFilters ? this._renderFilters() : d}
 
-        ${a.length === 0 ? n`<div class="empty-state">No items match</div>` : c}
+        ${a.length === 0 ? n`<div class="empty-state">No items match</div>` : d}
         ${r.map((h) => this._renderItem(h, i))}
         ${l.length > 0 ? this._renderGroup(
       "Not Yet",
@@ -2025,15 +2569,15 @@ let w = class extends y {
       i,
       this._showNotYet,
       () => this._showNotYet = !this._showNotYet
-    ) : c}
-        ${d.length > 0 ? this._renderGroup(
+    ) : d}
+        ${c.length > 0 ? this._renderGroup(
       "Deferred",
       "mdi:clock-outline",
-      d,
+      c,
       i,
       this._showDeferred,
       () => this._showDeferred = !this._showDeferred
-    ) : c}
+    ) : d}
         ${p.length > 0 ? this._renderGroup(
       "Completed",
       "mdi:check-circle-outline",
@@ -2041,7 +2585,7 @@ let w = class extends y {
       i,
       this._showCompleted,
       () => this._showCompleted = !this._showCompleted
-    ) : c}
+    ) : d}
       </ha-card>
     `;
   }
@@ -2056,7 +2600,7 @@ let w = class extends y {
         <span class="group-header__count">${i.length}</span>
         <ha-icon class="group-header__chevron" icon="mdi:chevron-down"></ha-icon>
       </button>
-      ${a ? i.map((r) => this._renderItem(r, s)) : c}
+      ${a ? i.map((r) => this._renderItem(r, s)) : d}
     `;
   }
   _isDeferred(e) {
@@ -2067,11 +2611,11 @@ let w = class extends y {
       <div class="filters">
         <div class="filter-label">Status</div>
         <div class="chips-strip" style="padding: 0 0 4px">
-          ${_e.map(
+          ${Ze.map(
       (e) => n`
               <button
                 class="mush-chip ${this._filters.status === e ? "mush-chip--filled" : ""}"
-                style="--rgb-state: var(--rgb-primary-color)"
+                style="--rgb-state: var(--yahatl-rgb-primary)"
                 @click=${() => this._toggleFilter("status", e)}
               >
                 ${e.replace("_", " ")}
@@ -2081,15 +2625,15 @@ let w = class extends y {
         </div>
         <div class="filter-label">Traits</div>
         <div class="chips-strip" style="padding: 0">
-          ${be.map(
+          ${Ke.map(
       (e) => n`
               <button
                 class="mush-chip ${this._filters.trait === e ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: ${F[e]}"
+                style="--rgb-state: ${K[e]}"
                 @click=${() => this._toggleFilter("trait", e)}
               >
                 <span class="mush-chip__icon">
-                  <ha-icon icon=${j[e]}></ha-icon>
+                  <ha-icon icon=${B[e]}></ha-icon>
                 </span>
                 ${e}
               </button>
@@ -2100,42 +2644,51 @@ let w = class extends y {
     `;
   }
   _renderItem(e, t) {
-    const i = e.status === "completed", s = pt(e.traits), a = s ? F[s] : "var(--rgb-primary-color)", o = s ? j[s] : "", r = this._formatDue(e.due), l = this._isDeferred(e);
+    const i = e.status === "completed", s = $t(e.traits), a = s ? K[s] : "var(--yahatl-rgb-primary)", o = s ? B[s] : "", r = Pt(e.due), l = this._isDeferred(e);
     return n`
       <div
         class="item-row"
         style="--rgb-state: ${a}"
+        role="button"
+        tabindex="0"
         @click=${() => this._openEditor(t, e.uid)}
+        @keydown=${J(() => this._openEditor(t, e.uid))}
       >
-        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : c}
+        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : d}
 
         <div
           class="item-check ${i ? "item-check--done" : ""}"
-          @click=${(d) => {
-      d.stopPropagation(), i || this._complete(t, e.uid);
+          role="button"
+          tabindex="0"
+          aria-label="Complete ${e.title}"
+          @click=${(c) => {
+      c.stopPropagation(), i || this._complete(t, e.uid);
     }}
+          @keydown=${J((c) => {
+      c.stopPropagation(), i || this._complete(t, e.uid);
+    })}
         ></div>
 
         ${o ? n`<div class="mush-shape-icon mush-shape-icon--sm">
               <ha-icon icon=${o}></ha-icon>
-            </div>` : c}
+            </div>` : d}
 
         <div class="item-info">
           <div class="item-title ${i ? "item-title--done" : ""}">
             ${e.title}
           </div>
           <div class="item-badges">
-            ${r ? n`<span class=${r.className}>${r.label}</span>` : c}
-            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : c}
-            ${e.has_recurrence ? n`<span>repeats</span>` : c}
-            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : c}
-            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : c}
-            ${l ? n`<span class="deferred">deferred</span>` : c}
-            ${e.block_reason && !l ? n`<span class="deferred">${e.block_reason}</span>` : c}
+            ${r ? n`<span class=${r.className}>${r.label}</span>` : d}
+            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : d}
+            ${e.has_recurrence ? n`<span>repeats</span>` : d}
+            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : d}
+            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : d}
+            ${l ? n`<span class="deferred">deferred</span>` : d}
+            ${e.block_reason && !l ? n`<span class="deferred">${e.block_reason}</span>` : d}
           </div>
         </div>
 
-        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((d) => `#${d}`).join(" ")}</span>` : c}
+        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((c) => `#${c}`).join(" ")}</span>` : d}
       </div>
     `;
   }
@@ -2160,25 +2713,15 @@ let w = class extends y {
     await u.completeItem(e, t);
   }
   _openEditor(e, t) {
-    et(this, { entityId: e, itemId: t, hass: this.hass });
-  }
-  _formatDue(e) {
-    if (!e) return null;
-    const t = new Date(e), i = /* @__PURE__ */ new Date();
-    if (t < i)
-      return { label: `Overdue ${Math.ceil((i.getTime() - t.getTime()) / 864e5)}d`, className: "overdue" };
-    if (t.toDateString() === i.toDateString())
-      return { label: "Today", className: "due-today" };
-    const s = new Date(i);
-    return s.setDate(s.getDate() + 1), t.toDateString() === s.toDateString() ? { label: "Tomorrow", className: "" } : { label: t.toLocaleDateString(), className: "" };
+    G(this, { entityId: e, itemId: t, hass: this.hass });
   }
   getCardSize() {
     return 6;
   }
 };
-w.styles = [
-  E,
-  C`
+E.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -2214,8 +2757,8 @@ w.styles = [
       }
 
       .tab.active {
-        color: rgb(var(--rgb-primary-color));
-        border-bottom-color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
+        border-bottom-color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Filter toggle row */
@@ -2236,7 +2779,7 @@ w.styles = [
         font-size: 13px;
         background: none;
         border: none;
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         padding: 4px 8px;
         font-family: inherit;
@@ -2248,8 +2791,8 @@ w.styles = [
       .active-filter-badge {
         font-size: 11px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         border-radius: 10px;
         padding: 2px 7px;
         margin-left: 4px;
@@ -2288,11 +2831,11 @@ w.styles = [
       }
 
       .item-row:hover {
-        background: rgba(var(--rgb-primary-color), 0.04);
+        background: rgba(var(--yahatl-rgb-primary), 0.04);
       }
 
       .item-row:active {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .item-info {
@@ -2373,11 +2916,11 @@ w.styles = [
       }
 
       .group-header:hover {
-        background: rgba(var(--rgb-primary-color), 0.04);
+        background: rgba(var(--yahatl-rgb-primary), 0.04);
       }
 
       .group-header:active {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .group-header__icon {
@@ -2397,7 +2940,7 @@ w.styles = [
       .group-header__count {
         font-size: 12px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.12);
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
         color: var(--yahatl-text-secondary);
         border-radius: 10px;
         padding: 1px 8px;
@@ -2413,55 +2956,74 @@ w.styles = [
       }
     `
 ];
-I([
-  x({ attribute: !1 })
-], w.prototype, "hass", 2);
-I([
+D([
+  w({ attribute: !1 })
+], E.prototype, "hass", 2);
+D([
   g()
-], w.prototype, "_config", 2);
-I([
+], E.prototype, "_config", 2);
+D([
   g()
-], w.prototype, "_activeListIdx", 2);
-I([
+], E.prototype, "_activeListIdx", 2);
+D([
   g()
-], w.prototype, "_filters", 2);
-I([
+], E.prototype, "_filters", 2);
+D([
   g()
-], w.prototype, "_showFilters", 2);
-I([
+], E.prototype, "_showFilters", 2);
+D([
   g()
-], w.prototype, "_showNotYet", 2);
-I([
+], E.prototype, "_showNotYet", 2);
+D([
   g()
-], w.prototype, "_showDeferred", 2);
-I([
+], E.prototype, "_showDeferred", 2);
+D([
   g()
-], w.prototype, "_showCompleted", 2);
-w = I([
-  A("yahatl-list-card")
-], w);
+], E.prototype, "_showCompleted", 2);
+E = D([
+  $("yahatl-list-card")
+], E);
+let Xt = class extends f {
+  setConfig(e) {
+  }
+  render() {
+    return n`
+      <p style="color: var(--secondary-text-color); font-size: 14px">
+        No options — this card automatically shows all your yahatl lists as
+        tabs, with filters built in.
+      </p>
+    `;
+  }
+};
+Xt = D([
+  $("yahatl-list-card-editor")
+], Xt);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-list-card",
   name: "Yahatl List",
   description: "Filterable item browser with Mushroom chips and trait icons"
 });
-var ye = Object.defineProperty, fe = Object.getOwnPropertyDescriptor, O = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? fe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+var Xe = Object.defineProperty, Je = Object.getOwnPropertyDescriptor, S = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Je(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && ye(t, i, a), a;
+  return s && a && Xe(t, i, a), a;
 };
-let k = class extends y {
+let T = class extends f {
   constructor() {
-    super(...arguments), this._config = {}, this._showNotYet = !1, this._showDeferred = !1, this._showCompleted = !1, this._draft = "", this._busy = !1, this._store = new U(this), this._initialized = !1;
+    super(...arguments), this._config = {}, this._showNotYet = !1, this._showDeferred = !1, this._showCompleted = !1, this._draft = "", this._busy = !1, this._store = new W(this), this._initialized = !1;
   }
   setConfig(e) {
     if (!e.assigned_to)
       throw new Error("yahatl-my-tasks-card: 'assigned_to' (a Home Assistant user id) is required");
     this._config = e;
   }
-  static getStubConfig() {
-    return { assigned_to: "", title: "My Tasks" };
+  static getConfigElement() {
+    return document.createElement("yahatl-my-tasks-card-editor");
+  }
+  static getStubConfig(e) {
+    var i;
+    return { assigned_to: ((i = le(e)[0]) == null ? void 0 : i.value) ?? "", title: "My Tasks" };
   }
   updated(e) {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), this._loadAll()) : e.has("hass") && this.hass && u.setHass(this.hass);
@@ -2505,8 +3067,9 @@ let k = class extends y {
           <span class="header__title">${e}</span>
           <span class="header__count">${i.length} items</span>
         </div>
+        ${X()}
 
-        ${t.length === 0 ? n`<div class="empty-state">Nothing assigned to you — nice.</div>` : c}
+        ${t.length === 0 ? n`<div class="empty-state">Nothing assigned to you — nice.</div>` : d}
         ${i.map((r) => this._renderItem(r))}
         ${s.length > 0 ? this._renderGroup(
       "Not Yet",
@@ -2514,21 +3077,21 @@ let k = class extends y {
       s,
       this._showNotYet,
       () => this._showNotYet = !this._showNotYet
-    ) : c}
+    ) : d}
         ${a.length > 0 ? this._renderGroup(
       "Deferred",
       "mdi:clock-outline",
       a,
       this._showDeferred,
       () => this._showDeferred = !this._showDeferred
-    ) : c}
+    ) : d}
         ${o.length > 0 ? this._renderGroup(
       "Completed",
       "mdi:check-circle-outline",
       o,
       this._showCompleted,
       () => this._showCompleted = !this._showCompleted
-    ) : c}
+    ) : d}
 
         <div class="capture-row">
           <input
@@ -2559,7 +3122,7 @@ let k = class extends y {
         await u.createItem(this._addEntity, {
           title: e,
           assigned_to: [t]
-        }), this._draft = "";
+        }) && (this._draft = "");
       } finally {
         this._busy = !1;
       }
@@ -2576,80 +3139,88 @@ let k = class extends y {
         <span class="group-header__count">${i.length}</span>
         <ha-icon class="group-header__chevron" icon="mdi:chevron-down"></ha-icon>
       </button>
-      ${s ? i.map((o) => this._renderItem(o)) : c}
+      ${s ? i.map((o) => this._renderItem(o)) : d}
     `;
   }
   _isDeferred(e) {
     return !!e.deferred_until && new Date(e.deferred_until) > /* @__PURE__ */ new Date();
   }
   _renderItem(e) {
-    const t = e.status === "completed", i = pt(e.traits), s = i ? F[i] : "var(--rgb-primary-color)", a = i ? j[i] : "", o = this._formatDue(e.due), r = this._isDeferred(e);
+    const t = e.status === "completed", i = $t(e.traits), s = i ? K[i] : "var(--yahatl-rgb-primary)", a = i ? B[i] : "", o = Pt(e.due), r = this._isDeferred(e);
     return n`
       <div
         class="item-row"
         style="--rgb-state: ${s}"
+        role="button"
+        tabindex="0"
         @click=${() => this._openEditor(e)}
+        @keydown=${J(() => this._openEditor(e))}
       >
-        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : c}
+        ${e.priority ? n`<div class="priority-rail priority-rail--${e.priority}"></div>` : d}
 
         <div
           class="item-check ${t ? "item-check--done" : ""}"
+          role="button"
+          tabindex="0"
+          aria-label="Complete ${e.title}"
           @click=${(l) => {
       l.stopPropagation(), t || this._complete(e);
     }}
+          @keydown=${J((l) => {
+      l.stopPropagation(), t || this._complete(e);
+    })}
         ></div>
 
         ${a ? n`<div class="mush-shape-icon mush-shape-icon--sm">
               <ha-icon icon=${a}></ha-icon>
-            </div>` : c}
+            </div>` : d}
 
         <div class="item-info">
           <div class="item-title ${t ? "item-title--done" : ""}">
             ${e.title}
           </div>
           <div class="item-badges">
-            ${e._listName ? n`<span class="list-tag">${e._listName}</span>` : c}
-            ${o ? n`<span class=${o.className}>${o.label}</span>` : c}
-            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : c}
-            ${e.has_recurrence ? n`<span>repeats</span>` : c}
-            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : c}
-            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : c}
-            ${r ? n`<span class="deferred">deferred</span>` : c}
-            ${e.block_reason && !r ? n`<span class="deferred">${e.block_reason}</span>` : c}
+            ${e._listName ? n`<span class="list-tag">${e._listName}</span>` : d}
+            ${o ? n`<span class=${o.className}>${o.label}</span>` : d}
+            ${e.time_estimate ? n`<span>${e.time_estimate}m</span>` : d}
+            ${e.has_recurrence ? n`<span>repeats</span>` : d}
+            ${e.current_streak > 0 ? n`<span class="streak">${e.current_streak}d streak</span>` : d}
+            ${e.needs_detail ? n`<span class="needs-detail">needs detail</span>` : d}
+            ${r ? n`<span class="deferred">deferred</span>` : d}
+            ${e.block_reason && !r ? n`<span class="deferred">${e.block_reason}</span>` : d}
           </div>
         </div>
 
-        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((l) => `#${l}`).join(" ")}</span>` : c}
+        ${e.tags.length > 0 ? n`<span class="item-tags">${e.tags.map((l) => `#${l}`).join(" ")}</span>` : d}
       </div>
     `;
   }
   async _complete(e) {
-    await u.completeItem(e._entityId, e.uid);
+    const t = {
+      status: e.status,
+      due: e.due ?? null,
+      deferred_until: e.deferred_until ?? null
+    };
+    await u.completeItem(e._entityId, e.uid) && ne(`Completed "${e.title}"`, {
+      label: "UNDO",
+      // Failures surface via the store's lastError banner.
+      run: () => u.uncompleteItem(e._entityId, e.uid, t)
+    });
   }
   _openEditor(e) {
-    et(this, {
+    G(this, {
       entityId: e._entityId,
       itemId: e.uid,
       hass: this.hass
     });
   }
-  _formatDue(e) {
-    if (!e) return null;
-    const t = new Date(e), i = /* @__PURE__ */ new Date();
-    if (t < i)
-      return { label: `Overdue ${Math.ceil((i.getTime() - t.getTime()) / 864e5)}d`, className: "overdue" };
-    if (t.toDateString() === i.toDateString())
-      return { label: "Today", className: "due-today" };
-    const s = new Date(i);
-    return s.setDate(s.getDate() + 1), t.toDateString() === s.toDateString() ? { label: "Tomorrow", className: "" } : { label: t.toLocaleDateString(), className: "" };
-  }
   getCardSize() {
     return 6;
   }
 };
-k.styles = [
-  E,
-  C`
+T.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -2686,11 +3257,11 @@ k.styles = [
       }
 
       .item-row:hover {
-        background: rgba(var(--rgb-primary-color), 0.04);
+        background: rgba(var(--yahatl-rgb-primary), 0.04);
       }
 
       .item-row:active {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .item-info {
@@ -2730,7 +3301,7 @@ k.styles = [
       }
 
       .item-badges .list-tag {
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
         font-weight: 500;
       }
 
@@ -2775,11 +3346,11 @@ k.styles = [
       }
 
       .group-header:hover {
-        background: rgba(var(--rgb-primary-color), 0.04);
+        background: rgba(var(--yahatl-rgb-primary), 0.04);
       }
 
       .group-header:active {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .group-header__icon {
@@ -2799,7 +3370,7 @@ k.styles = [
       .group-header__count {
         font-size: 12px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.12);
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
         color: var(--yahatl-text-secondary);
         border-radius: 10px;
         padding: 1px 8px;
@@ -2836,15 +3407,15 @@ k.styles = [
 
       .capture-row input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .capture-row button {
         padding: 0 18px;
         border: none;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         font-weight: 500;
         font-size: 14px;
@@ -2858,42 +3429,116 @@ k.styles = [
       }
     `
 ];
-O([
-  x({ attribute: !1 })
-], k.prototype, "hass", 2);
-O([
+S([
+  w({ attribute: !1 })
+], T.prototype, "hass", 2);
+S([
   g()
-], k.prototype, "_config", 2);
-O([
+], T.prototype, "_config", 2);
+S([
   g()
-], k.prototype, "_showNotYet", 2);
-O([
+], T.prototype, "_showNotYet", 2);
+S([
   g()
-], k.prototype, "_showDeferred", 2);
-O([
+], T.prototype, "_showDeferred", 2);
+S([
   g()
-], k.prototype, "_showCompleted", 2);
-O([
+], T.prototype, "_showCompleted", 2);
+S([
   g()
-], k.prototype, "_draft", 2);
-O([
+], T.prototype, "_draft", 2);
+S([
   g()
-], k.prototype, "_busy", 2);
-k = O([
-  A("yahatl-my-tasks-card")
-], k);
+], T.prototype, "_busy", 2);
+T = S([
+  $("yahatl-my-tasks-card")
+], T);
+function le(e) {
+  if (!(e != null && e.states)) return [];
+  const t = [];
+  for (const [i, s] of Object.entries(e.states)) {
+    if (!i.startsWith("person.")) continue;
+    const a = s.attributes.user_id;
+    if (!a) continue;
+    const o = s.attributes.friendly_name || i.replace("person.", "");
+    t.push({ value: a, label: o });
+  }
+  return t;
+}
+let et = class extends f {
+  constructor() {
+    super(...arguments), this._config = {};
+  }
+  // Only fields the card reads: assigned_to (required HA user id, picked via
+  // person entities), optional title and add_entity (quick-add target list).
+  _schema() {
+    return [
+      {
+        name: "assigned_to",
+        required: !0,
+        selector: {
+          select: { options: le(this.hass), mode: "dropdown" }
+        }
+      },
+      { name: "title", selector: { text: {} } },
+      { name: "add_entity", selector: { entity: { domain: "todo" } } }
+    ];
+  }
+  setConfig(e) {
+    this._config = e;
+  }
+  render() {
+    return this.hass ? n`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${this._schema()}
+        .computeLabel=${(e) => et._labels[e.name] ?? e.name}
+        .computeHelper=${(e) => {
+      if (e.name === "assigned_to" && this._config.assigned_to)
+        return `HA user id: ${this._config.assigned_to}`;
+      if (e.name === "add_entity") return "Defaults to the Inbox (todo.yahatl)";
+    }}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    ` : d;
+  }
+  _valueChanged(e) {
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: e.detail.value },
+        bubbles: !0,
+        composed: !0
+      })
+    );
+  }
+};
+et._labels = {
+  assigned_to: "Person (whose tasks to show)",
+  title: "Card title",
+  add_entity: "List quick-added tasks go to"
+};
+S([
+  w({ attribute: !1 })
+], et.prototype, "hass", 2);
+S([
+  g()
+], et.prototype, "_config", 2);
+et = S([
+  $("yahatl-my-tasks-card-editor")
+], et);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-my-tasks-card",
   name: "Yahatl My Tasks",
   description: "Combined list of tasks assigned to one person across every yahatl list"
 });
-var ve = Object.defineProperty, xe = Object.getOwnPropertyDescriptor, b = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? xe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+var ti = Object.defineProperty, ei = Object.getOwnPropertyDescriptor, x = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? ei(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && ve(t, i, a), a;
+  return s && a && ti(t, i, a), a;
 };
-const Lt = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], we = [
+const Jt = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], ii = [
   "actionable",
   "recurring",
   "habit",
@@ -2903,11 +3548,11 @@ const Lt = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], we = [
   "someday",
   "shopping",
   "gift"
-], $e = ["eq", "neq", "gt", "lt", "gte", "lte", "bool"], ke = [
+], si = ["eq", "neq", "gt", "lt", "gte", "lte", "bool"], ai = [
   { id: "work_hours", name: "Work hours", icon: "mdi:briefcase-clock" },
   { id: "productive", name: "Productive", icon: "mdi:lightning-bolt" },
   { id: "weekend_project", name: "Weekend project", icon: "mdi:hammer-wrench" }
-], Ce = [
+], ri = [
   {
     id: "work_hours",
     label: "Work hours",
@@ -2946,52 +3591,72 @@ const Lt = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], we = [
     not: { start_time: "21:00", end_time: "06:00", mode: "suppress", days: null }
   }
 ];
-function bt(e, t) {
+function Tt(e, t) {
   var s;
   if (!e || !t) return t;
   const i = e.states[t];
   return ((s = i == null ? void 0 : i.attributes) == null ? void 0 : s.friendly_name) || t;
 }
-let _ = class extends y {
+let y = class extends f {
   constructor() {
-    super(...arguments), this.mode = "dialog", this._visible = !1, this._entityId = "", this._itemId = null, this._item = {}, this._section = 0, this._busy = !1, this._error = "", this._allItems = [], this._existingTags = [], this._existingProjects = [], this._contexts = [], this._entityFilter = "", this._entityDropdownOpen = null, this._boundKey = (e) => {
+    super(...arguments), this.mode = "dialog", this._visible = !1, this._entityId = "", this._itemId = null, this._item = {}, this._section = 0, this._busy = !1, this._error = "", this._allItems = [], this._existingTags = [], this._existingProjects = [], this._contexts = [], this._entityFilter = "", this._entityDropdownOpen = null, this._confirmDelete = !1, this._openGen = 0, this._boundKey = (e) => {
       e.key === "Escape" && this.close();
     };
   }
-  // --- Public API ---
   async open(e) {
     var s;
-    this._entityId = e.entityId, this._itemId = e.itemId || null, e.hass && (this.hass = e.hass), this._contexts = ke, u.api.getMeta().then((a) => {
+    const t = ++this._openGen;
+    this._entityId = e.entityId, this._itemId = e.itemId || null, e.hass && (this.hass = e.hass), this._confirmDelete = !1, !u.api && this.hass && u.setHass(this.hass);
+    const i = u.api;
+    if (!i) {
+      this._item = {}, this._section = 0, this._error = "Not connected to Home Assistant yet — close and try again.", this._show();
+      return;
+    }
+    this._contexts = ai, i.getMeta().then((a) => {
       var o;
-      (o = a.contexts) != null && o.length && (this._contexts = a.contexts);
+      t === this._openGen && (o = a.contexts) != null && o.length && (this._contexts = a.contexts);
     }).catch(() => {
     });
-    const t = u.api.getItems(this._entityId), i = u.api.getTags().catch(() => []);
-    if (this._itemId) {
-      const [a, o, r] = await Promise.all([
-        u.getItemDetails(this._entityId, this._itemId),
-        t,
-        i
-      ]);
-      if (!a) return;
-      this._item = { ...a }, this._allItems = o.filter((l) => l.uid !== this._itemId), this._existingTags = r.map((l) => l.name), this._existingProjects = [...new Set(o.map((l) => l.project).filter((l) => !!l))];
-    } else {
-      const [a, o] = await Promise.all([
-        t,
-        i
-      ]);
-      this._item = {
-        title: "",
-        description: "",
-        traits: ["actionable"],
-        tags: [],
-        priority: null,
-        project: null,
-        assigned_to: (s = this.hass) != null && s.user ? [this.hass.user.id] : [],
-        needs_detail: !1
-      }, this._allItems = a, this._existingTags = o.map((r) => r.name), this._existingProjects = [...new Set(a.map((r) => r.project).filter((r) => !!r))];
+    try {
+      const a = i.getItems(this._entityId), o = i.getTags().catch(() => []);
+      if (this._itemId) {
+        const r = this._itemId, [l, c, p] = await Promise.all([
+          u.getItemDetails(this._entityId, r),
+          a,
+          o
+        ]);
+        if (t !== this._openGen) return;
+        if (!l) {
+          this._item = {}, this._error = "Item not found", this._show();
+          return;
+        }
+        this._item = { ...l }, this._allItems = c.filter((h) => h.uid !== r), this._existingTags = p.map((h) => h.name), this._existingProjects = [...new Set(c.map((h) => h.project).filter((h) => !!h))];
+      } else {
+        const [r, l] = await Promise.all([
+          a,
+          o
+        ]);
+        if (t !== this._openGen) return;
+        this._item = {
+          title: "",
+          description: "",
+          traits: ["actionable"],
+          tags: [],
+          priority: null,
+          project: null,
+          assigned_to: (s = this.hass) != null && s.user ? [this.hass.user.id] : [],
+          needs_detail: !1
+        }, this._allItems = r, this._existingTags = l.map((c) => c.name), this._existingProjects = [...new Set(r.map((c) => c.project).filter((c) => !!c))];
+      }
+    } catch (a) {
+      if (t !== this._openGen) return;
+      this._item = {}, this._section = 0, this._error = `Failed to load: ${a.message || String(a)}`, this._show();
+      return;
     }
-    this._section = 0, this._error = "", this._visible = !0, document.addEventListener("keydown", this._boundKey), document.body.style.overflow = "hidden";
+    this._section = 0, this._error = "", this._show();
+  }
+  _show() {
+    this._visible = !0, document.addEventListener("keydown", this._boundKey), document.body.style.overflow = "hidden";
   }
   // --- HA dialog-manager entry points (the show-dialog contract) ---
   async showDialog(e) {
@@ -3001,7 +3666,7 @@ let _ = class extends y {
     return this.close(), !0;
   }
   close() {
-    this._visible && (this._visible = !1, document.removeEventListener("keydown", this._boundKey), document.body.style.overflow = "", this.requestUpdate(), this.mode !== "inline" && pe(this, "dialog-closed", { dialog: "yahatl-item-editor" }));
+    this._visible && (this._visible = !1, document.removeEventListener("keydown", this._boundKey), document.body.style.overflow = "", this.requestUpdate(), this.mode !== "inline" && Fe(this, "dialog-closed", { dialog: "yahatl-item-editor" }));
   }
   disconnectedCallback() {
     super.disconnectedCallback(), document.removeEventListener("keydown", this._boundKey), document.body.style.overflow = "";
@@ -3011,14 +3676,14 @@ let _ = class extends y {
   }
   // --- Rendering ---
   render() {
-    if (!this._visible) return c;
+    if (!this._visible) return d;
     const e = ["Basics", "Recurrence", "Requirements", "Blockers", "Schedule"], t = n`
       <div class="modal__header">
         <div class="modal__header-info">
           <h2 class="modal__title">${this._itemId ? "Edit item" : "New item"}</h2>
-          ${this._itemId ? n`<div class="modal__sub">${this._entityId} · ${this._itemId.slice(0, 8)}…</div>` : c}
+          ${this._itemId ? n`<div class="modal__sub">${this._entityId} · ${this._itemId.slice(0, 8)}…</div>` : d}
         </div>
-        <button class="close-btn" @click=${this.close}>&times;</button>
+        <button class="close-btn" aria-label="Close editor" @click=${this.close}>&times;</button>
       </div>
       <div class="tabs">
         ${e.map(
@@ -3033,7 +3698,7 @@ let _ = class extends y {
     )}
       </div>
       <div class="content">${this._renderSection()}</div>
-      ${this._error ? n`<div class="error-msg">${this._error}</div>` : c}
+      ${this._error ? n`<div class="error-msg">${this._error}</div>` : d}
       <div class="modal__footer">
         <button class="btn btn--ghost" @click=${this.close}>cancel</button>
         <button
@@ -3064,7 +3729,7 @@ let _ = class extends y {
       case 4:
         return this._renderSchedule();
       default:
-        return c;
+        return d;
     }
   }
   // --- Section 0: Basics ---
@@ -3158,7 +3823,7 @@ let _ = class extends y {
       return n`
                   <button
                     class="trait-toggle ${s ? "is-on" : ""}"
-                    style="--rgb-state: var(--rgb-primary-color)"
+                    style="--rgb-state: var(--yahatl-rgb-primary)"
                     @click=${() => this._toggleAssign(i.id)}
                   >
                     <ha-icon icon="mdi:account"></ha-icon>
@@ -3179,15 +3844,37 @@ let _ = class extends y {
 
       ${this._itemId ? n`
             <div class="delete-area">
-              <button
-                class="btn btn--danger"
-                @click=${this._delete}
-                ?disabled=${this._busy}
-              >
-                Delete this item
-              </button>
+              ${this._confirmDelete ? n`
+                    <div class="confirm-bar">
+                      <span class="confirm-bar__msg">
+                        Delete "${e.title || "this item"}"? This can't be undone.
+                      </span>
+                      <button
+                        class="btn btn--ghost"
+                        @click=${() => this._confirmDelete = !1}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        class="btn btn--danger"
+                        style="background: rgba(var(--rgb-danger), 0.15)"
+                        @click=${this._delete}
+                        ?disabled=${this._busy}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ` : n`
+                    <button
+                      class="btn btn--danger"
+                      @click=${() => this._confirmDelete = !0}
+                      ?disabled=${this._busy}
+                    >
+                      Delete this item
+                    </button>
+                  `}
             </div>
-          ` : c}
+          ` : d}
     `;
   }
   // --- Section 1: Traits & Tags ---
@@ -3197,14 +3884,14 @@ let _ = class extends y {
       <div class="field">
         <div class="field__label">Traits</div>
         <div class="traits-row">
-          ${we.map(
+          ${ii.map(
       (i) => n`
               <button
                 class="trait-toggle ${e.includes(i) ? "is-on" : ""}"
-                style="--rgb-state: ${F[i]}"
+                style="--rgb-state: ${K[i]}"
                 @click=${() => this._toggleTrait(i)}
               >
-                <ha-icon icon=${j[i]}></ha-icon>
+                <ha-icon icon=${B[i]}></ha-icon>
                 ${i}
               </button>
             `
@@ -3218,7 +3905,7 @@ let _ = class extends y {
       (i, s) => n`
               <span class="tag-chip">
                 #${i}
-                <button class="tag-chip__remove" @click=${() => this._removeTag(s)}>&times;</button>
+                <button class="tag-chip__remove" aria-label="Remove tag ${i}" @click=${() => this._removeTag(s)}>&times;</button>
               </span>
             `
     )}
@@ -3277,9 +3964,9 @@ let _ = class extends y {
         </button>
       </div>
 
-      ${t === "calendar" ? this._renderCalendarConfig() : c}
-      ${t === "elapsed" ? this._renderElapsedConfig() : c}
-      ${t === "frequency" ? this._renderFrequencyConfig() : c}
+      ${t === "calendar" ? this._renderCalendarConfig() : d}
+      ${t === "elapsed" ? this._renderElapsedConfig() : d}
+      ${t === "frequency" ? this._renderFrequencyConfig() : d}
     `;
   }
   _renderCalendarConfig() {
@@ -3290,7 +3977,7 @@ let _ = class extends y {
       (r) => n`
             <button
               class="mush-chip ${t === r ? "mush-chip--filled" : ""}"
-              style="--rgb-state: var(--rgb-primary-color)"
+              style="--rgb-state: var(--yahatl-rgb-primary)"
               @click=${() => this._setCalendarPreset(t === r ? null : r)}
             >
               ${r}
@@ -3299,7 +3986,7 @@ let _ = class extends y {
     )}
         <button
           class="mush-chip ${a && !o ? "mush-chip--filled" : ""}"
-          style="--rgb-state: var(--rgb-primary-color)"
+          style="--rgb-state: var(--yahatl-rgb-primary)"
           @click=${() => this._setCalendarPreset(null)}
         >
           Custom days
@@ -3310,7 +3997,7 @@ let _ = class extends y {
             <div class="field">
               <div class="field__label">Days of the week</div>
               <div class="day-picker">
-                ${Lt.map(
+                ${Jt.map(
       (r, l) => n`
                     <button
                       class="day-btn ${i.includes(l) ? "active" : ""}"
@@ -3332,15 +4019,15 @@ let _ = class extends y {
                       placeholder="e.g. 1, 15"
                       .value=${s.join(", ")}
                       @change=${(r) => {
-      const d = r.target.value.split(",").map((p) => parseInt(p.trim())).filter((p) => p >= 1 && p <= 31);
+      const c = r.target.value.split(",").map((p) => parseInt(p.trim())).filter((p) => p >= 1 && p <= 31);
       this._updateRecurrence({
-        calendar_days_of_month: d.length ? d : null
+        calendar_days_of_month: c.length ? c : null
       });
     }}
                     />
                   </div>
-                ` : c}
-          ` : c}
+                ` : d}
+          ` : d}
     `;
   }
   _renderElapsedConfig() {
@@ -3487,10 +4174,10 @@ let _ = class extends y {
               <div class="entity-row">
                 <ha-icon icon="mdi:eye" style="--mdc-icon-size: 16px; color: var(--yahatl-text-secondary)"></ha-icon>
                 <div class="entity-row__name">
-                  ${bt(this.hass, t)}
+                  ${Tt(this.hass, t)}
                   <div class="entity-row__id">${t}</div>
                 </div>
-                <button class="entity-row__remove" @click=${() => {
+                <button class="entity-row__remove" aria-label="Remove entity" @click=${() => {
         const s = [...e.sensors || []];
         s.splice(i, 1), this._setBlockers({ ...e, sensors: s });
       }}>&times;</button>
@@ -3536,7 +4223,7 @@ let _ = class extends y {
       ([t, i]) => n`
               <button
                 class="mush-chip ${(e.location || []).includes(t) ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: var(--rgb-primary-color)"
+                style="--rgb-state: var(--yahatl-rgb-primary)"
                 @click=${() => this._toggleLocation(t)}
               >
                 <span class="mush-chip__icon">
@@ -3555,7 +4242,7 @@ let _ = class extends y {
       (t) => n`
               <button
                 class="mush-chip ${(e.context || []).includes(t.id) ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: var(--rgb-primary-color)"
+                style="--rgb-state: var(--yahatl-rgb-primary)"
                 @click=${() => this._toggleContext(t.id)}
               >
                 <span class="mush-chip__icon">
@@ -3578,10 +4265,10 @@ let _ = class extends y {
               <div class="entity-row">
                 <ha-icon icon="mdi:eye" style="--mdc-icon-size: 16px; color: var(--yahatl-text-secondary)"></ha-icon>
                 <div class="entity-row__name">
-                  ${bt(this.hass, t)}
+                  ${Tt(this.hass, t)}
                   <div class="entity-row__id">${t}</div>
                 </div>
-                <button class="entity-row__remove" @click=${() => {
+                <button class="entity-row__remove" aria-label="Remove entity" @click=${() => {
         const s = [...e.sensors || []];
         s.splice(i, 1), this._setRequirements({ ...e, sensors: s });
       }}>&times;</button>
@@ -3606,12 +4293,12 @@ let _ = class extends y {
         <legend>Time Blockers</legend>
         <div class="field__label" style="margin-bottom: 6px">Shortcuts</div>
         <div class="chips-strip" style="padding: 0 0 4px">
-          ${Ce.map((a) => {
+          ${ri.map((a) => {
       const o = this._presetState(a), r = o !== "off", l = o === "not";
       return n`
               <button
                 class="mush-chip ${r ? "mush-chip--filled" : "mush-chip--state"}"
-                style="--rgb-state: ${l ? "var(--rgb-danger)" : "var(--rgb-primary-color)"}"
+                style="--rgb-state: ${l ? "var(--rgb-danger)" : "var(--yahatl-rgb-primary)"}"
                 title="Click to cycle: only during → not during → off"
                 @click=${() => this._cyclePreset(a)}
               >
@@ -3668,7 +4355,7 @@ let _ = class extends y {
                 </select>
               </div>
               <div class="day-picker">
-                ${Lt.map(
+                ${Jt.map(
         (r, l) => n`
                     <button
                       class="day-btn ${!a.days || a.days.includes(l) ? "active" : ""}"
@@ -3704,12 +4391,12 @@ let _ = class extends y {
                 ${a.entity_id ? n`
                     <div class="entity-row" style="margin-bottom: 6px">
                       <div class="entity-row__name">
-                        ${bt(this.hass, a.entity_id)}
+                        ${Tt(this.hass, a.entity_id)}
                         <div class="entity-row__id">${a.entity_id}</div>
                       </div>
-                      <button class="entity-row__remove" @click=${() => this._updateConditionTrigger(o, { entity_id: "" })}>&times;</button>
+                      <button class="entity-row__remove" aria-label="Remove entity" @click=${() => this._updateConditionTrigger(o, { entity_id: "" })}>&times;</button>
                     </div>
-                  ` : c}
+                  ` : d}
                 ${this._renderEntityCombo(
         `ct-entity-${o}`,
         a.entity_id ? "Change entity…" : "Select entity…",
@@ -3727,7 +4414,7 @@ let _ = class extends y {
         operator: r.target.value
       })}
                   >
-                    ${$e.map(
+                    ${si.map(
         (r) => n`<option value=${r}>${r}</option>`
       )}
                   </select>
@@ -3898,20 +4585,12 @@ let _ = class extends y {
     return { mode: "ALL", location: [], people: [], time_constraints: [], context: [], sensors: [] };
   }
   _toggleLocation(e) {
-    try {
-      const t = this._item.requirements || this._emptyRequirements(), i = t.location || [], s = i.includes(e) ? i.filter((a) => a !== e) : [...i, e];
-      this._setRequirements({ ...t, location: s }), this._error = `✓ loc ${e} → [${s.join(", ")}]`;
-    } catch (t) {
-      this._error = `✗ loc ${e}: ${String(t)}`;
-    }
+    const t = this._item.requirements || this._emptyRequirements(), i = t.location || [], s = i.includes(e) ? i.filter((a) => a !== e) : [...i, e];
+    this._setRequirements({ ...t, location: s });
   }
   _toggleContext(e) {
-    try {
-      const t = this._item.requirements || this._emptyRequirements(), i = t.context || [], s = i.includes(e) ? i.filter((a) => a !== e) : [...i, e];
-      this._setRequirements({ ...t, context: s }), this._error = `✓ ctx ${e} → [${s.join(", ")}]`;
-    } catch (t) {
-      this._error = `✗ ctx ${e}: ${String(t)}`;
-    }
+    const t = this._item.requirements || this._emptyRequirements(), i = t.context || [], s = i.includes(e) ? i.filter((a) => a !== e) : [...i, e];
+    this._setRequirements({ ...t, context: s });
   }
   // Time blocker helpers
   _addTimeBlocker() {
@@ -3963,14 +4642,14 @@ let _ = class extends y {
   }
   // --- Save / Delete ---
   async _save() {
-    var e, t, i, s, a, o, r, l;
+    var e, t, i, s, a, o, r, l, c;
     if (!((e = this._item.title) != null && e.trim())) {
       this._error = "Title is required";
       return;
     }
     this._busy = !0, this._error = "";
     try {
-      const d = [
+      const p = [
         "title",
         "description",
         "traits",
@@ -3989,31 +4668,30 @@ let _ = class extends y {
         "time_blockers",
         "deferred_until",
         "lead_override_days"
-      ], p = {};
-      for (const h of d)
-        h in this._item && (p[h] = this._item[h]);
-      if (p.blockers) {
-        const h = p.blockers;
-        !((t = h.items) != null && t.length) && !((i = h.sensors) != null && i.length) && (p.blockers = null);
+      ], h = {};
+      for (const _ of p)
+        _ in this._item && (h[_] = this._item[_]);
+      if (h.blockers) {
+        const _ = h.blockers;
+        !((t = _.items) != null && t.length) && !((i = _.sensors) != null && i.length) && (h.blockers = null);
       }
-      if (p.requirements) {
-        const h = p.requirements;
-        !((s = h.location) != null && s.length) && !((a = h.people) != null && a.length) && !((o = h.time_constraints) != null && o.length) && !((r = h.context) != null && r.length) && !((l = h.sensors) != null && l.length) && (p.requirements = null);
+      if (h.requirements) {
+        const _ = h.requirements;
+        !((s = _.location) != null && s.length) && !((a = _.people) != null && a.length) && !((o = _.time_constraints) != null && o.length) && !((r = _.context) != null && r.length) && !((l = _.sensors) != null && l.length) && (h.requirements = null);
       }
-      p.time_blockers && p.time_blockers.length === 0 && delete p.time_blockers, p.condition_triggers && p.condition_triggers.length === 0 && delete p.condition_triggers, this._itemId ? await u.saveItem(this._entityId, this._itemId, p) : await u.createItem(this._entityId, p), this.close();
-    } catch (d) {
-      this._error = d.message || "Failed to save";
+      h.time_blockers && h.time_blockers.length === 0 && delete h.time_blockers, h.condition_triggers && h.condition_triggers.length === 0 && delete h.condition_triggers, (this._itemId ? await u.saveItem(this._entityId, this._itemId, h) : await u.createItem(this._entityId, h)) ? this.close() : this._error = ((c = u.state.lastError) == null ? void 0 : c.message) || "Failed to save";
+    } catch (p) {
+      this._error = p.message || "Failed to save";
     } finally {
       this._busy = !1;
     }
   }
   async _delete() {
+    var e;
     if (this._itemId) {
       this._busy = !0;
       try {
-        await u.deleteItem(this._entityId, this._itemId), this.close();
-      } catch (e) {
-        this._error = e.message || "Failed to delete";
+        await u.deleteItem(this._entityId, this._itemId) ? this.close() : (this._confirmDelete = !1, this._error = ((e = u.state.lastError) == null ? void 0 : e.message) || "Failed to delete");
       } finally {
         this._busy = !1;
       }
@@ -4068,7 +4746,7 @@ let _ = class extends y {
                   `
     ) : n`<div class="entity-combo__option"><span class="entity-combo__option-name" style="color: var(--yahatl-text-secondary)">No matches</span></div>`}
           </div>
-        ` : c}
+        ` : d}
       </div>
     `;
   }
@@ -4095,8 +4773,8 @@ let _ = class extends y {
         if (!o.startsWith("person.")) continue;
         const l = r.attributes.user_id;
         if (!l || t.has(l)) continue;
-        const d = r.attributes.friendly_name || o.replace("person.", "");
-        e.push({ id: l, name: d }), t.add(l);
+        const c = r.attributes.friendly_name || o.replace("person.", "");
+        e.push({ id: l, name: c }), t.add(l);
       }
     return e.sort((o, r) => o.name.localeCompare(r.name)), e;
   }
@@ -4121,9 +4799,9 @@ let _ = class extends y {
     return "mdi:map-marker";
   }
 };
-_.styles = [
-  E,
-  C`
+y.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -4249,8 +4927,8 @@ _.styles = [
       }
 
       .tab.is-active {
-        color: rgb(var(--rgb-primary-color));
-        border-color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Content */
@@ -4318,7 +4996,7 @@ _.styles = [
 
       .tag-input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Recurrence presets */
@@ -4343,8 +5021,8 @@ _.styles = [
       }
 
       .preset-btn.active {
-        border-color: rgb(var(--rgb-primary-color));
-        background: rgba(var(--rgb-primary-color), 0.08);
+        border-color: rgb(var(--yahatl-rgb-primary));
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .preset-label {
@@ -4380,8 +5058,8 @@ _.styles = [
       }
 
       .day-btn.active {
-        background: rgb(var(--rgb-primary-color));
-        border-color: rgb(var(--rgb-primary-color));
+        background: rgb(var(--yahatl-rgb-primary));
+        border-color: rgb(var(--yahatl-rgb-primary));
         color: white;
       }
 
@@ -4443,12 +5121,12 @@ _.styles = [
         gap: 4px;
         padding: 5px 10px;
         border-radius: 999px;
-        background: rgba(var(--rgb-primary-color), 0.10);
+        background: rgba(var(--yahatl-rgb-primary), 0.10);
       }
 
       .assign-current ha-icon {
         --mdc-icon-size: 16px;
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
       }
 
       /* Delete */
@@ -4456,6 +5134,24 @@ _.styles = [
         margin-top: 8px;
         padding-top: 16px;
         border-top: 1px solid var(--yahatl-divider);
+      }
+
+      /* Two-step delete confirmation (same pattern as the manage card) */
+      .confirm-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        background: rgba(var(--rgb-danger), 0.08);
+        border-radius: 10px;
+        flex-wrap: wrap;
+      }
+
+      .confirm-bar__msg {
+        flex: 1;
+        min-width: 140px;
+        font-size: 13px;
+        color: rgb(var(--rgb-danger));
       }
 
       .inline-wrapper {
@@ -4536,7 +5232,7 @@ _.styles = [
 
       .entity-combo__input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .entity-combo__dropdown {
@@ -4566,7 +5262,7 @@ _.styles = [
 
       .entity-combo__option:hover,
       .entity-combo__option.is-focused {
-        background: rgba(var(--rgb-primary-color), 0.08);
+        background: rgba(var(--yahatl-rgb-primary), 0.08);
       }
 
       .entity-combo__option-name {
@@ -4580,67 +5276,73 @@ _.styles = [
       }
     `
 ];
-b([
-  x()
-], _.prototype, "mode", 2);
-b([
-  x({ attribute: !1 })
-], _.prototype, "hass", 2);
-b([
+x([
+  w()
+], y.prototype, "mode", 2);
+x([
+  w({ attribute: !1 })
+], y.prototype, "hass", 2);
+x([
   g()
-], _.prototype, "_visible", 2);
-b([
+], y.prototype, "_visible", 2);
+x([
   g()
-], _.prototype, "_entityId", 2);
-b([
+], y.prototype, "_entityId", 2);
+x([
   g()
-], _.prototype, "_itemId", 2);
-b([
+], y.prototype, "_itemId", 2);
+x([
   g()
-], _.prototype, "_item", 2);
-b([
+], y.prototype, "_item", 2);
+x([
   g()
-], _.prototype, "_section", 2);
-b([
+], y.prototype, "_section", 2);
+x([
   g()
-], _.prototype, "_busy", 2);
-b([
+], y.prototype, "_busy", 2);
+x([
   g()
-], _.prototype, "_error", 2);
-b([
+], y.prototype, "_error", 2);
+x([
   g()
-], _.prototype, "_allItems", 2);
-b([
+], y.prototype, "_allItems", 2);
+x([
   g()
-], _.prototype, "_existingTags", 2);
-b([
+], y.prototype, "_existingTags", 2);
+x([
   g()
-], _.prototype, "_existingProjects", 2);
-b([
+], y.prototype, "_existingProjects", 2);
+x([
   g()
-], _.prototype, "_contexts", 2);
-b([
+], y.prototype, "_contexts", 2);
+x([
   g()
-], _.prototype, "_entityFilter", 2);
-b([
+], y.prototype, "_entityFilter", 2);
+x([
   g()
-], _.prototype, "_entityDropdownOpen", 2);
-_ = b([
-  A("yahatl-item-editor")
-], _);
-var Ae = Object.defineProperty, Se = Object.getOwnPropertyDescriptor, jt = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Se(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+], y.prototype, "_entityDropdownOpen", 2);
+x([
+  g()
+], y.prototype, "_confirmDelete", 2);
+y = x([
+  $("yahatl-item-editor")
+], y);
+var oi = Object.defineProperty, ni = Object.getOwnPropertyDescriptor, ce = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? ni(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && Ae(t, i, a), a;
+  return s && a && oi(t, i, a), a;
 };
-let lt = class extends y {
+let yt = class extends f {
   constructor() {
-    super(...arguments), this._store = new U(this);
+    super(...arguments), this._store = new W(this), this._initialized = !1;
   }
   setConfig(e) {
   }
-  connectedCallback() {
-    super.connectedCallback(), u.loadContext(), u.loadMeta();
+  // Wired like the other cards: wait for hass so the store has an API before
+  // loading. connectedCallback fired before hass was set, so if this element
+  // rendered first the loads were silently dropped and no chips appeared.
+  updated(e) {
+    e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadContext(), u.loadMeta()) : e.has("hass") && this.hass && u.setHass(this.hass);
   }
   _getZones() {
     var t;
@@ -4662,7 +5364,7 @@ let lt = class extends y {
       (r) => n`
             <button
               class="mush-chip ${i === r.id ? "mush-chip--filled" : "mush-chip--state"}"
-              style="--rgb-state: var(--rgb-primary-color)"
+              style="--rgb-state: var(--yahatl-rgb-primary)"
               @click=${() => this._setLocation(i === r.id ? null : r.id)}
             >
               <span class="mush-chip__icon">
@@ -4677,7 +5379,7 @@ let lt = class extends y {
       (r) => n`
             <button
               class="mush-chip ${s.includes(r.id) ? "mush-chip--filled" : "mush-chip--state"}"
-              style="--rgb-state: var(--rgb-primary-color)"
+              style="--rgb-state: var(--yahatl-rgb-primary)"
               @click=${() => this._toggleContext(r.id, s)}
             >
               <span class="mush-chip__icon">
@@ -4707,9 +5409,9 @@ let lt = class extends y {
     await u.setContext({ contexts: i });
   }
 };
-lt.styles = [
-  E,
-  C`
+yt.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -4739,25 +5441,28 @@ lt.styles = [
       }
     `
 ];
-jt([
-  x({ attribute: !1 })
-], lt.prototype, "hass", 2);
-lt = jt([
-  A("yahatl-context-bar")
-], lt);
-var Te = Object.defineProperty, Ee = Object.getOwnPropertyDescriptor, Ht = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Ee(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+ce([
+  w({ attribute: !1 })
+], yt.prototype, "hass", 2);
+yt = ce([
+  $("yahatl-context-bar")
+], yt);
+var li = Object.defineProperty, ci = Object.getOwnPropertyDescriptor, qt = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? ci(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && Te(t, i, a), a;
+  return s && a && li(t, i, a), a;
 };
-let ct = class extends y {
+let vt = class extends f {
   constructor() {
-    super(...arguments), this._store = new U(this), this._initialized = !1;
+    super(...arguments), this._store = new W(this), this._initialized = !1;
   }
   updated(e) {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadQueue()) : e.has("hass") && this.hass && u.setHass(this.hass);
   }
   setConfig(e) {
+  }
+  static getConfigElement() {
+    return document.createElement("yahatl-stats-card-editor");
   }
   static getStubConfig() {
     return {};
@@ -4803,7 +5508,7 @@ let ct = class extends y {
         icon: "mdi:check-circle-outline",
         value: e.total_actionable,
         label: "ready",
-        rgb: "var(--rgb-primary-color)"
+        rgb: "var(--yahatl-rgb-primary)"
       }
     ];
     return n`
@@ -4830,9 +5535,9 @@ let ct = class extends y {
     return 2;
   }
 };
-ct.styles = [
-  E,
-  C`
+vt.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -4858,24 +5563,39 @@ ct.styles = [
       }
     `
 ];
-Ht([
-  x({ attribute: !1 })
-], ct.prototype, "hass", 2);
-ct = Ht([
-  A("yahatl-stats-card")
-], ct);
+qt([
+  w({ attribute: !1 })
+], vt.prototype, "hass", 2);
+vt = qt([
+  $("yahatl-stats-card")
+], vt);
+let te = class extends f {
+  setConfig(e) {
+  }
+  render() {
+    return n`
+      <p style="color: var(--secondary-text-color); font-size: 14px">
+        No options — this card always shows overdue, due today, blocked, and
+        ready counts from your task queue.
+      </p>
+    `;
+  }
+};
+te = qt([
+  $("yahatl-stats-card-editor")
+], te);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-stats-card",
   name: "Yahatl Stats",
   description: "Mushroom-style stat tiles: overdue, today, blocked, ready"
 });
-var Ie = Object.defineProperty, De = Object.getOwnPropertyDescriptor, st = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? De(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+var di = Object.defineProperty, hi = Object.getOwnPropertyDescriptor, mt = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? hi(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && Ie(t, i, a), a;
+  return s && a && di(t, i, a), a;
 };
-let H = class extends y {
+let F = class extends f {
   constructor() {
     super(...arguments), this.entityId = "", this._value = "", this._busy = !1;
   }
@@ -4909,16 +5629,16 @@ let H = class extends y {
     if (!(!e || !this.entityId)) {
       this._busy = !0;
       try {
-        await u.createItem(this.entityId, { title: e }), this._value = "";
+        await u.createItem(this.entityId, { title: e }) && (this._value = "");
       } finally {
         this._busy = !1;
       }
     }
   }
 };
-H.styles = [
-  E,
-  C`
+F.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -4943,15 +5663,15 @@ H.styles = [
 
       .capture-row input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .capture-row button {
         padding: 0 18px;
         border: none;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         font-weight: 500;
         font-size: 14px;
@@ -4965,35 +5685,38 @@ H.styles = [
       }
     `
 ];
-st([
-  x({ attribute: !1 })
-], H.prototype, "hass", 2);
-st([
-  x()
-], H.prototype, "entityId", 2);
-st([
+mt([
+  w({ attribute: !1 })
+], F.prototype, "hass", 2);
+mt([
+  w()
+], F.prototype, "entityId", 2);
+mt([
   g()
-], H.prototype, "_value", 2);
-st([
+], F.prototype, "_value", 2);
+mt([
   g()
-], H.prototype, "_busy", 2);
-H = st([
-  A("yahatl-quick-add")
-], H);
-var ze = Object.defineProperty, Le = Object.getOwnPropertyDescriptor, ht = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Le(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+], F.prototype, "_busy", 2);
+F = mt([
+  $("yahatl-quick-add")
+], F);
+var pi = Object.defineProperty, ui = Object.getOwnPropertyDescriptor, Q = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? ui(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && ze(t, i, a), a;
+  return s && a && pi(t, i, a), a;
 };
-let V = class extends y {
+let it = class extends f {
   constructor() {
-    super(...arguments), this._config = {}, this._currentIdx = 0, this._store = new U(this), this._initialized = !1;
+    super(...arguments), this._config = {}, this._currentIdx = 0, this._store = new W(this), this._initialized = !1;
   }
   setConfig(e) {
     this._config = e;
   }
+  static getConfigElement() {
+    return document.createElement("yahatl-inbox-card-editor");
+  }
   static getStubConfig() {
-    return {};
+    return { title: "Inbox" };
   }
   updated(e) {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), this._loadInbox()) : e.has("hass") && this.hass && u.setHass(this.hass);
@@ -5005,92 +5728,96 @@ let V = class extends y {
   }
   _getInboxItems() {
     const e = [];
-    for (const [t, i] of this._store.state.items)
+    for (const t of this._store.state.lists) {
+      const i = u.getCachedItems(t.entity_id, { needs_detail: !0 });
       for (const s of i)
-        s.needs_detail && e.push({ entityId: t, item: s });
+        s.needs_detail && e.push({ entityId: t.entity_id, item: s });
+    }
     return e;
   }
   render() {
-    const e = this._getInboxItems(), t = e.length;
-    if (t === 0)
+    const e = String(this._config.title || "Inbox"), t = this._getInboxItems(), i = t.length;
+    if (i === 0)
       return n`
         <ha-card>
-          <div class="card-header">Inbox</div>
+          <div class="card-header">${e}</div>
+          ${X()}
           <div class="empty-state">All caught up — nothing needs detail</div>
         </ha-card>
       `;
-    const i = Math.min(this._currentIdx, t - 1), s = e[i], a = pt(s.item.traits), o = a ? F[a] : "var(--rgb-primary-color)", r = a ? j[a] : "mdi:tray-full";
+    const s = Math.min(this._currentIdx, i - 1), a = t[s], o = $t(a.item.traits), r = o ? K[o] : "var(--yahatl-rgb-primary)", l = o ? B[o] : "mdi:tray-full";
     return n`
       <ha-card>
         <div class="inbox-header">
-          <span class="inbox-header__title">Inbox</span>
-          <span class="inbox-count">${i + 1} of ${t}</span>
+          <span class="inbox-header__title">${e}</span>
+          <span class="inbox-count">${s + 1} of ${i}</span>
         </div>
+        ${X()}
 
         <div class="inbox-item">
           <div class="inbox-title-row">
-            <div class="mush-shape-icon" style="--rgb-state: ${o}">
-              <ha-icon icon=${r}></ha-icon>
+            <div class="mush-shape-icon" style="--rgb-state: ${r}">
+              <ha-icon icon=${l}></ha-icon>
             </div>
-            <div class="inbox-title">${s.item.title}</div>
+            <div class="inbox-title">${a.item.title}</div>
           </div>
-          ${s.item.tags.length > 0 ? n`
+          ${a.item.tags.length > 0 ? n`
                 <div class="inbox-tags">
-                  ${s.item.tags.map(
-      (l) => n`<span class="tag-chip">#${l}</span>`
+                  ${a.item.tags.map(
+      (c) => n`<span class="tag-chip">#${c}</span>`
     )}
                 </div>
-              ` : c}
+              ` : d}
           <div class="inbox-actions">
             <button
               class="btn btn--primary"
-              @click=${() => this._openEditor(s.entityId, s.item.uid)}
+              @click=${() => this._openEditor(a.entityId, a.item.uid)}
             >
               Add details
             </button>
             <button
               class="btn btn--ghost"
-              @click=${() => this._markDone(s.entityId, s.item.uid)}
+              @click=${() => this._markDone(a.entityId, a.item.uid)}
             >
               Good enough
             </button>
           </div>
         </div>
 
-        ${t > 1 ? n`
+        ${i > 1 ? n`
               <div class="nav-row">
                 <button
                   class="btn btn--ghost"
-                  ?disabled=${i === 0}
-                  @click=${() => this._currentIdx = i - 1}
+                  ?disabled=${s === 0}
+                  @click=${() => this._currentIdx = s - 1}
                 >
                   Previous
                 </button>
                 <button
                   class="btn btn--ghost"
-                  ?disabled=${i >= t - 1}
-                  @click=${() => this._currentIdx = i + 1}
+                  ?disabled=${s >= i - 1}
+                  @click=${() => this._currentIdx = s + 1}
                 >
                   Next
                 </button>
               </div>
-            ` : c}
+            ` : d}
       </ha-card>
     `;
   }
   _openEditor(e, t) {
-    et(this, { entityId: e, itemId: t, hass: this.hass });
+    G(this, { entityId: e, itemId: t, hass: this.hass });
   }
   async _markDone(e, t) {
-    await u.saveItem(e, t, { needs_detail: !1 }), await this._loadInbox();
+    await u.saveItem(e, t, { needs_detail: !1 }) && await this._loadInbox();
   }
   getCardSize() {
     return 3;
   }
 };
-V.styles = [
-  E,
-  C`
+it.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -5153,37 +5880,81 @@ V.styles = [
       }
     `
 ];
-ht([
-  x({ attribute: !1 })
-], V.prototype, "hass", 2);
-ht([
+Q([
+  w({ attribute: !1 })
+], it.prototype, "hass", 2);
+Q([
   g()
-], V.prototype, "_config", 2);
-ht([
+], it.prototype, "_config", 2);
+Q([
   g()
-], V.prototype, "_currentIdx", 2);
-V = ht([
-  A("yahatl-inbox-card")
-], V);
+], it.prototype, "_currentIdx", 2);
+it = Q([
+  $("yahatl-inbox-card")
+], it);
+let st = class extends f {
+  constructor() {
+    super(...arguments), this._config = {};
+  }
+  setConfig(e) {
+    this._config = e;
+  }
+  render() {
+    return this.hass ? n`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${st._schema}
+        .computeLabel=${(e) => e.name === "title" ? "Card title" : e.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    ` : d;
+  }
+  _valueChanged(e) {
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: e.detail.value },
+        bubbles: !0,
+        composed: !0
+      })
+    );
+  }
+};
+st._schema = [
+  { name: "title", selector: { text: {} } }
+];
+Q([
+  w({ attribute: !1 })
+], st.prototype, "hass", 2);
+Q([
+  g()
+], st.prototype, "_config", 2);
+st = Q([
+  $("yahatl-inbox-card-editor")
+], st);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-inbox-card",
   name: "Yahatl Inbox",
   description: "Triage items that need more detail"
 });
-var qe = Object.defineProperty, Oe = Object.getOwnPropertyDescriptor, $ = (e, t, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Oe(t, i) : t, o = e.length - 1, r; o >= 0; o--)
+var gi = Object.defineProperty, mi = Object.getOwnPropertyDescriptor, k = (e, t, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? mi(t, i) : t, o = e.length - 1, r; o >= 0; o--)
     (r = e[o]) && (a = (s ? r(t, i, a) : r(a)) || a);
-  return s && a && qe(t, i, a), a;
+  return s && a && gi(t, i, a), a;
 };
-let v = class extends y {
+let A = class extends f {
   constructor() {
-    super(...arguments), this._store = new U(this), this._initialized = !1, this._editingContext = null, this._editName = "", this._editIcon = "", this._editingLocation = null, this._editLocName = "", this._editLocIcon = "", this._renamingTag = null, this._renameValue = "", this._confirmDelete = null;
+    super(...arguments), this._config = {}, this._store = new W(this), this._initialized = !1, this._editingContext = null, this._editName = "", this._editIcon = "", this._editingLocation = null, this._editLocName = "", this._editLocIcon = "", this._renamingTag = null, this._renameValue = "", this._confirmDelete = null;
   }
   setConfig(e) {
+    this._config = e;
+  }
+  static getConfigElement() {
+    return document.createElement("yahatl-manage-card-editor");
   }
   static getStubConfig() {
-    return {};
+    return { title: "Manage" };
   }
   updated(e) {
     e.has("hass") && this.hass && !this._initialized ? (this._initialized = !0, u.setHass(this.hass), u.loadMeta(), u.loadTags()) : e.has("hass") && this.hass && u.setHass(this.hass);
@@ -5192,7 +5963,8 @@ let v = class extends y {
     const e = this._store.state.meta, t = this._store.state.tags, i = (e == null ? void 0 : e.contexts) || [], s = (e == null ? void 0 : e.locations) || [], a = this._getZones();
     return n`
       <ha-card>
-        <div class="card-header">Manage</div>
+        <div class="card-header">${String(this._config.title || "Manage")}</div>
+        ${X()}
 
         <!-- Contexts -->
         <div class="section">
@@ -5229,7 +6001,7 @@ let v = class extends y {
                 <div style="padding: 0 16px 6px; font-size: 12px; color: var(--yahatl-text-secondary)">
                   HA zones auto-included. Custom locations extend them.
                 </div>
-              ` : c}
+              ` : d}
           ${s.map((o, r) => this._renderLocationRow(o, r, s.length))}
           ${this._editingLocation === "__new__" ? this._renderLocationEditor(null) : n`
                 <button class="add-btn" @click=${() => this._startNewLocation()}>
@@ -5240,7 +6012,7 @@ let v = class extends y {
         </div>
 
         <!-- Confirm delete bar -->
-        ${this._confirmDelete ? this._renderConfirmBar() : c}
+        ${this._confirmDelete ? this._renderConfirmBar() : d}
       </ha-card>
     `;
   }
@@ -5253,16 +6025,16 @@ let v = class extends y {
         </div>
         <span class="entry-name">${e.name}</span>
         <div class="entry-actions">
-          ${t > 0 ? n`<button class="icon-btn" @click=${() => this._moveContext(t, -1)} title="Move up">
+          ${t > 0 ? n`<button class="icon-btn" @click=${() => this._moveContext(t, -1)} title="Move up" aria-label="Move ${e.name} up">
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
-              </button>` : c}
-          ${t < i - 1 ? n`<button class="icon-btn" @click=${() => this._moveContext(t, 1)} title="Move down">
+              </button>` : d}
+          ${t < i - 1 ? n`<button class="icon-btn" @click=${() => this._moveContext(t, 1)} title="Move down" aria-label="Move ${e.name} down">
                 <ha-icon icon="mdi:arrow-down"></ha-icon>
-              </button>` : c}
-          <button class="icon-btn" @click=${() => this._startEditContext(e)} title="Edit">
+              </button>` : d}
+          <button class="icon-btn" @click=${() => this._startEditContext(e)} title="Edit" aria-label="Edit ${e.name}">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </button>
-          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("context", e.id)} title="Delete">
+          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("context", e.id)} title="Delete" aria-label="Delete ${e.name}">
             <ha-icon icon="mdi:delete"></ha-icon>
           </button>
         </div>
@@ -5313,16 +6085,16 @@ let v = class extends y {
         </div>
         <span class="entry-name">${e.name}</span>
         <div class="entry-actions">
-          ${t > 0 ? n`<button class="icon-btn" @click=${() => this._moveLocation(t, -1)} title="Move up">
+          ${t > 0 ? n`<button class="icon-btn" @click=${() => this._moveLocation(t, -1)} title="Move up" aria-label="Move ${e.name} up">
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
-              </button>` : c}
-          ${t < i - 1 ? n`<button class="icon-btn" @click=${() => this._moveLocation(t, 1)} title="Move down">
+              </button>` : d}
+          ${t < i - 1 ? n`<button class="icon-btn" @click=${() => this._moveLocation(t, 1)} title="Move down" aria-label="Move ${e.name} down">
                 <ha-icon icon="mdi:arrow-down"></ha-icon>
-              </button>` : c}
-          <button class="icon-btn" @click=${() => this._startEditLocation(e)} title="Edit">
+              </button>` : d}
+          <button class="icon-btn" @click=${() => this._startEditLocation(e)} title="Edit" aria-label="Edit ${e.name}">
             <ha-icon icon="mdi:pencil"></ha-icon>
           </button>
-          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("location", e.id)} title="Delete">
+          <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("location", e.id)} title="Delete" aria-label="Delete ${e.name}">
             <ha-icon icon="mdi:delete"></ha-icon>
           </button>
         </div>
@@ -5393,10 +6165,10 @@ let v = class extends y {
               <span class="entry-name">#${e.name}</span>
               <span class="entry-badge">${e.count} item${e.count !== 1 ? "s" : ""}</span>
               <div class="entry-actions">
-                <button class="icon-btn" @click=${() => this._startRenameTag(e)} title="Rename">
+                <button class="icon-btn" @click=${() => this._startRenameTag(e)} title="Rename" aria-label="Rename tag ${e.name}">
                   <ha-icon icon="mdi:pencil"></ha-icon>
                 </button>
-                <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("tag", e.name)} title="Delete">
+                <button class="icon-btn icon-btn--danger" @click=${() => this._requestDelete("tag", e.name)} title="Delete" aria-label="Delete tag ${e.name}">
                   <ha-icon icon="mdi:delete"></ha-icon>
                 </button>
               </div>
@@ -5437,11 +6209,17 @@ let v = class extends y {
     if (!t) return;
     const i = this._editName.trim();
     if (!i) return;
-    const s = (e == null ? void 0 : e.id) || i.toLowerCase().replace(/\s+/g, "_"), a = this._editIcon || "mdi:label", o = {};
-    let r;
-    e ? (e.id !== s && (o[e.id] = s), r = t.contexts.map(
-      (l) => l.id === e.id ? { id: e.id, name: i, icon: a } : l
-    )) : r = [...t.contexts, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, contexts: r }, o), this._editingContext = null;
+    const s = this._editIcon || "mdi:label";
+    let a;
+    if (e)
+      a = t.contexts.map(
+        (r) => r.id === e.id ? { id: e.id, name: i, icon: s } : r
+      );
+    else {
+      const r = i.toLowerCase().replace(/\s+/g, "_");
+      a = [...t.contexts, { id: r, name: i, icon: s }];
+    }
+    await u.saveMeta({ ...t, contexts: a }) && (this._editingContext = null);
   }
   async _moveContext(e, t) {
     const i = this._store.state.meta;
@@ -5467,8 +6245,8 @@ let v = class extends y {
     const s = i.toLowerCase().replace(/\s+/g, "_"), a = this._editLocIcon || "mdi:map-marker";
     let o;
     e ? o = t.locations.map(
-      (r) => r.id === e.id ? { id: e.id, name: i, icon: a } : r
-    ) : o = [...t.locations, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, locations: o }), this._editingLocation = null;
+      (l) => l.id === e.id ? { id: e.id, name: i, icon: a } : l
+    ) : o = [...t.locations, { id: s, name: i, icon: a }], await u.saveMeta({ ...t, locations: o }) && (this._editingLocation = null);
   }
   async _moveLocation(e, t) {
     const i = this._store.state.meta;
@@ -5482,7 +6260,8 @@ let v = class extends y {
   }
   async _confirmRenameTag(e) {
     const t = this._renameValue.trim();
-    !t || t === e || (await u.renameTag(e, t), this._renamingTag = null);
+    if (!t || t === e) return;
+    await u.renameTag(e, t) && (this._renamingTag = null);
   }
   // --- Delete flow ---
   _requestDelete(e, t) {
@@ -5523,9 +6302,9 @@ let v = class extends y {
     return 6;
   }
 };
-v.styles = [
-  E,
-  C`
+A.styles = [
+  O,
+  I`
       :host {
         display: block;
       }
@@ -5566,8 +6345,8 @@ v.styles = [
         width: 32px;
         height: 32px;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.10);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.10);
+        color: rgb(var(--yahatl-rgb-primary));
         display: grid;
         place-items: center;
         flex: none;
@@ -5676,7 +6455,7 @@ v.styles = [
 
       .edit-field input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .edit-buttons {
@@ -5689,7 +6468,7 @@ v.styles = [
       /* Tag rename inline */
       .tag-rename-input {
         padding: 4px 8px;
-        border: 1px solid rgb(var(--rgb-primary-color));
+        border: 1px solid rgb(var(--yahatl-rgb-primary));
         border-radius: 6px;
         font-size: 14px;
         font-family: inherit;
@@ -5738,8 +6517,8 @@ v.styles = [
       }
 
       .add-btn:hover {
-        border-color: rgb(var(--rgb-primary-color));
-        color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
+        color: rgb(var(--yahatl-rgb-primary));
       }
 
       .add-btn ha-icon {
@@ -5747,39 +6526,82 @@ v.styles = [
       }
     `
 ];
-$([
-  x({ attribute: !1 })
-], v.prototype, "hass", 2);
-$([
+k([
+  w({ attribute: !1 })
+], A.prototype, "hass", 2);
+k([
   g()
-], v.prototype, "_editingContext", 2);
-$([
+], A.prototype, "_config", 2);
+k([
   g()
-], v.prototype, "_editName", 2);
-$([
+], A.prototype, "_editingContext", 2);
+k([
   g()
-], v.prototype, "_editIcon", 2);
-$([
+], A.prototype, "_editName", 2);
+k([
   g()
-], v.prototype, "_editingLocation", 2);
-$([
+], A.prototype, "_editIcon", 2);
+k([
   g()
-], v.prototype, "_editLocName", 2);
-$([
+], A.prototype, "_editingLocation", 2);
+k([
   g()
-], v.prototype, "_editLocIcon", 2);
-$([
+], A.prototype, "_editLocName", 2);
+k([
   g()
-], v.prototype, "_renamingTag", 2);
-$([
+], A.prototype, "_editLocIcon", 2);
+k([
   g()
-], v.prototype, "_renameValue", 2);
-$([
+], A.prototype, "_renamingTag", 2);
+k([
   g()
-], v.prototype, "_confirmDelete", 2);
-v = $([
-  A("yahatl-manage-card")
-], v);
+], A.prototype, "_renameValue", 2);
+k([
+  g()
+], A.prototype, "_confirmDelete", 2);
+A = k([
+  $("yahatl-manage-card")
+], A);
+let at = class extends f {
+  constructor() {
+    super(...arguments), this._config = {};
+  }
+  setConfig(e) {
+    this._config = e;
+  }
+  render() {
+    return this.hass ? n`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${at._schema}
+        .computeLabel=${(e) => e.name === "title" ? "Card title" : e.name}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    ` : d;
+  }
+  _valueChanged(e) {
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: e.detail.value },
+        bubbles: !0,
+        composed: !0
+      })
+    );
+  }
+};
+at._schema = [
+  { name: "title", selector: { text: {} } }
+];
+k([
+  w({ attribute: !1 })
+], at.prototype, "hass", 2);
+k([
+  g()
+], at.prototype, "_config", 2);
+at = k([
+  $("yahatl-manage-card-editor")
+], at);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "yahatl-manage-card",
@@ -5787,13 +6609,14 @@ window.customCards.push({
   description: "Manage contexts, tags, and locations for yahatl"
 });
 export {
-  lt as YahtlContextBar,
-  V as YahtlInboxCard,
-  _ as YahtlItemEditor,
-  w as YahtlListCard,
-  v as YahtlManageCard,
-  k as YahtlMyTasksCard,
-  f as YahtlQueueCard,
-  H as YahtlQuickAdd,
-  ct as YahtlStatsCard
+  yt as YahtlContextBar,
+  it as YahtlInboxCard,
+  y as YahtlItemEditor,
+  E as YahtlListCard,
+  A as YahtlManageCard,
+  T as YahtlMyTasksCard,
+  C as YahtlQueueCard,
+  F as YahtlQuickAdd,
+  tt as YahtlSnackbar,
+  vt as YahtlStatsCard
 };

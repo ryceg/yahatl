@@ -1,14 +1,13 @@
 """Constants for yahatl integration."""
 
-import json
-from pathlib import Path
-
 DOMAIN = "yahatl"
-VERSION = json.loads((Path(__file__).parent / "manifest.json").read_text())["version"]
 
 # Config keys
 CONF_LIST_NAME = "list_name"
 CONF_STORAGE_KEY = "storage_key"
+
+# Options keys
+CONF_RETENTION_DAYS = "retention_days"
 
 # Item traits (composable flags)
 TRAIT_ACTIONABLE = "actionable"
@@ -52,6 +51,8 @@ COMPLETION_HISTORY_CAP = 365
 DEFAULT_TIME_ESTIMATE = 30  # minutes
 DEFAULT_BUFFER_BEFORE = 0
 DEFAULT_BUFFER_AFTER = 0
+# Days a completed one-off is kept before the coordinator purges it (0 = never).
+DEFAULT_RETENTION_DAYS = 30
 
 # Dispatcher signal for intra-integration updates (faster than bus events)
 SIGNAL_YAHATL_UPDATED = f"{DOMAIN}_updated_signal"

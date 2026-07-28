@@ -58,6 +58,10 @@ export class YahtlStatsCard extends LitElement {
 
   setConfig(_config: Record<string, unknown>) {}
 
+  static getConfigElement(): HTMLElement {
+    return document.createElement("yahatl-stats-card-editor");
+  }
+
   static getStubConfig(): Record<string, unknown> {
     return {};
   }
@@ -105,7 +109,7 @@ export class YahtlStatsCard extends LitElement {
         icon: "mdi:check-circle-outline",
         value: q.total_actionable,
         label: "ready",
-        rgb: "var(--rgb-primary-color)",
+        rgb: "var(--yahatl-rgb-primary)",
       },
     ];
 
@@ -132,6 +136,23 @@ export class YahtlStatsCard extends LitElement {
 
   getCardSize() {
     return 2;
+  }
+}
+
+/** Config editor: the stats card is honestly zero-config (the four tiles are
+ *  fixed and computed from the live queue), so say so rather than invent
+ *  dead fields. */
+@customElement("yahatl-stats-card-editor")
+export class YahtlStatsCardEditor extends LitElement {
+  setConfig(_config: Record<string, unknown>) {}
+
+  render() {
+    return html`
+      <p style="color: var(--secondary-text-color); font-size: 14px">
+        No options — this card always shows overdue, due today, blocked, and
+        ready counts from your task queue.
+      </p>
+    `;
   }
 }
 

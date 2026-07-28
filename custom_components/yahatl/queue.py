@@ -59,17 +59,15 @@ async def _calculate_score(
     score = 0
     now = dt_util.now()
 
-    # Due date scoring
+    # Due date scoring — calendar-day semantics, matching due_today_count
     if item.due:
-        time_until_due = item.due - now
-
-        if time_until_due.total_seconds() < 0:
+        if item.due < now:
             # Overdue
             score += 100
-        elif time_until_due.total_seconds() < 86400:  # 24 hours
-            # Due today
+        elif dt_util.as_local(item.due).date() == now.date():
+            # Due today (same local calendar date, not overdue)
             score += 50
-        elif time_until_due.total_seconds() < 604800:  # 7 days
+        elif item.due - now < timedelta(days=7):
             # Due this week
             score += 20
 
@@ -254,11 +252,22 @@ class QueueEngine:
                 # Skip items assigned to someone else
                 if user_id and item.assigned_to and user_id not in item.assigned_to:
                     continue
+                # Frequency goals reset to pending after completion; while the
+                # target is met this rolling window there's nothing to do, so
+                # keep them out of the queue (and out of "blocked" — nothing is
+                # blocking them). They resurface automatically once a
+                # completion ages out of the window.
+                if (
+                    item.recurrence
+                    and item.recurrence.type == "frequency"
+                    and get_frequency_progress(item).get("complete")
+                ):
+                    continue
 
                 if item.due:
                     if item.due < now:
                         overdue_count += 1
-                    elif item.due.date() == now.date():
+                    elif dt_util.as_local(item.due).date() == now.date():
                         due_today_count += 1
 
                 result = resolver.resolve(item)

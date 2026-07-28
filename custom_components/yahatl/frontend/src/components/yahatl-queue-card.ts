@@ -1,7 +1,11 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
 import { sharedStyles, TRAIT_ICONS, TRAIT_RGB, primaryTrait } from "../styles";
-import { store, StoreController } from "../store";
+import { store, StoreController, renderStoreError } from "../store";
+import { formatDue } from "../format";
+import { keyActivate } from "../a11y";
+import { showSnackbar } from "./yahatl-snackbar";
 import { openItemEditor } from "../dialog";
 import type { HomeAssistant, QueueEntry, QueueResult } from "../types";
 
@@ -74,15 +78,15 @@ export class YahtlQueueCard extends LitElement {
 
       .capture-row input:focus {
         outline: none;
-        border-color: rgb(var(--rgb-primary-color));
+        border-color: rgb(var(--yahatl-rgb-primary));
       }
 
       .capture-row button {
         padding: 0 18px;
         border: none;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.20);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.20);
+        color: rgb(var(--yahatl-rgb-primary));
         cursor: pointer;
         font-weight: 500;
         font-size: 14px;
@@ -115,7 +119,7 @@ export class YahtlQueueCard extends LitElement {
       }
 
       .queue-item__fg:hover {
-        background: rgba(var(--rgb-primary-color), 0.05);
+        background: rgba(var(--yahatl-rgb-primary), 0.05);
       }
 
       /* Swipe reveal layers behind the row */
@@ -158,7 +162,7 @@ export class YahtlQueueCard extends LitElement {
         min-width: 22px;
         font-weight: 700;
         font-size: 15px;
-        color: rgb(var(--rgb-primary-color));
+        color: rgb(var(--yahatl-rgb-primary));
         text-align: center;
         flex: none;
       }
@@ -190,8 +194,8 @@ export class YahtlQueueCard extends LitElement {
         margin: 4px 16px 0;
         padding: 8px 12px;
         border-radius: 8px;
-        background: rgba(var(--rgb-primary-color), 0.12);
-        color: rgb(var(--rgb-primary-color));
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
+        color: rgb(var(--yahatl-rgb-primary));
         font-size: 13px;
         font-weight: 500;
       }
@@ -225,7 +229,7 @@ export class YahtlQueueCard extends LitElement {
       .upcoming-header__count {
         font-size: 12px;
         font-weight: 700;
-        background: rgba(var(--rgb-primary-color), 0.12);
+        background: rgba(var(--yahatl-rgb-primary), 0.12);
         color: var(--yahatl-text-secondary);
         border-radius: 10px;
         padding: 1px 8px;
@@ -297,6 +301,7 @@ export class YahtlQueueCard extends LitElement {
         ${userName
           ? html`<div class="greeting">Hello, ${userName}</div>`
           : nothing}
+        ${renderStoreError()}
         ${this._flash ? html`<div class="flash">${this._flash}</div>` : nothing}
 
         <div class="queue-controls" style="padding-top: 10px">
@@ -336,7 +341,11 @@ export class YahtlQueueCard extends LitElement {
 
         ${items.length === 0
           ? html`<div class="empty-state">Nothing in the queue</div>`
-          : items.map((entry, i) => this._renderItem(entry, i, todoEntity))}
+          : repeat(
+              items,
+              (entry) => entry.item.uid,
+              (entry, i) => this._renderItem(entry, i, todoEntity)
+            )}
         ${this._renderUpcoming(q)}
       </ha-card>
     `;
@@ -362,12 +371,20 @@ export class YahtlQueueCard extends LitElement {
             (entry) => html`
               <div
                 class="upcoming-row"
+                role="button"
+                tabindex="0"
                 @click=${() =>
                   openItemEditor(this, {
                     entityId: `todo.${entry.list_id}`,
                     itemId: entry.item.uid,
                     hass: this.hass,
                   })}
+                @keydown=${keyActivate(() =>
+                  openItemEditor(this, {
+                    entityId: `todo.${entry.list_id}`,
+                    itemId: entry.item.uid,
+                    hass: this.hass,
+                  }))}
               >
                 <span class="upcoming-row__title">${entry.item.title}</span>
                 <span class="upcoming-row__reason">${entry.reason || "not yet"}</span>
@@ -381,9 +398,9 @@ export class YahtlQueueCard extends LitElement {
   private _renderItem(entry: QueueEntry, index: number, todoEntity: string) {
     const item = entry.item;
     const trait = primaryTrait(item.traits);
-    const traitRgb = trait ? TRAIT_RGB[trait] : "var(--rgb-primary-color)";
+    const traitRgb = trait ? TRAIT_RGB[trait] : "var(--yahatl-rgb-primary)";
     const traitIcon = trait ? TRAIT_ICONS[trait] : "mdi:checkbox-marked-circle-outline";
-    const due = this._formatDue(item.due);
+    const due = formatDue(item.due);
     // Use the item's OWN list, not the inbox: queue items come from many lists
     // (post list-split), so completing/opening must address the list that
     // actually holds the uid or the backend returns item_not_found.
@@ -400,7 +417,10 @@ export class YahtlQueueCard extends LitElement {
         <div
           class="queue-item__fg"
           style="--rgb-state: ${traitRgb}"
+          role="button"
+          tabindex="0"
           @click=${() => this._onItemClick(entityId, item.uid)}
+          @keydown=${keyActivate(() => this._openEditor(entityId, item.uid))}
           @touchstart=${(e: TouchEvent) => this._onTouchStart(e, entityId, item.uid)}
           @touchmove=${(e: TouchEvent) => this._onTouchMove(e)}
           @touchend=${() => this._onTouchEnd()}
@@ -462,25 +482,26 @@ export class YahtlQueueCard extends LitElement {
     `;
   }
 
-  private _formatDue(due: string | null): { label: string; className: string } | null {
-    if (!due) return null;
-    const d = new Date(due);
-    const now = new Date();
-    if (d < now) {
-      const days = Math.ceil((now.getTime() - d.getTime()) / 86400000);
-      return { label: `Overdue ${days}d`, className: "overdue" };
-    }
-    if (d.toDateString() === now.toDateString())
-      return { label: "Today", className: "due-today" };
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (d.toDateString() === tomorrow.toDateString())
-      return { label: "Tomorrow", className: "" };
-    return { label: d.toLocaleDateString(), className: "" };
-  }
-
   private async _complete(entityId: string, itemId: string) {
-    await store.completeItem(entityId, itemId);
+    // Capture the pre-completion state for UNDO before completeItem's
+    // optimistic removal drops the entry from the queue.
+    const entry = this._store.state.queue?.items.find(
+      (e) => e.item.uid === itemId
+    );
+    const item = entry?.item;
+    const ok = await store.completeItem(entityId, itemId);
+    if (ok && item) {
+      const prior = {
+        status: item.status,
+        due: item.due ?? null,
+        deferred_until: item.deferred_until ?? null,
+      };
+      showSnackbar(`Completed "${item.title}"`, {
+        label: "UNDO",
+        // Failures surface via the store's lastError banner.
+        run: () => store.uncompleteItem(entityId, itemId, prior),
+      });
+    }
   }
 
   // --- Swipe gestures ---
@@ -609,8 +630,10 @@ export class YahtlQueueCard extends LitElement {
     if (!entityId) return;
     this._quickAddBusy = true;
     try {
-      await store.createItem(entityId, { title, needs_detail: true });
-      this._quickAddValue = "";
+      // Keep the draft in the input if the create failed (flaky wifi etc);
+      // the store surfaces the error via the banner.
+      const ok = await store.createItem(entityId, { title, needs_detail: true });
+      if (ok) this._quickAddValue = "";
     } finally {
       this._quickAddBusy = false;
     }
@@ -655,14 +678,10 @@ export class YahtlQueueCard extends LitElement {
 
   static getStubConfig(hass?: HomeAssistant): Record<string, unknown> {
     const states = hass?.states ?? {};
-    const queueEntity =
-      Object.keys(states).find(
-        (e) => e.startsWith("sensor.") && e.includes("yahatl") && e.endsWith("_queue")
-      ) ?? "sensor.yahatl_queue";
     const todoEntity =
       Object.keys(states).find((e) => e.startsWith("todo.") && e.includes("yahatl")) ??
       "todo.yahatl";
-    return { entity: queueEntity, todo_entity: todoEntity, title: "Up Next", max_items: 8 };
+    return { todo_entity: todoEntity, title: "Up Next", max_items: 8 };
   }
 
   getCardSize() {
@@ -676,16 +695,17 @@ export class YahtlQueueCardEditor extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @state() private _config: Record<string, unknown> = {};
 
+  // Only fields the card actually reads: todo_entity (quick-add target),
+  // title and max_items. Older configs may still carry a legacy `entity`
+  // (queue sensor) key — it's ignored by render and preserved harmlessly.
   private static readonly _schema = [
-    { name: "entity", required: true, selector: { entity: { domain: "sensor" } } },
     { name: "todo_entity", required: true, selector: { entity: { domain: "todo" } } },
     { name: "title", selector: { text: {} } },
     { name: "max_items", selector: { number: { min: 1, max: 50, mode: "box" } } },
   ];
 
   private static readonly _labels: Record<string, string> = {
-    entity: "Queue sensor",
-    todo_entity: "Todo list entity",
+    todo_entity: "Todo list entity (quick-add target)",
     title: "Card title",
     max_items: "Max items shown",
   };

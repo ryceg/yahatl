@@ -12,9 +12,11 @@ import logging
 from pathlib import Path
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, STORAGE_VERSION
+from .const import DOMAIN, SIGNAL_YAHATL_UPDATED, STORAGE_VERSION
 from .models import YahtlList
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,20 +42,33 @@ class YahtlStore:
         return self._data
 
     async def async_load(self) -> YahtlList | None:
+        """Load the list; None means no store file (and no legacy file) exists.
+
+        Raises HomeAssistantError when a file exists but can't be parsed —
+        callers must fail setup rather than treat it as "no data", or a
+        corrupt-but-recoverable file would get overwritten with a fresh list.
+        """
         raw = await self._store.async_load()
         if raw is None:
             raw = await self._async_migrate_legacy()
-        if raw is not None:
-            try:
-                self._data = YahtlList.from_dict(raw)
-            except (KeyError, TypeError, ValueError) as err:
-                _LOGGER.error("Error loading yahatl data: %s", err)
-                self._data = None
+        if raw is None:
+            return None
+        try:
+            self._data = YahtlList.from_dict(raw)
+        except (KeyError, TypeError, ValueError) as err:
+            raise HomeAssistantError(
+                f"yahatl storage '{self._storage_key}' exists but could not be "
+                f"parsed ({err}); refusing to overwrite it. Fix or remove the "
+                f".storage/{DOMAIN}.{self._storage_key} file, then reload."
+            ) from err
         return self._data
 
     async def async_save(self, data: YahtlList) -> None:
         self._data = data
         await self._store.async_save(data.to_dict())
+        # Every mutation path funnels through this save, so one dispatch here
+        # gives the calendar entity and WS subscriptions live updates for free.
+        async_dispatcher_send(self._hass, SIGNAL_YAHATL_UPDATED, data.list_id)
 
     async def async_delete(self) -> None:
         await self._store.async_remove()
@@ -81,8 +96,11 @@ class YahtlStore:
         try:
             payload = json.loads(content)
         except json.JSONDecodeError as err:
-            _LOGGER.error("Error migrating legacy yahatl data: %s", err)
-            return None
+            raise HomeAssistantError(
+                f"Legacy yahatl file '{legacy}' exists but could not be parsed "
+                f"({err}); refusing to overwrite it. Fix or remove the file, "
+                "then reload."
+            ) from err
         data = payload.get("data", {})
         # Persist into the Store, then retire the legacy file.
         await self._store.async_save(data)
